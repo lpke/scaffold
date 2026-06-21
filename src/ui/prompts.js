@@ -14,20 +14,21 @@ const {
   activeRail,
   clearRendered,
   doneLines,
+  promptBack,
   promptError,
   questionLine,
   readline,
   renderBlock,
 } = require('./frame');
 
-const withKeypress = ({ input, onKeypress, reject }) => {
+const withKeypress = ({ rl, input, onKeypress, reject }) => {
   const wasRaw = input.isRaw;
   const cleanup = () => {
     input.off('keypress', onKeypress);
     input.setRawMode(Boolean(wasRaw));
   };
 
-  readline.emitKeypressEvents(input);
+  readline.emitKeypressEvents(input, rl);
   input.setRawMode(true);
   input.resume();
   input.on('keypress', onKeypress);
@@ -36,6 +37,10 @@ const withKeypress = ({ input, onKeypress, reject }) => {
     cancel: () => {
       cleanup();
       reject(promptError());
+    },
+    back: () => {
+      cleanup();
+      reject(promptBack());
     },
     cleanup,
   };
@@ -48,13 +53,148 @@ const isDown = (str, key = {}) => key.name === 'down' || str === 'j';
 const isLeft = (str, key = {}) => key.name === 'left' || str === 'h';
 const isRight = (str, key = {}) => key.name === 'right' || str === 'l';
 const isEnter = (key = {}) => key.name === 'return' || key.name === 'enter';
+const isEscape = (key = {}) => key.name === 'escape';
 const isCtrlC = (key = {}) => key.ctrl && key.name === 'c';
 const isPrintable = (str) => Boolean(str && str.length === 1 && str >= ' ');
 
 const fallbackValueList = (choices) =>
   choices.map((choice) => `${choice.value}: ${choice.label}${choiceHint(choice)}`).join('\n');
 
+const backHelp = '(ESC again to go back)';
+
+const recordDonePrompt = (rl) => {
+  rl.renderedPromptLines = (rl.renderedPromptLines || 0) + doneLines('', '').length;
+};
+
+const clearTextRendered = (output, renderedLines, cursorLineOffset = 0) => {
+  if (renderedLines <= 0) {
+    return;
+  }
+  readline.clearLine(output, 0);
+  readline.cursorTo(output, 0);
+  readline.moveCursor(output, 0, -(renderedLines - 1 + cursorLineOffset));
+  readline.clearScreenDown(output);
+};
+
+const renderTextBlock = (output, renderedLines, lines, cursorLineOffset = 0) => {
+  clearTextRendered(output, renderedLines, cursorLineOffset);
+  output.write(lines.join('\n'));
+  return lines.length;
+};
+
+const renderTextDone = (output, renderedLines, lines, cursorLineOffset = 0) => {
+  clearTextRendered(output, renderedLines, cursorLineOffset);
+  output.write(`${lines.join('\n')}\n`);
+  return lines.length;
+};
+
+const promptTextKeys = (rl, message, defaultValue, validate = () => true, options = {}) => {
+  if (!canUseKeys(rl)) {
+    return null;
+  }
+
+  const input = rl.input;
+  const output = rl.output;
+  let value = '';
+  let error = null;
+  let renderedLines = 0;
+
+  return new Promise((resolve, reject) => {
+    let done = false;
+    let controls;
+    let cursorLineOffset = 0;
+    let backPending = false;
+
+    const render = () => {
+      const hintLine = options.hintLine ?? (defaultValue ? hint(`(${defaultValue})`) : '');
+      renderedLines = renderTextBlock(output, renderedLines, [
+        ...(error ? [`${color.dim(symbol.line)}  ${color.red(error)}`] : []),
+        questionLine(message, backPending ? backHelp : undefined),
+        ...(hintLine ? [`${activeRail()}  ${hintLine}`] : []),
+        `${activeEnd()}  ${value}`,
+      ], cursorLineOffset);
+      cursorLineOffset = 0;
+    };
+
+    const finish = async () => {
+      const answer = (value || defaultValue).trim();
+      const valid = await validate(answer);
+      if (valid !== true) {
+        error = valid || 'Invalid value.';
+        value = '';
+        render();
+        return;
+      }
+      if (done) {
+        return;
+      }
+      done = true;
+      renderedLines = renderTextDone(output, renderedLines, doneLines(message, answer), cursorLineOffset);
+      cursorLineOffset = 0;
+      recordDonePrompt(rl);
+      controls.cleanup();
+      resolve(answer);
+    };
+
+    const onKeypress = (str, key = {}) => {
+      if (isCtrlC(key)) {
+        done = true;
+        controls.cancel();
+        return;
+      }
+      if (isEscape(key)) {
+        if (backPending) {
+          done = true;
+          clearTextRendered(output, renderedLines);
+          controls.back();
+          return;
+        }
+        backPending = true;
+        render();
+        return;
+      }
+      backPending = false;
+      if (isEnter(key)) {
+        cursorLineOffset = 1;
+        finish();
+        return;
+      }
+      if (['backspace', 'delete'].includes(key.name)) {
+        value = value.slice(0, -1);
+        render();
+        return;
+      }
+      if (isPrintable(str)) {
+        value += str;
+        render();
+      }
+    };
+
+    output.write('\u001b[?25h\u001b[6 q');
+    controls = withKeypress({
+      rl,
+      input,
+      onKeypress,
+      reject: (error) => {
+        output.write('\u001b[?25l\u001b[0 q');
+        reject(error);
+      },
+    });
+    const cleanup = controls.cleanup;
+    controls.cleanup = () => {
+      output.write('\u001b[?25l\u001b[0 q');
+      cleanup();
+    };
+    render();
+  });
+};
+
 const promptText = async (rl, message, defaultValue, validate = () => true, options = {}) => {
+  const keyText = promptTextKeys(rl, message, defaultValue, validate, options);
+  if (keyText) {
+    return keyText;
+  }
+
   let error = null;
   while (true) {
     if (error) {
@@ -78,6 +218,7 @@ const promptText = async (rl, message, defaultValue, validate = () => true, opti
         clearRendered(rl.output, renderedLines);
       }
       console.log(doneLines(message, value).join('\n'));
+      recordDonePrompt(rl);
       return value;
     }
     error = valid || 'Invalid value.';
@@ -102,6 +243,7 @@ const promptYesNoKeys = (rl, message, defaultValue) => {
   return new Promise((resolve, reject) => {
     let done = false;
     let controls;
+    let backPending = false;
 
     const finish = (value, submittedWithEnter = false) => {
       if (done) {
@@ -113,6 +255,7 @@ const promptYesNoKeys = (rl, message, defaultValue) => {
         renderedLines + (submittedWithEnter ? 1 : 0),
         doneLines(message, value ? 'Yes' : 'No'),
       );
+      recordDonePrompt(rl);
       controls.cleanup();
       resolve(value);
     };
@@ -126,7 +269,7 @@ const promptYesNoKeys = (rl, message, defaultValue) => {
 
     const render = () => {
       renderedLines = renderBlock(output, renderedLines, [
-        questionLine(message),
+        questionLine(message, backPending ? backHelp : undefined),
         `${activeRail()}  ${option(true, 'Yes')} ${color.dim('/')} ${option(false, 'No')}`,
         activeEnd(),
       ]);
@@ -138,6 +281,18 @@ const promptYesNoKeys = (rl, message, defaultValue) => {
         controls.cancel();
         return;
       }
+      if (isEscape(key)) {
+        if (backPending) {
+          done = true;
+          clearRendered(output, renderedLines);
+          controls.back();
+          return;
+        }
+        backPending = true;
+        render();
+        return;
+      }
+      backPending = false;
       if (isLeft(str, key) || isRight(str, key) || ['space', 'tab'].includes(key.name)) {
         selected = !selected;
         render();
@@ -160,7 +315,7 @@ const promptYesNoKeys = (rl, message, defaultValue) => {
       }
     };
 
-    controls = withKeypress({ input, onKeypress, reject });
+    controls = withKeypress({ rl, input, onKeypress, reject });
     render();
   });
 };
@@ -205,6 +360,7 @@ const promptChoiceKeys = (rl, message, choices, defaultValue) => {
   return new Promise((resolve, reject) => {
     let done = false;
     let controls;
+    let backPending = false;
 
     const finish = (value, submittedWithEnter = false) => {
       if (done) {
@@ -217,6 +373,7 @@ const promptChoiceKeys = (rl, message, choices, defaultValue) => {
         renderedLines + (submittedWithEnter ? 1 : 0),
         doneLines(message, label),
       );
+      recordDonePrompt(rl);
       controls.cleanup();
       resolve(value);
     };
@@ -230,7 +387,7 @@ const promptChoiceKeys = (rl, message, choices, defaultValue) => {
 
     const render = () => {
       renderedLines = renderBlock(output, renderedLines, [
-        questionLine(message),
+        questionLine(message, backPending ? backHelp : undefined),
         ...choices.map(renderChoice),
         activeEnd(),
       ]);
@@ -242,6 +399,18 @@ const promptChoiceKeys = (rl, message, choices, defaultValue) => {
         controls.cancel();
         return;
       }
+      if (isEscape(key)) {
+        if (backPending) {
+          done = true;
+          clearRendered(output, renderedLines);
+          controls.back();
+          return;
+        }
+        backPending = true;
+        render();
+        return;
+      }
+      backPending = false;
       if (isUp(str, key)) {
         selected = moveIndex(selected, choices.length, -1);
         render();
@@ -261,7 +430,7 @@ const promptChoiceKeys = (rl, message, choices, defaultValue) => {
       }
     };
 
-    controls = withKeypress({ input, onKeypress, reject });
+    controls = withKeypress({ rl, input, onKeypress, reject });
     render();
   });
 };
@@ -305,6 +474,7 @@ const promptMultiselectKeys = (rl, message, choices, defaultValues, { required =
   return new Promise((resolve, reject) => {
     let done = false;
     let controls;
+    let backPending = false;
 
     const values = () => choices
       .filter((choice) => selectedValues.has(choice.value))
@@ -320,7 +490,7 @@ const promptMultiselectKeys = (rl, message, choices, defaultValues, { required =
 
     const render = (messageHint = '(↑/↓ to navigate, space to select, a to toggle all, enter to confirm)') => {
       renderedLines = renderBlock(output, renderedLines, [
-        questionLine(message, messageHint),
+        questionLine(message, backPending ? backHelp : messageHint),
         ...choices.map(renderChoice),
         activeEnd(),
       ]);
@@ -348,6 +518,7 @@ const promptMultiselectKeys = (rl, message, choices, defaultValues, { required =
         renderedLines + (submittedWithEnter ? 1 : 0),
         doneLines(message, label),
       );
+      recordDonePrompt(rl);
       controls.cleanup();
       resolve(selected);
     };
@@ -377,6 +548,18 @@ const promptMultiselectKeys = (rl, message, choices, defaultValues, { required =
         controls.cancel();
         return;
       }
+      if (isEscape(key)) {
+        if (backPending) {
+          done = true;
+          clearRendered(output, renderedLines);
+          controls.back();
+          return;
+        }
+        backPending = true;
+        render();
+        return;
+      }
+      backPending = false;
       if (isUp(str, key)) {
         selected = moveIndex(selected, choices.length, -1);
         render();
@@ -406,7 +589,7 @@ const promptMultiselectKeys = (rl, message, choices, defaultValues, { required =
       }
     };
 
-    controls = withKeypress({ input, onKeypress, reject });
+    controls = withKeypress({ rl, input, onKeypress, reject });
     render();
   });
 };

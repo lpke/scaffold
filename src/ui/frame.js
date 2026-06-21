@@ -13,7 +13,7 @@ const end = () => color.dim(symbol.end);
 const createPrompter = () => {
   const input = process.stdin;
   const output = process.stdout;
-  const rl = readlinePromises.createInterface({ input, output });
+  const rl = readlinePromises.createInterface({ input, output, escapeCodeTimeout: 25 });
   const close = rl.close.bind(rl);
   rl.input = input;
   rl.output = output;
@@ -59,6 +59,15 @@ const renderBlock = (output, renderedLines, lines) => {
   return writeLines(output, lines);
 };
 
+class BackPromptError extends Error {
+  constructor() {
+    super('Back');
+    this.name = 'BackPromptError';
+  }
+}
+
+const promptBack = () => new BackPromptError();
+const isPromptBack = (error) => error instanceof BackPromptError;
 const promptError = () => new Error('Cancelled');
 
 const questionLine = (message, help) =>
@@ -88,7 +97,9 @@ module.exports = {
   activeRail,
   end,
   intro,
+  isPromptBack,
   outro,
+  promptBack,
   promptError,
   questionLine,
   rail,

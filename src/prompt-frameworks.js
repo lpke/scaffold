@@ -1,8 +1,8 @@
 'use strict';
 
 const { npmLatest, npmPackageVersionExists, npmRecentMajorVersions } = require('./detect');
-const { color, promptChoice, promptText } = require('./ui');
-const { clearRendered } = require('./ui/frame');
+const { color, isPromptBack, promptChoice, promptText } = require('./ui');
+const { clearRendered, doneLines } = require('./ui/frame');
 
 const latestFrameworkVersion = ({ config, framework }) => {
   const meta = config.frameworks[framework];
@@ -35,23 +35,6 @@ const resolveFrameworkVersion = async ({ rl, opts, config, framework }) => {
   const recent = recentFrameworkMajorVersions({ config, framework });
   const highest = recent[0]?.version ?? latest;
 
-  const selected = await promptChoice(
-    rl,
-    'Framework version?',
-    [
-      { label: highest ? `${highest} (highest semver)` : 'highest semver', value: highest || 'latest' },
-      { label: latest ? `${latest} (latest tag)` : 'latest tag', value: 'latest' },
-      { label: 'specify version', value: 'custom' },
-    ],
-    'latest',
-  );
-  if (selected !== 'custom') {
-    return selected;
-  }
-  if (rl.output?.isTTY) {
-    clearRendered(rl.output, 3);
-  }
-
   const highestMajors = recent.map(({ version }) => version);
   const hintLine = highestMajors.length > 0
     ? `${color.dim('(highest majors: ')}${color.bold(highestMajors[0])}${color.dim(
@@ -59,20 +42,47 @@ const resolveFrameworkVersion = async ({ rl, opts, config, framework }) => {
       )}`
     : color.yellow(`Could not check recent ${framework} versions.`);
 
-  return promptText(
-    rl,
-    `${meta.label} version`,
-    highest || latest || 'latest',
-    (value) => {
-      if (!value) {
-        return 'Framework version is required.';
+  while (true) {
+    const selected = await promptChoice(
+      rl,
+      'Framework version?',
+      [
+        { label: highest ? `${highest} (highest semver)` : 'highest semver', value: highest || 'latest' },
+        { label: latest ? `${latest} (latest tag)` : 'latest tag', value: 'latest' },
+        { label: 'specify version', value: 'custom' },
+      ],
+      'latest',
+    );
+    if (selected !== 'custom') {
+      return selected;
+    }
+
+    try {
+      return await promptText(
+        rl,
+        `${meta.label} version`,
+        highest || latest || 'latest',
+        (value) => {
+          if (!value) {
+            return 'Framework version is required.';
+          }
+          return npmPackageVersionExists(meta.latestPackage, value)
+            ? true
+            : `${value} doesnt exist`;
+        },
+        { hintLine },
+      );
+    } catch (error) {
+      if (!isPromptBack(error)) {
+        throw error;
       }
-      return npmPackageVersionExists(meta.latestPackage, value)
-        ? true
-        : `${value} doesnt exist`;
-    },
-    { hintLine },
-  );
+      if (rl.output?.isTTY) {
+        const renderedLines = doneLines('', '').length;
+        clearRendered(rl.output, renderedLines);
+        rl.renderedPromptLines = Math.max(0, (rl.renderedPromptLines || 0) - renderedLines);
+      }
+    }
+  }
 };
 
 module.exports = {
