@@ -52,12 +52,12 @@ const resolveTypescriptAnswers = async (rl, opts) => {
     return { typescript: true, tsMode: opts.tsMode };
   }
   if (opts.typescript === true && !rl) {
-    return { typescript: true, tsMode: 'non-strict' };
+    return { typescript: true, tsMode: 'strict' };
   }
 
   const selected = rl
-    ? await promptChoice(rl, 'TypeScript?', typescriptChoices, 'non-strict')
-    : 'non-strict';
+    ? await promptChoice(rl, 'TypeScript?', typescriptChoices, 'strict')
+    : 'strict';
 
   return selected === 'none'
     ? { typescript: false, tsMode: 'preserve' }

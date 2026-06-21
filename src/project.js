@@ -573,6 +573,12 @@ const applyLicense = async ({ workspace, answers, config }) => {
   }
 };
 
+const applyReadme = async ({ workspace }) => {
+  await workspace.write('README.md', `# ${sanitizePackageName(workspace.targetDir)}\n`, {
+    overwrite: false,
+  });
+};
+
 const applyAgents = async ({ workspace, answers }) => {
   if (!answers.agents) {
     return;
@@ -629,6 +635,7 @@ module.exports = {
   applyNextTsconfig,
   applyPackageJson,
   applyPnpmWorkspace,
+  applyReadme,
   applyTsMode,
   applyTypescriptConfig,
   sanitizePackageName,

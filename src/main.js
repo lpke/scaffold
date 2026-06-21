@@ -18,6 +18,7 @@ const {
   applyNextTsconfig,
   applyPackageJson,
   applyPnpmWorkspace,
+  applyReadme,
   applyTsMode,
   applyTypescriptConfig,
 } = require('./project');
@@ -153,6 +154,7 @@ const main = async () => {
   await applyLocalStarter(workspace, answers);
   await applyPnpmWorkspace({ workspace, answers });
   await applyPackageJson({ workspace, answers, existingPackage, config });
+  await applyReadme({ workspace });
   if (
     answers.typescript &&
     (hadTsconfig || answers.tsMode === 'non-strict' || answers.framework !== 'none')

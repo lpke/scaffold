@@ -28,7 +28,7 @@ Local defaults and editable base files live under `share`.
 - Node project: `Y/n`, skipped and enabled for existing package.json
 - Node version: default detected from `engines.node`, else `24`; options `26`, `24`, `22`, `20`, `18`, `16`
 - Package manager: `pnpm` default, or `keep detected <manager>` when available; `yarn`, `npm`
-- TypeScript: select one of `none`, `non-strict`, `strict`; `non-strict` default
+- TypeScript: select one of `none`, `non-strict`, `strict`; `strict` default
 - Framework: `none` default; `Next.js`, `Nuxt`; skipped for existing package unless `--framework` is provided
 - Framework version: highest semver, latest tag (default), or specify version; custom input shows highest versions by recent majors
 - Prettier: selected by default in feature prompts

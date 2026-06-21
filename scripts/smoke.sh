@@ -35,6 +35,7 @@ const assert = require('node:assert/strict');
 const { loadConfig } = require('./src/config');
 const { parseArgs } = require('./src/cli');
 const { frameworkCommand } = require('./src/frameworks');
+const { resolveTypescriptAnswers } = require('./src/prompt-features');
 
 (async () => {
   const config = await loadConfig();
@@ -65,6 +66,10 @@ const { frameworkCommand } = require('./src/frameworks');
   assert(!command.args.includes('--javascript'));
 
   assert.equal(parseArgs(['--no-libraries']).libraries, false);
+  assert.deepEqual(await resolveTypescriptAnswers(null, { typescript: true }), {
+    typescript: true,
+    tsMode: 'strict',
+  });
 })().catch((error) => {
   console.error(error);
   process.exit(1);
@@ -87,6 +92,7 @@ bin/scaffold "$tmp/app" \
   --agents >/dev/null
 
 test -f "$tmp/app/package.json"
+grep -Fx '# app' "$tmp/app/README.md" >/dev/null
 test -f "$tmp/app/AGENTS.md"
 test -f "$tmp/app/LICENSE"
 test -f "$tmp/app/src/App.tsx"
@@ -111,6 +117,7 @@ if command -v git >/dev/null 2>&1; then
     --no-install \
     --git replace >/dev/null
 
+  grep -Fx '# replace' "$tmp/replace/README.md" >/dev/null
   test "$(git -C "$tmp/replace" log --format=%s -1)" = "initial commit"
   test "$(git -C "$tmp/replace" rev-list --count HEAD)" = "1"
   git -C "$tmp/replace" ls-tree -r --name-only HEAD | grep -Fx existing.txt >/dev/null
