@@ -240,7 +240,13 @@ const applyPackageJson = async ({ workspace, answers, existingPackage, config })
   }
 
   pkg.scripts ??= {};
-  mergeObjectDefaults(pkg.scripts, scriptSet(answers));
+  const scripts = scriptSet(answers);
+  mergeObjectDefaults(pkg.scripts, scripts);
+  if (answers.framework === 'none' && answers.vite && answers.devServer) {
+    for (const name of ['dev', 'dev:nohost', 'preview', 'preview:nohost']) {
+      pkg.scripts[name] = scripts[name];
+    }
+  }
 
   const { deps, devDeps } = dependencySet(answers, config);
   if (Object.keys(deps).length > 0) {
@@ -411,7 +417,7 @@ const licenseReadmeBlock = (licenseType, config) =>
   `${licenseReadmeSentence(licenseType)}\n\nCopyright © ${new Date().getFullYear()} ${config.author}`;
 
 const applyTypescriptConfig = async (workspace, answers) => {
-  if (!answers.typescript || answers.framework !== 'none') {
+  if (!answers.typescript || answers.framework !== 'none' || answers.frontendBase !== 'none') {
     return;
   }
   const template = answers.vite ? 'typescript/tsconfig.vite.json' : 'typescript/tsconfig.node.json';
@@ -440,7 +446,7 @@ const applyNextTsconfig = async (workspace, answers) => {
 };
 
 const applyLocalStarter = async (workspace, answers) => {
-  if (!answers.nodeProject || answers.framework !== 'none') {
+  if (!answers.nodeProject || answers.framework !== 'none' || answers.frontendBase !== 'none') {
     return;
   }
   if (answers.vite) {
@@ -544,6 +550,38 @@ const applyLocalStarter = async (workspace, answers) => {
   await workspace.copyTemplateDir(`starters/node-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
 };
 
+const applyGeneratedViteTailwind = async (workspace, answers) => {
+  if (!answers.tailwind || answers.framework !== 'none' || answers.frontendBase === 'none') {
+    return;
+  }
+
+  const configPath = answers.typescript ? 'vite.config.ts' : 'vite.config.js';
+  const absoluteConfigPath = workspace.targetPath(configPath);
+  if (await fileExists(absoluteConfigPath)) {
+    let config = await readText(absoluteConfigPath);
+    if (!config.includes('@tailwindcss/vite')) {
+      config = `import tailwindcss from '@tailwindcss/vite'\n${config}`;
+      if (/plugins:\s*\[([^\]]*)\]/s.test(config)) {
+        config = config.replace(/plugins:\s*\[([^\]]*)\]/s, (match, plugins) => {
+          const trimmed = plugins.trim().replace(/,+\s*$/, '');
+          return `plugins: [${trimmed ? `${trimmed}, ` : ''}tailwindcss()]`;
+        });
+      } else {
+        config = config.replace(/defineConfig\(\{\s*/s, 'defineConfig({\n  plugins: [tailwindcss()],\n  ');
+      }
+      await workspace.write(configPath, config, { overwrite: true });
+    } else {
+      workspace.skipped.push(`${configPath} already has Tailwind`);
+      workspace.mark(configPath);
+    }
+  } else {
+    workspace.skipped.push('Tailwind Vite config skipped; vite.config not found');
+  }
+
+  const cssPath = answers.react ? 'src/index.css' : 'src/style.css';
+  await workspace.copyTemplate('starters/vite/tailwind.css', cssPath, { overwrite: true });
+};
+
 const applyLicense = async ({ workspace, answers, config }) => {
   if (!answers.license) {
     return;
@@ -631,6 +669,7 @@ module.exports = {
   applyCommon,
   applyLicense,
   applyLocalStarter,
+  applyGeneratedViteTailwind,
   applyNix,
   applyNextTsconfig,
   applyPackageJson,

@@ -38,6 +38,49 @@ const frameworkCommand = ({ answers, config, targetDir }) => {
   return { command: 'npx', args };
 };
 
+const frontendBaseCommand = ({ answers, targetDir }) => {
+  if (answers.frontendBase === 'react') {
+    const template = answers.typescript ? 'react-ts' : 'react';
+    return {
+      command: 'npm',
+      args: ['create', 'vite@latest', targetDir, '--', '--template', template, '--no-interactive'],
+    };
+  }
+  if (answers.frontendBase === 'vue') {
+    const args = ['create', 'vue@latest', targetDir];
+    const featureFlags = [];
+    if (answers.typescript) featureFlags.push('--ts');
+    if (answers.jsx) featureFlags.push('--jsx');
+    if (answers.router) featureFlags.push('--router');
+    if (answers.pinia) featureFlags.push('--pinia');
+    if (answers.vitest) featureFlags.push('--vitest');
+    if (answers.eslint) featureFlags.push('--eslint');
+    if (answers.prettier) featureFlags.push('--prettier');
+    if (featureFlags.length === 0) featureFlags.push('--default');
+    return {
+      command: 'npm',
+      args: [...args, '--', ...featureFlags],
+    };
+  }
+  throw new Error(`Unknown frontend base: ${answers.frontendBase}`);
+};
+
+const runFrontendBase = async ({ answers, targetDir, dryRun, force }) => {
+  if (!answers.frontendBase || answers.frontendBase === 'none') {
+    return;
+  }
+  const empty = await isDirEmpty(targetDir);
+  if (!empty && !force) {
+    throw new Error(
+      `${answers.frontendBase === 'react' ? 'React + Vite' : 'Vue + Vite'} generator requires an empty target directory. Re-run with --force to let the generator attempt it anyway.`,
+    );
+  }
+  const resolvedTarget = path.resolve(targetDir);
+  const { command, args } = frontendBaseCommand({ answers, targetDir: path.basename(resolvedTarget) });
+  console.log(color.dim(`frontend base command: ${displayCommand(command, args)}`));
+  runCommand(command, args, path.dirname(resolvedTarget), dryRun);
+};
+
 const runFramework = async ({ answers, config, targetDir, dryRun, force }) => {
   if (answers.framework === 'none') {
     return;
@@ -54,6 +97,8 @@ const runFramework = async ({ answers, config, targetDir, dryRun, force }) => {
 };
 
 module.exports = {
+  frontendBaseCommand,
+  runFrontendBase,
   frameworkCommand,
   runFramework,
 };

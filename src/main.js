@@ -7,12 +7,13 @@ const { parseArgs, printRequestedHelp } = require('./cli');
 const { commandExists, runCommand } = require('./commands');
 const { loadConfig } = require('./config');
 const { fileExists, readJsonFile, statOrNull } = require('./detect');
-const { runFramework } = require('./frameworks');
+const { runFramework, runFrontendBase } = require('./frameworks');
 const { prepareGit, replaceGitWithInitialCommit, stageForNix, stageGit } = require('./git');
 const {
   applyAgents,
   applyCommon,
   applyLicense,
+  applyGeneratedViteTailwind,
   applyLocalStarter,
   applyNix,
   applyNextTsconfig,
@@ -103,6 +104,9 @@ const printSummary = ({ answers, targetDir, workspace }) => {
   if (answers.framework !== 'none') {
     console.log(`${color.dim('│')} ${color.dim('framework:')} ${answers.framework}@${answers.frameworkVersion}`);
   }
+  if (answers.frontendBase && answers.frontendBase !== 'none') {
+    console.log(`${color.dim('│')} ${color.dim('frontend base:')} ${answers.frontendBase}`);
+  }
   console.log(`${color.dim('└')} ${color.green('done')}`);
 };
 
@@ -143,6 +147,12 @@ const main = async () => {
     dryRun: answers.dryRun,
     force: answers.force,
   });
+  await runFrontendBase({
+    answers,
+    targetDir,
+    dryRun: answers.dryRun,
+    force: answers.force,
+  });
 
   if (!answers.dryRun) {
     existingPackage = await readExistingPackage(targetDir);
@@ -152,6 +162,7 @@ const main = async () => {
   await applyNix({ workspace, answers, config });
   await applyTypescriptConfig(workspace, answers);
   await applyLocalStarter(workspace, answers);
+  await applyGeneratedViteTailwind(workspace, answers);
   await applyPnpmWorkspace({ workspace, answers });
   await applyPackageJson({ workspace, answers, existingPackage, config });
   await applyReadme({ workspace });

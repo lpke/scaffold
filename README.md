@@ -29,11 +29,15 @@ Local defaults and editable base files live under `share`.
 - Node version: default detected from `engines.node`, else `24`; options `26`, `24`, `22`, `20`, `18`, `16`
 - Package manager: `pnpm` default, or `keep detected <manager>` when available; `yarn`, `npm`
 - TypeScript: select one of `none`, `non-strict`, `strict`; `strict` default
-- Framework: `none` default; `Next.js`, `Nuxt`; skipped for existing package unless `--framework` is provided
+- Framework: `none` default; `Next.js (React)`, `Nuxt (Vue)`; skipped for existing package unless `--framework` is provided
 - Framework version: highest semver, latest tag (default), or specify version; custom input shows highest versions by recent majors
+- Frontend base: after `Framework: none`, choose `none`, `React`, or `Vue`; default `none`
 - Prettier: selected by default in feature prompts
 - No framework path:
-  - Feature multiselect: Prettier, Vite, React, Vue, Tailwind, Vitest; Prettier defaults on
+  - With `Frontend base: none`, feature multiselect: Prettier, Vite barebones, React barebones, Vue barebones, Tailwind, Vitest; Prettier defaults on
+  - With `Frontend base: React`, scaffold first runs `npm create vite@latest <dir> -- --template react-ts --no-interactive` for TypeScript, or `react` for JavaScript
+  - With `Frontend base: Vue`, scaffold first runs `npm create vue@latest <dir> -- --ts/--jsx/--router/--pinia/--vitest/--eslint/--prettier` based on selected features, or `--default` when no create-vue feature flags are selected
+  - Vue frontend base feature choices add JSX support, Vue Router, Pinia, and Linter
   - Vite includes dev server scripts by default
   - Dev server port: `3000`, prompted when dev server scripts will be added
   - React and Vue are mutually exclusive; selecting both asks which starter to keep

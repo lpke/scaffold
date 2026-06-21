@@ -18,10 +18,12 @@ for flag in \
   --yes --dry-run --nix --no-nix --direnv --no-direnv \
   --node-project --no-node-project --node --package-manager \
   --prettier --no-prettier --tailwind --no-tailwind --framework \
-  --framework-version --typescript --no-typescript --strict \
+  --frontend-base --framework-version --typescript --no-typescript --strict \
   --non-strict --preserve-ts --vite --no-vite --no-libraries --dev-server \
   --no-dev-server --dev-port --vitest --no-vitest --react \
-  --no-react --vue --no-vue --license --no-license --license-type \
+  --no-react --vue --no-vue --jsx --no-jsx --router --no-router \
+  --pinia --no-pinia --eslint --no-eslint --linter --no-linter \
+  --license --no-license --license-type \
   --agents --no-agents --flake-lock --no-flake-lock --install \
   --no-install --git --git-remote --git-remote-name --git-add \
   --no-git-add --force --backup --no-backup
@@ -34,7 +36,7 @@ node <<'NODE'
 const assert = require('node:assert/strict');
 const { loadConfig } = require('./src/config');
 const { parseArgs } = require('./src/cli');
-const { frameworkCommand } = require('./src/frameworks');
+const { frameworkCommand, frontendBaseCommand } = require('./src/frameworks');
 const { resolveTypescriptAnswers } = require('./src/prompt-features');
 
 (async () => {
@@ -65,7 +67,31 @@ const { resolveTypescriptAnswers } = require('./src/prompt-features');
   assert(command.args.includes('--no-tailwind'));
   assert(!command.args.includes('--javascript'));
 
+  command = frontendBaseCommand({
+    answers: { frontendBase: 'react', typescript: true },
+    targetDir: '/tmp/scaffold-react',
+  });
+  assert.deepEqual(command.args.slice(-4), ['--', '--template', 'react-ts', '--no-interactive']);
+
+  command = frontendBaseCommand({
+    answers: {
+      frontendBase: 'vue',
+      typescript: true,
+      jsx: true,
+      router: true,
+      pinia: true,
+      vitest: true,
+      eslint: true,
+      prettier: true,
+    },
+    targetDir: '/tmp/scaffold-vue',
+  });
+  for (const arg of ['--ts', '--jsx', '--router', '--pinia', '--vitest', '--eslint', '--prettier']) {
+    assert(command.args.includes(arg), `missing ${arg}`);
+  }
+
   assert.equal(parseArgs(['--no-libraries']).libraries, false);
+  assert.equal(parseArgs(['--frontend-base', 'react']).frontendBase, 'react');
   assert.deepEqual(await resolveTypescriptAnswers(null, { typescript: true }), {
     typescript: true,
     tsMode: 'strict',

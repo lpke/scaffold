@@ -102,7 +102,15 @@ Enable Tailwind-aware scaffold behavior. Local Vite starters install Tailwind CS
     summary: 'Set framework',
     help: `Usage: scaffold [dir] --framework <none|next|nuxt>
 
-Choose framework. "next" runs create-next-app. "nuxt" runs nuxi init. "none" uses local templates.`,
+Choose framework. "next" runs create-next-app for Next.js (React). "nuxt" runs nuxi init for Nuxt (Vue). "none" uses local templates or a frontend base.`,
+  },
+  {
+    topic: '--frontend-base',
+    names: ['--frontend-base'],
+    summary: 'Set frontend base generator',
+    help: `Usage: scaffold [dir] --frontend-base <none|react|vue>
+
+Choose a frontend base when --framework is none. "react" runs create-vite with the React template. "vue" runs create-vue with selected feature flags. "none" keeps local barebones starters.`,
   },
   {
     topic: '--framework-version',
@@ -191,6 +199,42 @@ Add minimal React source/dependencies. Vue prompt is skipped when React is selec
        scaffold [dir] --no-vue
 
 Add minimal Vue source/dependencies. Only used when React is not selected.`,
+  },
+  {
+    topic: '--jsx',
+    names: ['--jsx', '--no-jsx'],
+    summary: 'Use or skip Vue JSX support',
+    help: `Usage: scaffold [dir] --frontend-base vue --jsx
+       scaffold [dir] --frontend-base vue --no-jsx
+
+Pass --jsx to create-vue when Vue frontend base is selected.`,
+  },
+  {
+    topic: '--router',
+    names: ['--router', '--no-router'],
+    summary: 'Use or skip Vue Router',
+    help: `Usage: scaffold [dir] --frontend-base vue --router
+       scaffold [dir] --frontend-base vue --no-router
+
+Pass --router to create-vue when Vue frontend base is selected.`,
+  },
+  {
+    topic: '--pinia',
+    names: ['--pinia', '--no-pinia'],
+    summary: 'Use or skip Pinia',
+    help: `Usage: scaffold [dir] --frontend-base vue --pinia
+       scaffold [dir] --frontend-base vue --no-pinia
+
+Pass --pinia to create-vue when Vue frontend base is selected.`,
+  },
+  {
+    topic: '--eslint',
+    names: ['--eslint', '--no-eslint', '--linter', '--no-linter'],
+    summary: 'Use or skip Vue linter',
+    help: `Usage: scaffold [dir] --frontend-base vue --eslint
+       scaffold [dir] --frontend-base vue --no-eslint
+
+Pass --eslint to create-vue when Vue frontend base is selected. --linter is an alias.`,
   },
   {
     topic: '--license',
@@ -473,6 +517,32 @@ const parseArgs = (argv) => {
       case '--no-vue':
         setBool('vue', false);
         break;
+      case '--jsx':
+        setBool('jsx', true);
+        break;
+      case '--no-jsx':
+        setBool('jsx', false);
+        break;
+      case '--router':
+        setBool('router', true);
+        break;
+      case '--no-router':
+        setBool('router', false);
+        break;
+      case '--pinia':
+        setBool('pinia', true);
+        break;
+      case '--no-pinia':
+        setBool('pinia', false);
+        break;
+      case '--eslint':
+      case '--linter':
+        setBool('eslint', true);
+        break;
+      case '--no-eslint':
+      case '--no-linter':
+        setBool('eslint', false);
+        break;
       case '--license':
         setBool('license', true);
         break;
@@ -524,6 +594,7 @@ const parseArgs = (argv) => {
       case '--node':
       case '--package-manager':
       case '--framework':
+      case '--frontend-base':
       case '--framework-version':
       case '--dev-port':
       case '--license-type':
@@ -535,6 +606,7 @@ const parseArgs = (argv) => {
         if (arg === '--node') opts.nodeMajor = value;
         if (arg === '--package-manager') opts.packageManager = value;
         if (arg === '--framework') opts.framework = value;
+        if (arg === '--frontend-base') opts.frontendBase = value;
         if (arg === '--framework-version') opts.frameworkVersion = value;
         if (arg === '--dev-port') opts.devPort = value;
         if (arg === '--license-type') opts.licenseType = value;

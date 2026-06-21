@@ -88,8 +88,11 @@ const inferDependentOptions = (opts, { interactive }) => {
 
   const frameworkOptionSet = opts.framework != null;
   const frameworkRequested = frameworkOptionSet && opts.framework !== 'none';
+  const frontendBaseOptionSet = opts.frontendBase != null;
+  const frontendBaseRequested = frontendBaseOptionSet && opts.frontendBase !== 'none';
   const nodeRequests = [
     [frameworkOptionSet, '--framework'],
+    [frontendBaseOptionSet, '--frontend-base'],
     [opts.frameworkVersion != null, '--framework-version'],
     [opts.nodeMajor != null, '--node'],
     [opts.packageManager != null, '--package-manager'],
@@ -103,6 +106,10 @@ const inferDependentOptions = (opts, { interactive }) => {
     [opts.vitest === true, '--vitest'],
     [opts.react === true, '--react'],
     [opts.vue === true, '--vue'],
+    [opts.jsx === true, '--jsx'],
+    [opts.router === true, '--router'],
+    [opts.pinia === true, '--pinia'],
+    [opts.eslint === true, '--eslint'],
     [opts.install === true, '--install'],
   ];
   const nodeRequest = nodeRequests.find(([enabled]) => enabled);
@@ -112,6 +119,37 @@ const inferDependentOptions = (opts, { interactive }) => {
 
   if (opts.frameworkVersion != null && !frameworkRequested) {
     throw new Error('--framework-version requires --framework <next|nuxt>');
+  }
+  if (frameworkRequested && frontendBaseRequested) {
+    throw new Error('--frontend-base cannot be combined with --framework <next|nuxt>');
+  }
+  if (frontendBaseRequested && opts.vite === false) {
+    throw new Error('--frontend-base react/vue cannot be combined with --no-vite');
+  }
+  if (!['none', 'react', 'vue', undefined, null].includes(opts.frontendBase)) {
+    throw new Error(`Unknown frontend base: ${opts.frontendBase}`);
+  }
+  if (opts.frontendBase === 'react' && opts.react === false) {
+    throw new Error('--frontend-base react cannot be combined with --no-react');
+  }
+  if (opts.frontendBase === 'vue' && opts.vue === false) {
+    throw new Error('--frontend-base vue cannot be combined with --no-vue');
+  }
+  if (opts.frontendBase === 'react' && opts.vue === true) {
+    throw new Error('--frontend-base react cannot be combined with --vue');
+  }
+  if (opts.frontendBase === 'vue' && opts.react === true) {
+    throw new Error('--frontend-base vue cannot be combined with --react');
+  }
+  const vueBaseFlags = [
+    [opts.jsx === true, '--jsx'],
+    [opts.router === true, '--router'],
+    [opts.pinia === true, '--pinia'],
+    [opts.eslint === true, '--eslint'],
+  ];
+  const vueBaseFlag = vueBaseFlags.find(([enabled]) => enabled);
+  if (vueBaseFlag && opts.frontendBase !== 'vue') {
+    throw new Error(`${vueBaseFlag[1]} requires --frontend-base vue`);
   }
 
   if (opts.tsMode != null) {
@@ -137,6 +175,11 @@ const inferDependentOptions = (opts, { interactive }) => {
       [opts.tailwind === true, '--tailwind'],
       [opts.vite === true, '--vite'],
       [opts.vue === true, '--vue'],
+      [frontendBaseRequested, '--frontend-base'],
+      [opts.jsx === true, '--jsx'],
+      [opts.router === true, '--router'],
+      [opts.pinia === true, '--pinia'],
+      [opts.eslint === true, '--eslint'],
     ];
     const requested = libraryFlags.find(([enabled]) => enabled);
     if (requested) {
@@ -206,8 +249,10 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
     };
 
     const frameworkRequested = opts.framework && opts.framework !== 'none';
+    const frontendBaseRequested = opts.frontendBase && opts.frontendBase !== 'none';
     const nodeProjectRequested = Boolean(
       frameworkRequested ||
+        frontendBaseRequested ||
         opts.devServer ||
         opts.install ||
         opts.nodeMajor ||
@@ -217,7 +262,11 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
         opts.typescript ||
         opts.vite ||
         opts.vitest ||
-        opts.vue,
+        opts.vue ||
+        opts.jsx ||
+        opts.router ||
+        opts.pinia ||
+        opts.eslint,
     );
 
     const buildSteps = () => {
@@ -315,8 +364,8 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                       'Framework?',
                       [
                         { label: 'none', value: 'none' },
-                        { label: 'Next.js', value: 'next' },
-                        { label: 'Nuxt', value: 'nuxt' },
+                        { label: 'Next.js (React)', value: 'next' },
+                        { label: 'Nuxt (Vue)', value: 'nuxt' },
                       ],
                       'none',
                     );
@@ -347,7 +396,39 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
         if (answers.framework === 'none') {
           steps.push(
             {
-              keys: ['prettier', 'vite', 'react', 'vue', 'tailwind', 'vitest'],
+              keys: ['frontendBase'],
+              backStop: Boolean(
+                rl &&
+                  !(hasPackage && opts.frontendBase == null) &&
+                  opts.frontendBase == null &&
+                  opts.libraries !== false,
+              ),
+              run: async () => {
+                const frontendBase =
+                  opts.frontendBase != null
+                    ? opts.frontendBase
+                    : hasPackage || opts.libraries === false
+                    ? 'none'
+                    : await valueChoice(
+                        rl,
+                        opts,
+                        'frontendBase',
+                        'Frontend base?',
+                        [
+                          { label: 'none', value: 'none' },
+                          { label: 'React', value: 'react' },
+                          { label: 'Vue', value: 'vue' },
+                        ],
+                        'none',
+                      );
+                if (!['none', 'react', 'vue'].includes(frontendBase)) {
+                  throw new Error(`Unknown frontend base: ${frontendBase}`);
+                }
+                return { frontendBase };
+              },
+            },
+            {
+              keys: ['prettier', 'vite', 'react', 'vue', 'tailwind', 'vitest', 'jsx', 'router', 'pinia', 'eslint'],
               backStop: Boolean(
                 rl &&
                   [
@@ -357,33 +438,57 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                     opts.vue,
                     opts.tailwind,
                     opts.vitest,
+                    opts.jsx,
+                    opts.router,
+                    opts.pinia,
+                    opts.eslint,
                   ].some((value) => value == null),
               ),
               run: async () => {
+                const baseReact = answers.frontendBase === 'react';
+                const baseVue = answers.frontendBase === 'vue';
+                const bareChoices = opts.libraries === false || answers.frontendBase !== 'none'
+                  ? []
+                  : [
+                      { key: 'vite', label: 'Vite barebones', hint: 'dev server and production build' },
+                      { key: 'react', label: 'React barebones' },
+                      { key: 'vue', label: 'Vue barebones' },
+                    ];
                 const libraryChoices = opts.libraries === false
                   ? []
                   : [
-                      { key: 'vite', label: 'Vite', hint: 'dev server and production build' },
-                      { key: 'react', label: 'React starter' },
-                      { key: 'vue', label: 'Vue starter' },
-                      { key: 'tailwind', label: 'Tailwind CSS', hint: 'local Vite setup' },
+                      ...bareChoices,
+                      { key: 'tailwind', label: 'Tailwind CSS', hint: 'Vite setup' },
                     ];
+                const vueBaseChoices = baseVue
+                  ? [
+                      { key: 'jsx', label: 'JSX support', hint: 'create-vue' },
+                      { key: 'router', label: 'Vue Router', hint: 'create-vue' },
+                      { key: 'pinia', label: 'Pinia', hint: 'create-vue' },
+                      { key: 'eslint', label: 'Linter', hint: 'ESLint via create-vue' },
+                    ]
+                  : [];
                 const selectedFeatures = await featureSet(rl, opts, 'Select features to include:', [
                   { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
                   ...libraryChoices,
+                  ...vueBaseChoices,
                   { key: 'vitest', label: 'Vitest', hint: 'unit testing' },
                 ]);
                 const tailwind = Boolean(selectedFeatures.tailwind);
-                if (tailwind && opts.vite === false) {
+                if (tailwind && opts.vite === false && answers.frontendBase === 'none') {
                   throw new Error('--tailwind requires --vite for local starters');
                 }
                 return {
                   prettier: selectedFeatures.prettier,
-                  vite: Boolean(selectedFeatures.vite) || tailwind,
-                  react: Boolean(selectedFeatures.react),
-                  vue: Boolean(selectedFeatures.vue),
+                  vite: baseReact || baseVue || Boolean(selectedFeatures.vite) || tailwind,
+                  react: baseReact || Boolean(selectedFeatures.react),
+                  vue: baseVue || Boolean(selectedFeatures.vue),
                   tailwind,
                   vitest: Boolean(selectedFeatures.vitest),
+                  jsx: baseVue && Boolean(selectedFeatures.jsx),
+                  router: baseVue && Boolean(selectedFeatures.router),
+                  pinia: baseVue && Boolean(selectedFeatures.pinia),
+                  eslint: baseVue && Boolean(selectedFeatures.eslint),
                 };
               },
             },
@@ -453,8 +558,13 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
           keys: [
             'devPort',
             'devServer',
+            'frontendBase',
             'framework',
             'frameworkVersion',
+            'jsx',
+            'router',
+            'pinia',
+            'eslint',
             'nodeMajor',
             'packageManager',
             'prettier',
@@ -471,8 +581,13 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
           run: async () => ({
             devPort: 3000,
             devServer: false,
+            frontendBase: 'none',
             framework: 'none',
             frameworkVersion: null,
+            jsx: false,
+            router: false,
+            pinia: false,
+            eslint: false,
             nodeMajor: detectedNodeMajor || '24',
             packageManager: detectedManager || 'pnpm',
             prettier: false,
@@ -588,6 +703,9 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
 
     if (answers.vue && answers.react) {
       throw new Error('React and Vue starters are mutually exclusive');
+    }
+    if (answers.frontendBase && answers.frontendBase !== 'none' && answers.framework !== 'none') {
+      throw new Error('--frontend-base cannot be combined with --framework');
     }
     if (answers.framework !== 'none' && (opts.vite || opts.vitest)) {
       throw new Error('--vite/--vitest cannot be combined with --framework');
