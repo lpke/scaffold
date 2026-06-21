@@ -94,7 +94,7 @@ Create or skip Prettier config, Prettier dependency, and format/format:all packa
     help: `Usage: scaffold [dir] --tailwind
        scaffold [dir] --no-tailwind
 
-Enable Tailwind-aware scaffold behavior. For Next.js, passes --tailwind or --no-tailwind. Also installs prettier-plugin-tailwindcss.`,
+Enable Tailwind-aware scaffold behavior. Local Vite starters install Tailwind CSS, add the Vite plugin, and include src/style.css. Next.js passes --tailwind or --no-tailwind. With --prettier, also installs prettier-plugin-tailwindcss.`,
   },
   {
     topic: '--framework',

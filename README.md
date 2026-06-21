@@ -40,7 +40,7 @@ Local defaults and editable base files live under `share`.
   - Dev server port: `3000`
   - React: `y/N` when libraries is enabled
   - Vue: `y/N` when libraries is enabled and React is no
-  - Tailwind: `y/N` when Vite, React, or Vue is selected
+  - Tailwind: `y/N` when Vite, React, or Vue is selected; local Vite starters install Tailwind CSS and wire the Vite plugin/CSS entry; with Prettier, installs the Tailwind Prettier plugin
   - Vitest: `y/N`
 - Framework path:
   - Tailwind: `y/N`; Next.js passes `--tailwind` or `--no-tailwind`

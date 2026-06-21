@@ -96,10 +96,14 @@ const dependencySet = (answers, config) => {
 
   if (answers.prettier) {
     addDev('prettier');
+    if (answers.tailwind) {
+      addDev('prettier-plugin-tailwindcss');
+    }
   }
 
-  if (answers.tailwind) {
-    addDev('prettier-plugin-tailwindcss');
+  if (answers.tailwind && answers.vite) {
+    addDev('@tailwindcss/vite');
+    addDev('tailwindcss');
   }
 
   if (answers.framework !== 'none') {
@@ -435,6 +439,7 @@ const applyLocalStarter = async (workspace, answers) => {
         PROJECT_TITLE: sanitizePackageName(workspace.targetDir),
         ROOT_ID: rootId,
         ENTRY_FILE: `main.${entryExt}`,
+        STYLE_LINK: answers.tailwind ? '    <link href="/src/style.css" rel="stylesheet" />\n' : '',
       }),
       { overwrite: workspace.force },
     );
@@ -455,12 +460,23 @@ const applyLocalStarter = async (workspace, answers) => {
       : answers.vue
         ? 'starters/vite/vite.config.vue.js.tmpl'
         : 'starters/vite/vite.config.js.tmpl';
-    const viteConfig = await renderAsset(`templates/${viteTemplate}`, {
+    const viteValues = {
       DEV_PORT: answers.devPort,
-    });
+      TAILWIND_IMPORT: answers.tailwind ? "import tailwindcss from '@tailwindcss/vite';\n" : '',
+    };
+    if (answers.react || answers.vue) {
+      viteValues.TAILWIND_PLUGIN = answers.tailwind ? ', tailwindcss()' : '';
+    } else {
+      viteValues.TAILWIND_PLUGIN_BLOCK = answers.tailwind ? '  plugins: [tailwindcss()],\n' : '';
+    }
+    const viteConfig = await renderAsset(`templates/${viteTemplate}`, viteValues);
     await workspace.write(`vite.config.${answers.typescript ? 'ts' : 'js'}`, viteConfig, {
       overwrite: workspace.force,
     });
+
+    if (answers.tailwind) {
+      await workspace.copyTemplate('starters/vite/tailwind.css', 'src/style.css');
+    }
 
     if (answers.vitest) {
       const setupFiles = answers.react

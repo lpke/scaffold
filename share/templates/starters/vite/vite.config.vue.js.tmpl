@@ -1,8 +1,8 @@
-import vue from '@vitejs/plugin-vue';
+{{TAILWIND_IMPORT}}import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(){{TAILWIND_PLUGIN}}],
   server: {
     port: {{DEV_PORT}},
   },

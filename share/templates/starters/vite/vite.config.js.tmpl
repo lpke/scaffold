@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite';
+{{TAILWIND_IMPORT}}import { defineConfig } from 'vite';
 
 export default defineConfig({
-  server: {
+{{TAILWIND_PLUGIN_BLOCK}}  server: {
     port: {{DEV_PORT}},
   },
   preview: {
