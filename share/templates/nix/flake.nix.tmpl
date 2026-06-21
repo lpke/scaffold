@@ -18,6 +18,10 @@
           packages = [
 {{PACKAGES}}
           ];
+
+          shellHook = ''
+            export PATH="$PWD/.flake.local/bin:$PATH"
+          '';
         };
       });
 }

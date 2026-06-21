@@ -294,6 +294,13 @@ const applyNix = async ({ workspace, answers, config }) => {
     PACKAGES: renderPackageList(answers, config),
   });
   await workspace.write('flake.nix', flake);
+  await workspace.write(
+    '.flake.local/bin/example',
+    await renderAsset('templates/nix/flake.local/bin/example', {
+      PROJECT_NAME: sanitizePackageName(workspace.targetDir),
+    }),
+    { mode: 0o755 },
+  );
   if (answers.direnv) {
     await workspace.copyTemplate('common/dot_envrc', '.envrc', { overwrite: false });
   }

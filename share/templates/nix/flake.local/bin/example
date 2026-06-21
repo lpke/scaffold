@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# this script `example` will be executable from this project only
+# delete this after confirming it works
+
+echo '{{PROJECT_NAME}} example!'

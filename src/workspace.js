@@ -42,7 +42,7 @@ class Workspace {
     }
   }
 
-  async write(relativePath, content, { overwrite = true } = {}) {
+  async write(relativePath, content, { overwrite = true, mode = null } = {}) {
     const filePath = this.targetPath(relativePath);
     const exists = await fileExists(filePath);
 
@@ -51,6 +51,9 @@ class Workspace {
       if (current === content) {
         this.skipped.push(`${relativePath} unchanged`);
         this.mark(relativePath);
+        if (mode != null && !this.dryRun) {
+          await fsp.chmod(filePath, mode);
+        }
         return;
       }
       if (!overwrite) {
@@ -69,6 +72,9 @@ class Workspace {
 
     await fsp.mkdir(path.dirname(filePath), { recursive: true });
     await fsp.writeFile(filePath, content);
+    if (mode != null) {
+      await fsp.chmod(filePath, mode);
+    }
   }
 
   async mergeLines(relativePath, lines, { existingHeader = null } = {}) {

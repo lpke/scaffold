@@ -90,6 +90,8 @@ test -f "$tmp/app/package.json"
 test -f "$tmp/app/AGENTS.md"
 test -f "$tmp/app/LICENSE"
 test -f "$tmp/app/src/App.tsx"
+test -x "$tmp/app/.flake.local/bin/example"
+"$tmp/app/.flake.local/bin/example" | grep -Fx "app example!" >/dev/null
 
 if command -v git >/dev/null 2>&1; then
   mkdir -p "$tmp/replace"
