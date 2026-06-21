@@ -1,0 +1,160 @@
+'use strict';
+
+const fsp = require('node:fs').promises;
+const path = require('node:path');
+
+const { parseArgs, printRequestedHelp } = require('./cli');
+const { commandExists, runCommand } = require('./commands');
+const { loadConfig } = require('./config');
+const { fileExists, readJsonFile, statOrNull } = require('./detect');
+const { runFramework } = require('./frameworks');
+const { applyGit } = require('./git');
+const {
+  applyAgents,
+  applyCommon,
+  applyLicense,
+  applyLocalStarter,
+  applyNix,
+  applyPackageJson,
+  applyPnpmWorkspace,
+  applyTsMode,
+  applyTypescriptConfig,
+} = require('./project');
+const { isInteractive, resolveAnswers } = require('./prompts');
+const { color, createPrompter, promptYesNo } = require('./ui');
+const { Workspace } = require('./workspace');
+
+const ensureTargetDir = async (targetDir, opts) => {
+  const stat = await statOrNull(targetDir);
+  if (stat && !stat.isDirectory()) {
+    throw new Error(`Target exists but is not a directory: ${targetDir}`);
+  }
+  if (stat) {
+    return;
+  }
+
+  if (isInteractive(opts)) {
+    const rl = createPrompter();
+    try {
+      const create = await promptYesNo(rl, `Create ${targetDir}?`, true);
+      if (!create) {
+        throw new Error('Cancelled');
+      }
+    } finally {
+      rl.close();
+    }
+  }
+
+  if (!opts.dryRun) {
+    await fsp.mkdir(targetDir, { recursive: true });
+  }
+};
+
+const readExistingPackage = async (targetDir) => {
+  const packagePath = path.join(targetDir, 'package.json');
+  return (await fileExists(packagePath)) ? readJsonFile(packagePath) : null;
+};
+
+const runPostChecks = async ({ answers, config, targetDir, workspace }) => {
+  if (answers.direnv) {
+    if (commandExists('direnv')) {
+      runCommand('direnv', ['allow'], targetDir, answers.dryRun);
+    } else {
+      workspace.skipped.push('direnv not found');
+    }
+  }
+
+  if (answers.flakeLock) {
+    if (commandExists('nix')) {
+      runCommand('nix', ['flake', 'lock'], targetDir, answers.dryRun);
+      workspace.mark('flake.lock');
+    } else {
+      workspace.skipped.push('nix not found');
+    }
+  }
+
+  if (answers.install) {
+    const installCommand = config.packageManagers[answers.toolchainManager].installCommand;
+    if (answers.nix && commandExists('nix') && (await fileExists(path.join(targetDir, 'flake.nix')))) {
+      runCommand('nix', ['develop', '--command', ...installCommand], targetDir, answers.dryRun);
+    } else {
+      runCommand(installCommand[0], installCommand.slice(1), targetDir, answers.dryRun);
+    }
+  }
+};
+
+const printSummary = ({ answers, targetDir, workspace }) => {
+  console.log('');
+  console.log(`${color.green('scaffold:')} ${targetDir}`);
+  for (const line of workspace.changed) {
+    console.log(`  ${color.green('+')} ${line}`);
+  }
+  for (const line of workspace.skipped) {
+    console.log(`  ${color.yellow('-')} skipped: ${line}`);
+  }
+  if (workspace.changed.length === 0 && workspace.skipped.length === 0) {
+    console.log(`  ${color.dim('no file changes')}`);
+  }
+  if (answers.framework !== 'none') {
+    console.log(`  ${color.dim('framework:')} ${answers.framework}@${answers.frameworkVersion}`);
+  }
+};
+
+const main = async () => {
+  const argv = process.argv.slice(2);
+  if (printRequestedHelp(argv)) {
+    return;
+  }
+
+  const opts = parseArgs(argv);
+  const targetDir = path.resolve(opts.dir ?? process.cwd());
+  const config = await loadConfig();
+
+  await ensureTargetDir(targetDir, opts);
+
+  let existingPackage = await readExistingPackage(targetDir);
+  const answers = await resolveAnswers({ opts, targetDir, existingPackage, config });
+
+  await runFramework({
+    answers,
+    config,
+    targetDir,
+    dryRun: answers.dryRun,
+    force: answers.force,
+  });
+
+  if (!answers.dryRun) {
+    existingPackage = await readExistingPackage(targetDir);
+  }
+
+  const workspace = new Workspace({
+    targetDir,
+    dryRun: answers.dryRun,
+    backup: answers.backup,
+    force: answers.force,
+  });
+  const hadTsconfig = await fileExists(path.join(targetDir, 'tsconfig.json'));
+
+  await applyCommon({ workspace, answers });
+  await applyNix({ workspace, answers, config });
+  await applyTypescriptConfig(workspace, answers);
+  await applyLocalStarter(workspace, answers);
+  await applyPnpmWorkspace({ workspace, answers });
+  await applyPackageJson({ workspace, answers, existingPackage, config });
+  if (
+    answers.typescript &&
+    (hadTsconfig || answers.tsMode === 'non-strict' || answers.framework !== 'none')
+  ) {
+    await applyTsMode(workspace, answers.tsMode);
+  }
+  await applyLicense({ workspace, answers, config });
+  await applyAgents({ workspace, answers });
+  await runPostChecks({ answers, config, targetDir, workspace });
+  await applyGit({ answers, targetDir, workspace });
+
+  printSummary({ answers, targetDir, workspace });
+};
+
+module.exports = {
+  main,
+};

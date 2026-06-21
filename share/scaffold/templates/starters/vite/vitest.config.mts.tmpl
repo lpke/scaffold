@@ -1,0 +1,10 @@
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    environment: '{{VITEST_ENVIRONMENT}}',
+    globals: true,
+    include: ['src/**/*.test.{{TEST_EXTENSIONS}}'],
+{{SETUP_FILES}}
+  },
+});

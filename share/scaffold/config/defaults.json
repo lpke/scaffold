@@ -1,0 +1,138 @@
+{
+  "author": "luke@lpdev.io",
+  "defaultLicense": "AGPL-3.0-only",
+  "nodeTargets": {
+    "26": {
+      "nixpkgs": "nixos-26.05",
+      "nodePackage": "nodejs_26",
+      "engine": ">=26"
+    },
+    "24": {
+      "nixpkgs": "nixos-26.05",
+      "nodePackage": "nodejs_24",
+      "engine": ">=24"
+    },
+    "22": {
+      "nixpkgs": "nixos-26.05",
+      "nodePackage": "nodejs_22",
+      "engine": ">=22"
+    },
+    "20": {
+      "nixpkgs": "nixos-25.11",
+      "nodePackage": "nodejs_20",
+      "engine": ">=20"
+    },
+    "18": {
+      "nixpkgs": "nixos-24.05",
+      "nodePackage": "nodejs_18",
+      "engine": ">=18"
+    },
+    "16": {
+      "nixpkgs": "nixos-23.05",
+      "nodePackage": "nodejs_16",
+      "engine": ">=16"
+    }
+  },
+  "packageManagers": {
+    "pnpm": {
+      "defaultVersion": "10.28.0",
+      "engine": ">=10",
+      "lockfile": "pnpm-lock.yaml",
+      "nixPackage": "(pkgs.pnpm.override { nodejs = pkgs.${nodePackage}; })",
+      "installCommand": ["pnpm", "install"],
+      "nextFlag": "--use-pnpm",
+      "nuxtValue": "pnpm"
+    },
+    "yarn": {
+      "defaultVersion": "1.22.22",
+      "engine": ">=1.22",
+      "lockfile": "yarn.lock",
+      "nixPackage": "(pkgs.yarn.override { nodejs = pkgs.${nodePackage}; })",
+      "installCommand": ["yarn", "install"],
+      "nextFlag": "--use-yarn",
+      "nuxtValue": "yarn"
+    },
+    "npm": {
+      "defaultVersion": "11.0.0",
+      "engine": ">=10",
+      "lockfile": "package-lock.json",
+      "nixPackage": null,
+      "installCommand": ["npm", "install"],
+      "nextFlag": "--use-npm",
+      "nuxtValue": "npm"
+    }
+  },
+  "versions": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^25.9.3",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.8.4",
+    "prettier-plugin-tailwindcss": "^0.8.4",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.12",
+    "vitest": "^4.1.6",
+    "vue": "^3.6.1"
+  },
+  "frameworks": {
+    "next": {
+      "label": "Next.js",
+      "latestPackage": "create-next-app",
+      "commandPackage": "create-next-app",
+      "commandArgs": [
+        "${targetDir}",
+        "${packageManagerFlag}",
+        "${typescriptFlag}",
+        "--no-eslint",
+        "--no-tailwind",
+        "--app",
+        "--src-dir",
+        "--import-alias",
+        "@/*"
+      ]
+    },
+    "nuxt": {
+      "label": "Nuxt",
+      "latestPackage": "nuxi",
+      "commandPackage": "nuxi",
+      "commandArgs": [
+        "init",
+        "${targetDir}",
+        "--packageManager",
+        "${packageManager}",
+        "--gitInit",
+        "false"
+      ]
+    }
+  },
+  "licenseTypes": {
+    "AGPL-3.0-only": {
+      "label": "AGPL-3.0-only",
+      "template": "licenses/AGPL-3.0-only.txt"
+    },
+    "MIT": {
+      "label": "MIT",
+      "template": "licenses/MIT.txt"
+    },
+    "Apache-2.0": {
+      "label": "Apache-2.0",
+      "template": "licenses/Apache-2.0.txt"
+    },
+    "GPL-3.0-only": {
+      "label": "GPL-3.0-only",
+      "template": "licenses/GPL-3.0-only.txt"
+    },
+    "UNLICENSED": {
+      "label": "UNLICENSED",
+      "template": null
+    }
+  }
+}

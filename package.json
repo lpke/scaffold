@@ -7,8 +7,8 @@
     "scaffold": "./bin/scaffold"
   },
   "scripts": {
-    "check": "node --check bin/scaffold",
-    "smoke": "node --check bin/scaffold && bin/scaffold --help >/dev/null && bin/scaffold help --profile >/dev/null"
+    "check": "find src -name '*.js' -print -exec node --check {} \\; && node --check bin/scaffold",
+    "smoke": "bash scripts/smoke.sh"
   },
   "license": "AGPL-3.0-only"
 }
