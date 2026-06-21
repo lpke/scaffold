@@ -91,12 +91,13 @@
         "${targetDir}",
         "${packageManagerFlag}",
         "${typescriptFlag}",
-        "--no-eslint",
         "--no-tailwind",
         "--app",
         "--src-dir",
         "--import-alias",
-        "@/*"
+        "@/*",
+        "--disable-git",
+        "${installFlag}"
       ]
     },
     "nuxt": {
@@ -108,8 +109,7 @@
         "${targetDir}",
         "--packageManager",
         "${packageManager}",
-        "--gitInit",
-        "false"
+        "${installFlag}"
       ]
     }
   },

@@ -23,6 +23,7 @@ const frameworkCommand = ({ answers, config, targetDir }) => {
   const version = answers.frameworkVersion || 'latest';
   const packageSpec = `${framework.commandPackage}@${version}`;
   const values = {
+    installFlag: answers.install ? (answers.framework === 'nuxt' ? '--install' : '') : answers.framework === 'nuxt' ? '--no-install' : '--skip-install',
     packageManager: manager.nuxtValue || answers.toolchainManager,
     packageManagerFlag: manager.nextFlag || '',
     targetDir,

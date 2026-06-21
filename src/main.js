@@ -73,7 +73,9 @@ const runPostChecks = async ({ answers, config, targetDir, workspace }) => {
     }
   }
 
-  if (answers.install) {
+  if (answers.install && answers.framework !== 'none') {
+    workspace.skipped.push('package install handled by framework generator');
+  } else if (answers.install) {
     const installCommand = config.packageManagers[answers.toolchainManager].installCommand;
     if (answers.nix && commandExists('nix') && (await fileExists(path.join(targetDir, 'flake.nix')))) {
       runCommand('nix', ['develop', '--command', ...installCommand], targetDir, answers.dryRun);
