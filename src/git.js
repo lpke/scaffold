@@ -133,8 +133,21 @@ const stageGit = async ({ answers, targetDir, workspace }) => {
   }
 };
 
+const stageForNix = async ({ answers, targetDir, workspace }) => {
+  if (!answers.nix || !commandExists('git')) {
+    return;
+  }
+  const git = detectGit(targetDir);
+  if (!git.inside && !answers.dryRun) {
+    workspace.skipped.push('no git repo for nix staging');
+    return;
+  }
+  gitAddAll(targetDir, answers.dryRun);
+};
+
 module.exports = {
   prepareGit,
   replaceGitWithInitialCommit,
+  stageForNix,
   stageGit,
 };

@@ -26,8 +26,9 @@ const frameworkCommand = ({ answers, config, targetDir }) => {
     installFlag: answers.install ? (answers.framework === 'nuxt' ? '--install' : '') : answers.framework === 'nuxt' ? '--no-install' : '--skip-install',
     packageManager: manager.nuxtValue || answers.toolchainManager,
     packageManagerFlag: manager.nextFlag || '',
+    tailwindFlag: answers.tailwind ? '--tailwind' : '--no-tailwind',
     targetDir,
-    typescriptFlag: answers.typescript ? '--typescript' : '--javascript',
+    typescriptFlag: answers.typescript ? '--ts' : '--js',
   };
   const args = [
     '--yes',

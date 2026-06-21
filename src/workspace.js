@@ -71,7 +71,7 @@ class Workspace {
     await fsp.writeFile(filePath, content);
   }
 
-  async mergeLines(relativePath, lines) {
+  async mergeLines(relativePath, lines, { existingHeader = null } = {}) {
     const filePath = this.targetPath(relativePath);
     const exists = await fileExists(filePath);
     const current = exists ? await readText(filePath) : '';
@@ -94,8 +94,12 @@ class Workspace {
     }
 
     const prefix = current && !current.endsWith('\n') ? '\n' : '';
+    const header =
+      exists && existingHeader && !existingLines.has(existingHeader.trim())
+        ? `\n${existingHeader}\n`
+        : '';
     const content = exists
-      ? `${current}${prefix}${missing.join('\n')}\n`
+      ? `${current}${prefix}${header}${missing.join('\n')}\n`
       : `${missing.join('\n')}\n`;
 
     this.changed.push(

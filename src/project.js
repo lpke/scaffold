@@ -4,7 +4,7 @@ const path = require('node:path');
 
 const { commandVersion } = require('./commands');
 const { readAsset, renderAsset } = require('./assets');
-const { fileExists, readJsonFile } = require('./detect');
+const { fileExists, readJsonFile, readText } = require('./detect');
 const { parseJson } = require('./json');
 
 const NON_STRICT_TS = {
@@ -25,6 +25,27 @@ const STRICT_TS = {
   esModuleInterop: true,
   skipLibCheck: true,
 };
+
+const NEXT_ROUTE_ALIASES = {
+  '@/components/*': ['./src/app/_components/*'],
+  '@/hooks/*': ['./src/app/_hooks/*'],
+  '@/routes/*': ['./src/app/(routes)/*'],
+  '@/styles/*': ['./src/app/_styles/*'],
+  '@/types/*': ['./src/app/_types/*'],
+  '@/utils/*': ['./src/app/_utils/*'],
+  '@/sections/*': ['./src/app/_sections/*'],
+  '@/*': ['./src/app/*'],
+};
+
+const NEXT_ROUTE_DIRS = [
+  'src/app/_components',
+  'src/app/_hooks',
+  'src/app/(routes)',
+  'src/app/_styles',
+  'src/app/_types',
+  'src/app/_utils',
+  'src/app/_sections',
+];
 
 const sanitizePackageName = (dirPath) => {
   const name = path.basename(path.resolve(dirPath));
@@ -75,9 +96,10 @@ const dependencySet = (answers, config) => {
 
   if (answers.prettier) {
     addDev('prettier');
-    if (answers.tailwindPrettier) {
-      addDev('prettier-plugin-tailwindcss');
-    }
+  }
+
+  if (answers.tailwind) {
+    addDev('prettier-plugin-tailwindcss');
   }
 
   if (answers.framework !== 'none') {
@@ -268,7 +290,7 @@ const applyNix = async ({ workspace, answers, config }) => {
   });
   await workspace.write('flake.nix', flake);
   if (answers.direnv) {
-    await workspace.copyTemplate('common/dot_envrc', '.envrc', { overwrite: true });
+    await workspace.copyTemplate('common/dot_envrc', '.envrc', { overwrite: false });
   }
 };
 
@@ -290,7 +312,7 @@ const applyCommon = async ({ workspace, answers }) => {
     '.direnv',
     '.DS_Store',
     '*.scaffold-backup',
-  ]);
+  ], { existingHeader: '# generated with scaffold' });
 
   if (answers.prettier) {
     await workspace.mergeLines('.prettierignore', [
@@ -313,10 +335,11 @@ const applyCommon = async ({ workspace, answers }) => {
       'package-lock.json',
     ]);
 
-    if (answers.tailwindPrettier) {
+    if (answers.tailwind) {
       await workspace.write(
-        'prettier.config.mjs',
-        "export default {\n  singleQuote: true,\n  plugins: ['prettier-plugin-tailwindcss'],\n};\n",
+        '.prettierrc',
+        `${JSON.stringify({ singleQuote: true, plugins: ['prettier-plugin-tailwindcss'] }, null, 2)}\n`,
+        { overwrite: true },
       );
     } else {
       await workspace.copyTemplate('common/dot_prettierrc', '.prettierrc', { overwrite: true });
@@ -346,12 +369,57 @@ const readAssetFromTarget = async (filePath) => {
   return fs.readFile(filePath, 'utf8');
 };
 
+const renderLicense = async (template, config) => {
+  let text = await readAsset(`templates/${template}`);
+  text = text.split('{{YEAR}}').join(String(new Date().getFullYear()));
+  text = text.split('{{AUTHOR}}').join(config.author);
+  return text;
+};
+
+const licenseReadmeSentence = (licenseType) => {
+  const sentences = {
+    'AGPL-3.0-only':
+      'This project is licensed under the GNU Affero General Public License v3.0 only. Full text: [LICENSE](./LICENSE).',
+    'Apache-2.0':
+      'This project is licensed under the Apache License, Version 2.0. Full text: [LICENSE](./LICENSE).',
+    'GPL-3.0-only':
+      'This project is licensed under the GNU General Public License v3.0 only. Full text: [LICENSE](./LICENSE).',
+    MIT: 'This project is licensed under the MIT License. Full text: [LICENSE](./LICENSE).',
+    UNLICENSED: 'This project is unlicensed. No permission is granted for reuse unless stated otherwise.',
+  };
+  return sentences[licenseType] ?? `This project is licensed under ${licenseType}. Full text: [LICENSE](./LICENSE).`;
+};
+
+const licenseReadmeBlock = (licenseType, config) =>
+  `${licenseReadmeSentence(licenseType)}\n\nCopyright © ${new Date().getFullYear()} ${config.author}`;
+
 const applyTypescriptConfig = async (workspace, answers) => {
   if (!answers.typescript || answers.framework !== 'none') {
     return;
   }
   const template = answers.vite ? 'typescript/tsconfig.vite.json' : 'typescript/tsconfig.node.json';
   await workspace.copyTemplate(template, 'tsconfig.json', { overwrite: false });
+};
+
+const applyNextTsconfig = async (workspace, answers) => {
+  if (answers.framework !== 'next' || !answers.typescript) {
+    return;
+  }
+  const tsconfigPath = workspace.targetPath('tsconfig.json');
+  if (!(await fileExists(tsconfigPath))) {
+    workspace.skipped.push('Next.js tsconfig aliases skipped; tsconfig.json not found');
+    return;
+  }
+  const tsconfig = parseJson(await readAssetFromTarget(tsconfigPath), tsconfigPath);
+  tsconfig.compilerOptions ??= {};
+  tsconfig.compilerOptions.paths = {
+    ...(tsconfig.compilerOptions.paths ?? {}),
+    ...NEXT_ROUTE_ALIASES,
+  };
+  await workspace.write('tsconfig.json', `${JSON.stringify(tsconfig, null, 2)}\n`);
+  for (const dir of NEXT_ROUTE_DIRS) {
+    await workspace.write(path.posix.join(dir, '.gitkeep'), '', { overwrite: false });
+  }
 };
 
 const applyLocalStarter = async (workspace, answers) => {
@@ -419,6 +487,23 @@ const applyLocalStarter = async (workspace, answers) => {
     return;
   }
 
+  if (answers.vitest) {
+    await workspace.write(
+      'vitest.config.mts',
+      await renderAsset('templates/starters/vite/vitest.config.mts.tmpl', {
+        VITEST_ENVIRONMENT: answers.react || answers.vue ? 'jsdom' : 'node',
+        TEST_EXTENSIONS: answers.typescript
+          ? answers.react
+            ? '{ts,tsx}'
+            : 'ts'
+          : answers.react
+            ? '{js,jsx}'
+            : 'js',
+        SETUP_FILES: '',
+      }),
+    );
+  }
+
   if (answers.react) {
     await workspace.copyTemplateDir(`starters/react-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
     return;
@@ -439,21 +524,23 @@ const applyLicense = async ({ workspace, answers, config }) => {
     throw new Error(`Unknown license type: ${answers.licenseType}`);
   }
   if (license.template) {
-    await workspace.write(
-      'LICENSE',
-      await renderAsset(`templates/${license.template}`, {
-        YEAR: new Date().getFullYear(),
-        AUTHOR: config.author,
-      }),
-    );
+    await workspace.write('LICENSE', await renderLicense(license.template, config));
   }
 
   const readmePath = workspace.targetPath('README.md');
-  const line = `Licensed under ${answers.licenseType}.`;
+  const block = licenseReadmeBlock(answers.licenseType, config);
   if (await fileExists(readmePath)) {
-    await workspace.mergeLines('README.md', ['## License', '', line]);
+    const current = await readText(readmePath);
+    const hasHeading = current.split(/\r?\n/).some((readmeLine) => readmeLine.trim() === '# License');
+    if (current.includes(block)) {
+      workspace.skipped.push('README.md already has license');
+      workspace.mark('README.md');
+    } else {
+      const content = `${current.trimEnd()}\n\n${hasHeading ? '' : '# License\n\n'}${block}\n`;
+      await workspace.write('README.md', content);
+    }
   } else {
-    await workspace.write('README.md', `# ${sanitizePackageName(workspace.targetDir)}\n\n## License\n\n${line}\n`);
+    await workspace.write('README.md', `# ${sanitizePackageName(workspace.targetDir)}\n\n# License\n\n${block}\n`);
   }
 };
 
@@ -470,6 +557,7 @@ const applyAgents = async ({ workspace, answers }) => {
   if (answers.typescript) tech.push('- TypeScript');
   if (answers.vitest) tech.push('- Vitest');
   if (answers.prettier) tech.push('- Prettier');
+  if (answers.tailwind) tech.push('- Tailwind');
 
   const rules = [];
   if (answers.prettier) {
@@ -482,10 +570,11 @@ const applyAgents = async ({ workspace, answers }) => {
       '- **Dev servers:** Do not kill existing dev servers unless explicitly asked to. If you start a dev server while responding to a request, ensure that it is stopped when you are done.',
     );
   }
-  if (rules.length === 0) {
-    rules.push('- Keep changes scoped and document non-obvious project decisions.');
+  if (answers.framework === 'next') {
+    rules.push(
+      '- **This is NOT the Next.js you know.** This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.',
+    );
   }
-
   await workspace.write(
     'AGENTS.md',
     await renderAsset('templates/agents/AGENTS.md.tmpl', {
@@ -508,6 +597,7 @@ module.exports = {
   applyLicense,
   applyLocalStarter,
   applyNix,
+  applyNextTsconfig,
   applyPackageJson,
   applyPnpmWorkspace,
   applyTsMode,

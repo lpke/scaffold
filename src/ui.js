@@ -25,8 +25,18 @@ const createPrompter = () => {
   return rl;
 };
 
+const takeLeadingBlank = (rl) => {
+  if (rl.skipLeadingBlank) {
+    rl.skipLeadingBlank = false;
+    return false;
+  }
+  return true;
+};
+
 const promptLine = async (rl, message) => {
-  console.log('');
+  if (takeLeadingBlank(rl)) {
+    console.log('');
+  }
   return rl.question(color.cyan(message));
 };
 
@@ -66,6 +76,7 @@ const promptChoiceKeys = (rl, message, choices, defaultValue) => {
   if (selected < 0) {
     selected = 0;
   }
+  const leadingBlank = takeLeadingBlank(rl);
   let renderedLines = 0;
 
   return new Promise((resolve, reject) => {
@@ -78,6 +89,7 @@ const promptChoiceKeys = (rl, message, choices, defaultValue) => {
         input.setRawMode(Boolean(wasRaw));
       }
       output.write('\n');
+      rl.skipLeadingBlank = true;
     };
 
     const finish = (value) => {
@@ -95,7 +107,7 @@ const promptChoiceKeys = (rl, message, choices, defaultValue) => {
         readline.clearScreenDown(output);
       }
       const lines = [
-        '',
+        ...(leadingBlank ? [''] : []),
         color.cyan(message),
         ...choices.map((choice, index) =>
           formatChoiceLine({ choice, defaultValue, index, selected: index === selected }),

@@ -88,12 +88,13 @@ Set package.json packageManager and package manager engine. "keep" is valid only
 Create or skip Prettier config, Prettier dependency, and format/format:all package.json scripts.`,
   },
   {
-    topic: '--tailwind-prettier',
-    names: ['--tailwind-prettier'],
-    summary: 'Use Tailwind Prettier config',
-    help: `Usage: scaffold [dir] --tailwind-prettier
+    topic: '--tailwind',
+    names: ['--tailwind', '--no-tailwind', '--tailwind-prettier'],
+    summary: 'Use or skip Tailwind support',
+    help: `Usage: scaffold [dir] --tailwind
+       scaffold [dir] --no-tailwind
 
-Use prettier.config.mjs with prettier-plugin-tailwindcss instead of .prettierrc.`,
+Enable Tailwind-aware scaffold behavior. For Next.js, passes --tailwind or --no-tailwind. Also installs prettier-plugin-tailwindcss.`,
   },
   {
     topic: '--framework',
@@ -109,7 +110,7 @@ Choose framework. "next" runs create-next-app. "nuxt" runs nuxi init. "none" use
     summary: 'Set framework generator version',
     help: `Usage: scaffold [dir] --framework-version <version|latest>
 
-Choose framework generator package version. Default is latest from npm view.`,
+Choose framework generator package version. Requires --framework <next|nuxt>. The interactive prompt can collect a custom version. Default is latest from npm view.`,
   },
   {
     topic: '--typescript',
@@ -128,7 +129,7 @@ Create TypeScript config/source, or JavaScript source only.`,
        scaffold [dir] --non-strict
        scaffold [dir] --preserve-ts
 
-Set strict compiler options, non-strict compiler options, or preserve an existing tsconfig.`,
+Set strict compiler options, non-strict compiler options, or preserve an existing tsconfig. Implies --typescript.`,
   },
   {
     topic: '--vite',
@@ -154,7 +155,7 @@ Create or skip Vite dev and preview package.json scripts.`,
     summary: 'Set dev server port',
     help: `Usage: scaffold [dir] --dev-port <port>
 
-Set Vite dev/preview port. Default: 3000.`,
+Set Vite dev/preview port. Implies --vite and --dev-server. Default: 3000.`,
   },
   {
     topic: '--vitest',
@@ -163,7 +164,7 @@ Set Vite dev/preview port. Default: 3000.`,
     help: `Usage: scaffold [dir] --vitest
        scaffold [dir] --no-vitest
 
-Add Vitest scripts, dependency, and config for local Vite projects.`,
+Add Vitest scripts, dependency, and config for local projects.`,
   },
   {
     topic: '--react',
@@ -198,7 +199,7 @@ Add LICENSE, README license note, and package.json license field when package.js
     summary: 'Set license type',
     help: `Usage: scaffold [dir] --license-type <id>
 
-Built-in values: AGPL-3.0-only, MIT, Apache-2.0, GPL-3.0-only, UNLICENSED.`,
+Implies --license. Built-in values: AGPL-3.0-only, MIT, Apache-2.0, GPL-3.0-only, UNLICENSED.`,
   },
   {
     topic: '--agents',
@@ -216,7 +217,7 @@ Create AGENTS.md with Tech and Rules sections based on scaffold choices.`,
     help: `Usage: scaffold [dir] --flake-lock
        scaffold [dir] --no-flake-lock
 
-Run or skip nix flake lock after writing files.`,
+Run or skip nix flake lock after writing files. --flake-lock implies --nix.`,
   },
   {
     topic: '--install',
@@ -253,7 +254,7 @@ Add or update a git remote after git setup. Also configures main to track <remot
     summary: 'Set git remote name',
     help: `Usage: scaffold [dir] --git-remote-name <name>
 
-Remote name used with --git-remote. Default: origin.`,
+Remote name used with --git-remote. With prompts enabled, omitting --git-remote asks for the URL. Default: origin.`,
   },
   {
     topic: '--git-add',
@@ -376,6 +377,7 @@ const parseArgs = (argv) => {
     dryRun: false,
     force: false,
     gitRemoteName: 'origin',
+    gitRemoteNameProvided: false,
     yes: false,
   };
 
@@ -416,6 +418,13 @@ const parseArgs = (argv) => {
         break;
       case '--no-prettier':
         setBool('prettier', false);
+        break;
+      case '--tailwind':
+      case '--tailwind-prettier':
+        setBool('tailwind', true);
+        break;
+      case '--no-tailwind':
+        setBool('tailwind', false);
         break;
       case '--typescript':
         setBool('typescript', true);
@@ -492,9 +501,6 @@ const parseArgs = (argv) => {
       case '--no-backup':
         opts.backup = false;
         break;
-      case '--tailwind-prettier':
-        opts.tailwindPrettier = true;
-        break;
       case '--strict':
         opts.tsMode = 'strict';
         break;
@@ -523,7 +529,10 @@ const parseArgs = (argv) => {
         if (arg === '--license-type') opts.licenseType = value;
         if (arg === '--git') opts.gitMode = value;
         if (arg === '--git-remote') opts.gitRemote = value;
-        if (arg === '--git-remote-name') opts.gitRemoteName = value;
+        if (arg === '--git-remote-name') {
+          opts.gitRemoteName = value;
+          opts.gitRemoteNameProvided = true;
+        }
         break;
       }
       default:

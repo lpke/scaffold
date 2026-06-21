@@ -7,13 +7,17 @@ cd "$repo_root"
 find src -name '*.js' -print -exec node --check {} \;
 node --check bin/scaffold
 
+test -f share/config.json
+test -d share/templates
+test ! -e share/scaffold
+
 bin/scaffold --help >/dev/null
 bin/scaffold help --framework >/dev/null
 
 for flag in \
   --yes --dry-run --nix --no-nix --direnv --no-direnv \
   --node-project --no-node-project --node --package-manager \
-  --prettier --no-prettier --tailwind-prettier --framework \
+  --prettier --no-prettier --tailwind --no-tailwind --framework \
   --framework-version --typescript --no-typescript --strict \
   --non-strict --preserve-ts --vite --no-vite --dev-server \
   --no-dev-server --dev-port --vitest --no-vitest --react \
@@ -25,6 +29,44 @@ do
   bin/scaffold "$flag" --help >/dev/null
   bin/scaffold help "$flag" >/dev/null
 done
+
+node <<'NODE'
+const assert = require('node:assert/strict');
+const { loadConfig } = require('./src/config');
+const { frameworkCommand } = require('./src/frameworks');
+
+(async () => {
+  const config = await loadConfig();
+  const baseAnswers = {
+    framework: 'next',
+    frameworkVersion: '15.0.0',
+    install: false,
+    toolchainManager: 'pnpm',
+  };
+
+  let command = frameworkCommand({
+    answers: { ...baseAnswers, tailwind: true, typescript: true },
+    config,
+    targetDir: '/tmp/scaffold-next',
+  });
+  for (const arg of ['--ts', '--eslint', '--react-compiler', '--tailwind', '--no-agents-md']) {
+    assert(command.args.includes(arg), `missing ${arg}`);
+  }
+  assert(!command.args.includes('--typescript'));
+
+  command = frameworkCommand({
+    answers: { ...baseAnswers, tailwind: false, typescript: false },
+    config,
+    targetDir: '/tmp/scaffold-next',
+  });
+  assert(command.args.includes('--js'));
+  assert(command.args.includes('--no-tailwind'));
+  assert(!command.args.includes('--javascript'));
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+NODE
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT

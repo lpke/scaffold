@@ -1,21 +1,21 @@
 'use strict';
 
-const cp = require('node:child_process');
 const fsp = require('node:fs').promises;
 const path = require('node:path');
 
 const { parseArgs, printRequestedHelp } = require('./cli');
-const { commandExists, displayCommand, runCommand } = require('./commands');
+const { commandExists, runCommand } = require('./commands');
 const { loadConfig } = require('./config');
 const { fileExists, readJsonFile, statOrNull } = require('./detect');
 const { runFramework } = require('./frameworks');
-const { prepareGit, replaceGitWithInitialCommit, stageGit } = require('./git');
+const { prepareGit, replaceGitWithInitialCommit, stageForNix, stageGit } = require('./git');
 const {
   applyAgents,
   applyCommon,
   applyLicense,
   applyLocalStarter,
   applyNix,
+  applyNextTsconfig,
   applyPackageJson,
   applyPnpmWorkspace,
   applyTsMode,
@@ -69,6 +69,7 @@ const runPostChecks = async ({ answers, config, targetDir, workspace }) => {
     if (commandExists('nix')) {
       runCommand('nix', ['flake', 'lock'], targetDir, answers.dryRun);
       workspace.mark('flake.lock');
+      await stageForNix({ answers, targetDir, workspace });
     } else {
       workspace.skipped.push('nix not found');
     }
@@ -101,30 +102,6 @@ const printSummary = ({ answers, targetDir, workspace }) => {
   if (answers.framework !== 'none') {
     console.log(`  ${color.dim('framework:')} ${answers.framework}@${answers.frameworkVersion}`);
   }
-};
-
-const offerCd = async ({ opts, targetDir }) => {
-  if (!isInteractive(opts) || path.resolve(process.cwd()) === path.resolve(targetDir)) {
-    return;
-  }
-
-  const rl = createPrompter();
-  let cd = false;
-  try {
-    cd = await promptYesNo(rl, `cd to ${targetDir}?`, false);
-  } finally {
-    rl.close();
-  }
-  if (!cd) {
-    return;
-  }
-  if (process.env.SCAFFOLD_CD_FILE) {
-    await fsp.writeFile(process.env.SCAFFOLD_CD_FILE, `${targetDir}\n`);
-    return;
-  }
-  const shell = process.env.SHELL || '/bin/sh';
-  console.log(`${color.dim('shell:')} ${displayCommand(shell, [])}`);
-  cp.spawnSync(shell, { cwd: targetDir, stdio: 'inherit' });
 };
 
 const main = async () => {
@@ -176,17 +153,15 @@ const main = async () => {
   ) {
     await applyTsMode(workspace, answers.tsMode);
   }
+  await applyNextTsconfig(workspace, answers);
   await applyLicense({ workspace, answers, config });
   await applyAgents({ workspace, answers });
   await prepareGit({ answers, targetDir, workspace });
-  if (answers.nix) {
-    await stageGit({ answers, targetDir, workspace });
-  }
+  await stageForNix({ answers, targetDir, workspace });
   await runPostChecks({ answers, config, targetDir, workspace });
   await stageGit({ answers, targetDir, workspace });
 
   printSummary({ answers, targetDir, workspace });
-  await offerCd({ opts, targetDir });
 };
 
 module.exports = {

@@ -4,18 +4,18 @@ const { readAssetJson } = require('./assets');
 
 const requireObject = (value, label) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`Expected ${label} to be an object in config/defaults.json`);
+    throw new Error(`Expected ${label} to be an object in config.json`);
   }
 };
 
 const requireString = (value, label) => {
   if (typeof value !== 'string' || !value.trim()) {
-    throw new Error(`Expected ${label} to be a non-empty string in config/defaults.json`);
+    throw new Error(`Expected ${label} to be a non-empty string in config.json`);
   }
 };
 
 const loadConfig = async () => {
-  const config = await readAssetJson('config/defaults.json');
+  const config = await readAssetJson('config.json');
   requireObject(config.nodeTargets, 'nodeTargets');
   requireObject(config.packageManagers, 'packageManagers');
   requireObject(config.versions, 'versions');

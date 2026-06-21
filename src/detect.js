@@ -94,6 +94,49 @@ const npmLatest = (packageName) => {
   return output || null;
 };
 
+const parseExactVersion = (version) => {
+  const match = String(version).match(/^(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+    version,
+  };
+};
+
+const compareExactVersions = (left, right) =>
+  left.major - right.major || left.minor - right.minor || left.patch - right.patch;
+
+const npmRecentMajorVersions = (packageName, count = 4) => {
+  const output = commandOutput('npm', ['view', packageName, 'versions', '--json', '--silent']);
+  if (!output) {
+    return [];
+  }
+  let versions;
+  try {
+    versions = JSON.parse(output);
+  } catch {
+    return [];
+  }
+  const exactVersions = (Array.isArray(versions) ? versions : [versions])
+    .map(parseExactVersion)
+    .filter(Boolean);
+  const byMajor = new Map();
+  for (const version of exactVersions) {
+    const current = byMajor.get(version.major);
+    if (!current || compareExactVersions(version, current) > 0) {
+      byMajor.set(version.major, version);
+    }
+  }
+  return Array.from(byMajor.values())
+    .sort((left, right) => right.major - left.major)
+    .slice(0, count)
+    .map(({ major, version }) => ({ major, version }));
+};
+
 module.exports = {
   detectGit,
   detectNodeMajor,
@@ -102,6 +145,7 @@ module.exports = {
   isDirEmpty,
   listGitRemotes,
   npmLatest,
+  npmRecentMajorVersions,
   readJsonFile,
   readText,
   statOrNull,

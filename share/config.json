@@ -92,11 +92,14 @@
         "${targetDir}",
         "${packageManagerFlag}",
         "${typescriptFlag}",
-        "--no-tailwind",
+        "--eslint",
+        "--react-compiler",
+        "${tailwindFlag}",
         "--app",
         "--src-dir",
         "--import-alias",
         "@/*",
+        "--no-agents-md",
         "--disable-git",
         "${installFlag}"
       ]

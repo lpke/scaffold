@@ -9,18 +9,18 @@ const repoRoot = path.resolve(__dirname, '..');
 const findAssetRoot = () => {
   const candidates = [
     process.env.SCAFFOLD_SHARE_DIR,
-    path.join(repoRoot, 'share/scaffold'),
-    path.join(path.dirname(repoRoot), 'share/scaffold'),
+    path.join(repoRoot, 'share'),
+    path.join(path.dirname(repoRoot), 'share'),
   ].filter(Boolean);
 
   for (const candidate of candidates) {
-    if (fs.existsSync(path.join(candidate, 'config/defaults.json'))) {
+    if (fs.existsSync(path.join(candidate, 'config.json'))) {
       return candidate;
     }
   }
 
   throw new Error(
-    `Missing scaffold assets. Checked: ${candidates.join(', ')}. Restore share/scaffold/config/defaults.json.`,
+    `Missing scaffold assets. Checked: ${candidates.join(', ')}. Restore share/config.json.`,
   );
 };
 
