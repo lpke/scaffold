@@ -560,16 +560,16 @@ const applyLicense = async ({ workspace, answers, config }) => {
   const block = licenseReadmeBlock(answers.licenseType, config);
   if (await fileExists(readmePath)) {
     const current = await readText(readmePath);
-    const hasHeading = current.split(/\r?\n/).some((readmeLine) => readmeLine.trim() === '# License');
+    const hasHeading = current.split(/\r?\n/).some((readmeLine) => readmeLine.trim() === '## License');
     if (current.includes(block)) {
       workspace.skipped.push('README.md already has license');
       workspace.mark('README.md');
     } else {
-      const content = `${current.trimEnd()}\n\n${hasHeading ? '' : '# License\n\n'}${block}\n`;
+      const content = `${current.trimEnd()}\n\n${hasHeading ? '' : '## License\n\n'}${block}\n`;
       await workspace.write('README.md', content);
     }
   } else {
-    await workspace.write('README.md', `# ${sanitizePackageName(workspace.targetDir)}\n\n# License\n\n${block}\n`);
+    await workspace.write('README.md', `# ${sanitizePackageName(workspace.targetDir)}\n\n## License\n\n${block}\n`);
   }
 };
 

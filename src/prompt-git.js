@@ -1,6 +1,7 @@
 'use strict';
 
 const { detectGit, listGitRemotes } = require('./detect');
+const { sanitizePackageName } = require('./project');
 const { color, promptChoice, promptText, promptYesNo } = require('./ui');
 
 const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
@@ -49,6 +50,7 @@ const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
   const canRemote = gitMode !== 'skip';
   let gitRemote = opts.gitRemote ?? null;
   const gitRemoteName = opts.gitRemoteName || 'origin';
+  const defaultRemoteUrl = `https://github.com/lpke/${sanitizePackageName(targetDir)}`;
   if (canRemote && !gitRemote && rl) {
     const remotes = git.inside ? listGitRemotes(targetDir) : [];
     const configure = remoteRequested
@@ -61,7 +63,7 @@ const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
           false,
         );
     if (configure) {
-      gitRemote = await promptText(rl, `Remote URL for ${gitRemoteName}`, '', (value) =>
+      gitRemote = await promptText(rl, `Remote URL for ${gitRemoteName}`, defaultRemoteUrl, (value) =>
         value ? true : 'Remote URL is required.',
       );
     }

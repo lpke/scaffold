@@ -93,6 +93,7 @@ bin/scaffold "$tmp/app" \
 
 test -f "$tmp/app/package.json"
 grep -Fx '# app' "$tmp/app/README.md" >/dev/null
+grep -Fx '## License' "$tmp/app/README.md" >/dev/null
 test -f "$tmp/app/AGENTS.md"
 test -f "$tmp/app/LICENSE"
 test -f "$tmp/app/src/App.tsx"
