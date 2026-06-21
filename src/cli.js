@@ -85,7 +85,7 @@ Set package.json packageManager and package manager engine. "keep" is valid only
     help: `Usage: scaffold [dir] --prettier
        scaffold [dir] --no-prettier
 
-Create or skip Prettier config, Prettier dependency, and format/format:all package.json scripts.`,
+Create or skip prettier.config.mjs, Prettier dependency, and format/format:all package.json scripts.`,
   },
   {
     topic: '--tailwind',
@@ -94,7 +94,7 @@ Create or skip Prettier config, Prettier dependency, and format/format:all packa
     help: `Usage: scaffold [dir] --tailwind
        scaffold [dir] --no-tailwind
 
-Enable Tailwind-aware scaffold behavior. Local Vite starters install Tailwind CSS, add the Vite plugin, and include src/style.css. Next.js passes --tailwind or --no-tailwind. With --prettier, also installs prettier-plugin-tailwindcss.`,
+Enable Tailwind-aware scaffold behavior. Local Vite starters install Tailwind CSS, add the Vite plugin, and include src/style.css. Next.js passes --tailwind or --no-tailwind. With --prettier, also installs and configures prettier-plugin-tailwindcss.`,
   },
   {
     topic: '--framework',
@@ -110,7 +110,7 @@ Choose framework. "next" runs create-next-app. "nuxt" runs nuxi init. "none" use
     summary: 'Set framework generator version',
     help: `Usage: scaffold [dir] --framework-version <version|latest>
 
-Choose framework generator package version. Requires --framework <next|nuxt>. The interactive prompt can collect a custom version. Default is latest from npm view.`,
+Choose framework generator package version. Requires --framework <next|nuxt>. The interactive prompt can collect a specified version. Default is the latest dist-tag.`,
   },
   {
     topic: '--typescript',

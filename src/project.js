@@ -6,6 +6,7 @@ const { commandVersion } = require('./commands');
 const { readAsset, renderAsset } = require('./assets');
 const { fileExists, readJsonFile, readText } = require('./detect');
 const { parseJson } = require('./json');
+const { formatJson } = require('./json-format');
 
 const NON_STRICT_TS = {
   strict: false,
@@ -314,6 +315,7 @@ const applyCommon = async ({ workspace, answers }) => {
     '!.env.example',
     '.flake.local/',
     '.direnv',
+    'assets/',
     '.DS_Store',
     '*.scaffold-backup',
   ], { existingHeader: '# generated with scaffold' });
@@ -341,12 +343,16 @@ const applyCommon = async ({ workspace, answers }) => {
 
     if (answers.tailwind) {
       await workspace.write(
-        '.prettierrc',
-        `${JSON.stringify({ singleQuote: true, plugins: ['prettier-plugin-tailwindcss'] }, null, 2)}\n`,
+        'prettier.config.mjs',
+        "export default {\n  singleQuote: true,\n  plugins: ['prettier-plugin-tailwindcss'],\n};\n",
         { overwrite: true },
       );
     } else {
-      await workspace.copyTemplate('common/dot_prettierrc', '.prettierrc', { overwrite: true });
+      await workspace.write(
+        'prettier.config.mjs',
+        'export default {\n  singleQuote: true,\n};\n',
+        { overwrite: true },
+      );
     }
   }
 };
@@ -365,7 +371,7 @@ const applyTsMode = async (workspace, mode) => {
   mergeObjectDefaults(tsconfig.compilerOptions, mode === 'strict' ? STRICT_TS : NON_STRICT_TS, {
     overwrite: true,
   });
-  await workspace.write('tsconfig.json', `${JSON.stringify(tsconfig, null, 2)}\n`);
+  await workspace.write('tsconfig.json', formatJson(tsconfig));
 };
 
 const readAssetFromTarget = async (filePath) => {
@@ -420,7 +426,7 @@ const applyNextTsconfig = async (workspace, answers) => {
     ...(tsconfig.compilerOptions.paths ?? {}),
     ...NEXT_ROUTE_ALIASES,
   };
-  await workspace.write('tsconfig.json', `${JSON.stringify(tsconfig, null, 2)}\n`);
+  await workspace.write('tsconfig.json', formatJson(tsconfig));
   for (const dir of NEXT_ROUTE_DIRS) {
     await workspace.write(path.posix.join(dir, '.gitkeep'), '', { overwrite: false });
   }

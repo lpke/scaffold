@@ -94,6 +94,11 @@ const npmLatest = (packageName) => {
   return output || null;
 };
 
+const npmPackageVersionExists = (packageName, version) => {
+  const output = commandOutput('npm', ['view', `${packageName}@${version}`, 'version', '--silent']);
+  return output === version;
+};
+
 const parseExactVersion = (version) => {
   const match = String(version).match(/^(\d+)\.(\d+)\.(\d+)$/);
   if (!match) {
@@ -145,6 +150,7 @@ module.exports = {
   isDirEmpty,
   listGitRemotes,
   npmLatest,
+  npmPackageVersionExists,
   npmRecentMajorVersions,
   readJsonFile,
   readText,

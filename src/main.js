@@ -22,7 +22,7 @@ const {
   applyTypescriptConfig,
 } = require('./project');
 const { isInteractive, resolveAnswers } = require('./prompts');
-const { color, createPrompter, promptYesNo } = require('./ui');
+const { color, createPrompter, intro, promptYesNo } = require('./ui');
 const { Workspace } = require('./workspace');
 
 const ensureTargetDir = async (targetDir, opts) => {
@@ -89,19 +89,20 @@ const runPostChecks = async ({ answers, config, targetDir, workspace }) => {
 
 const printSummary = ({ answers, targetDir, workspace }) => {
   console.log('');
-  console.log(`${color.green('scaffold:')} ${targetDir}`);
+  console.log(`${color.green('◇')} ${color.bold('scaffold')} ${color.dim(targetDir)}`);
   for (const line of workspace.changed) {
-    console.log(`  ${color.green('+')} ${line}`);
+    console.log(`${color.dim('│')} ${color.green('+')} ${line}`);
   }
   for (const line of workspace.skipped) {
-    console.log(`  ${color.yellow('-')} skipped: ${line}`);
+    console.log(`${color.dim('│')} ${color.yellow('-')} skipped: ${line}`);
   }
   if (workspace.changed.length === 0 && workspace.skipped.length === 0) {
-    console.log(`  ${color.dim('no file changes')}`);
+    console.log(`${color.dim('│')} ${color.dim('no file changes')}`);
   }
   if (answers.framework !== 'none') {
-    console.log(`  ${color.dim('framework:')} ${answers.framework}@${answers.frameworkVersion}`);
+    console.log(`${color.dim('│')} ${color.dim('framework:')} ${answers.framework}@${answers.frameworkVersion}`);
   }
+  console.log(`${color.dim('└')} ${color.green('done')}`);
 };
 
 const main = async () => {
@@ -113,6 +114,11 @@ const main = async () => {
   const opts = parseArgs(argv);
   const targetDir = path.resolve(opts.dir ?? process.cwd());
   const config = await loadConfig();
+  const interactive = isInteractive(opts);
+
+  if (interactive) {
+    intro('Scaffold Project');
+  }
 
   await ensureTargetDir(targetDir, opts);
 

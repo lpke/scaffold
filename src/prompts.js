@@ -4,16 +4,14 @@ const path = require('node:path');
 
 const { nodeChoices } = require('./config');
 const {
-  detectGit,
   detectNodeMajor,
   detectPackageManager,
   fileExists,
-  listGitRemotes,
-  npmLatest,
-  npmRecentMajorVersions,
-  readJsonFile,
 } = require('./detect');
-const { color, createPrompter, promptChoice, promptText, promptYesNo } = require('./ui');
+const { featureSet, resolveTypescriptAnswers } = require('./prompt-features');
+const { resolveFrameworkVersion } = require('./prompt-frameworks');
+const { resolveGitAnswers } = require('./prompt-git');
+const { createPrompter, promptChoice, promptText, promptYesNo } = require('./ui');
 
 const isInteractive = (opts) => process.stdin.isTTY && process.stdout.isTTY && !opts.yes;
 
@@ -56,111 +54,12 @@ const packageManagerChoices = (config, hasPackage, detectedManager) => {
   return choices;
 };
 
-const latestFrameworkVersion = ({ config, framework }) => {
-  const meta = config.frameworks[framework];
-  if (!meta) {
-    return null;
-  }
-  return npmLatest(meta.latestPackage);
-};
-
-const recentFrameworkMajorVersions = ({ config, framework }) => {
-  const meta = config.frameworks[framework];
-  if (!meta) {
-    return [];
-  }
-  return npmRecentMajorVersions(meta.latestPackage, 4);
-};
-
-const resolveFrameworkVersion = async ({ rl, opts, config, framework, interactive }) => {
-  const latest = latestFrameworkVersion({ config, framework });
-  const label = config.frameworks[framework].label;
-
-  if (latest) {
-    console.log('');
-    console.log(color.dim(`${label} latest: ${latest}`));
-  } else if (interactive) {
-    console.log('');
-    console.log(color.yellow(`Could not check latest ${framework} version; using latest.`));
-  }
-
-  if (opts.frameworkVersion != null) {
-    return opts.frameworkVersion;
-  }
-
-  if (!rl) {
-    return latest || 'latest';
-  }
-
-  const selected = await promptChoice(
-    rl,
-    'Framework version?',
-    [
-      { label: latest ? `latest (${latest})` : 'latest', value: latest || 'latest' },
-      { label: 'latest tag', value: 'latest' },
-      { label: 'custom version', value: 'custom' },
-    ],
-    latest || 'latest',
-  );
-  if (selected !== 'custom') {
-    return selected;
-  }
-
-  const recent = recentFrameworkMajorVersions({ config, framework });
-  if (recent.length > 0) {
-    console.log('');
-    console.log(color.dim(`${label} recent exact versions:`));
-    for (const { major, version } of recent) {
-      console.log(color.dim(`  ${major}.x: ${version}`));
-    }
-  } else {
-    console.log('');
-    console.log(color.yellow(`Could not check recent ${framework} versions.`));
-  }
-
-  return promptText(rl, 'Custom framework version', latest || 'latest', (value) =>
-    value ? true : 'Framework version is required.',
-  );
-};
-
 const validatePort = (value) => {
   const port = Number(value);
   return Number.isInteger(port) && port > 0 && port <= 65535
     ? true
     : 'Enter a port from 1 to 65535.';
 };
-
-const describeExistingTsMode = async (targetDir) => {
-  const tsconfigPath = path.join(targetDir, 'tsconfig.json');
-  if (!(await fileExists(tsconfigPath))) {
-    return 'no tsconfig';
-  }
-  try {
-    const tsconfig = await readJsonFile(tsconfigPath);
-    const strict = tsconfig.compilerOptions?.strict;
-    if (strict === true) {
-      return 'strict';
-    }
-    if (strict === false) {
-      return 'non-strict';
-    }
-    return 'custom/default';
-  } catch {
-    return 'unreadable tsconfig';
-  }
-};
-
-const tsModeChoices = (hasTsconfig, existingTsMode) =>
-  hasTsconfig
-    ? [
-        { label: `preserve existing (${existingTsMode})`, value: 'preserve' },
-        { label: 'strict', value: 'strict' },
-        { label: 'non-strict', value: 'non-strict' },
-      ]
-    : [
-        { label: 'strict', value: 'strict' },
-        { label: 'non-strict', value: 'non-strict' },
-      ];
 
 const inferDependentOptions = (opts, { interactive }) => {
   const inferred = { ...opts };
@@ -270,79 +169,6 @@ const inferDependentOptions = (opts, { interactive }) => {
   return inferred;
 };
 
-const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
-  const git = detectGit(targetDir);
-  const validModes = ['auto', 'skip', 'keep', 'init', 'replace'];
-  let gitMode = opts.gitMode ?? 'auto';
-  const remoteRequested = Boolean(opts.gitRemote || opts.gitRemoteRequested);
-  const gitRequested = remoteRequested || opts.gitAdd === true;
-  if (!validModes.includes(gitMode)) {
-    throw new Error(`Unknown git mode: ${gitMode}`);
-  }
-
-  if (gitMode === 'auto') {
-    if (gitRequested) {
-      gitMode = git.inside ? 'keep' : 'init';
-    } else if (!rl) {
-      gitMode = git.inside ? 'keep' : 'skip';
-    } else if (git.hasOwnGit) {
-      gitMode = await promptChoice(
-        rl,
-        'Git repository?',
-        [
-          { label: 'keep existing repo', value: 'keep' },
-          { label: 'replace with a fresh repo', value: 'replace' },
-          { label: 'skip git changes', value: 'skip' },
-        ],
-        'skip',
-      );
-    } else if (git.inside) {
-      gitMode = await promptChoice(
-        rl,
-        `Git repository? ${color.dim(`currently inside ${git.root}`)}`,
-        [
-          { label: 'keep parent/existing repo', value: 'keep' },
-          { label: 'init nested repo here', value: 'init' },
-          { label: 'skip git changes', value: 'skip' },
-        ],
-        'skip',
-      );
-    } else {
-      gitMode = (await promptYesNo(rl, 'Initialize git repo?', false)) ? 'init' : 'skip';
-    }
-  }
-
-  const canRemote = gitMode !== 'skip';
-  let gitRemote = opts.gitRemote ?? null;
-  const gitRemoteName = opts.gitRemoteName || 'origin';
-  if (canRemote && !gitRemote && rl) {
-    const remotes = git.inside ? listGitRemotes(targetDir) : [];
-    const configure = remoteRequested
-      ? true
-      : await promptYesNo(
-          rl,
-          remotes.length > 0
-            ? `Configure git remote? ${color.dim(`existing: ${remotes.join(', ')}`)}`
-            : 'Configure git remote?',
-          false,
-        );
-    if (configure) {
-      gitRemote = await promptText(rl, `Remote URL for ${gitRemoteName}`, '', (value) =>
-        value ? true : 'Remote URL is required.',
-      );
-    }
-  }
-
-  const gitAdd = opts.gitAdd ?? canRemote;
-
-  return {
-    gitAdd,
-    gitMode,
-    gitRemote,
-    gitRemoteName,
-  };
-};
-
 const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, config }) => {
   const interactive = isInteractive(rawOpts);
   const opts = inferDependentOptions(rawOpts, { interactive });
@@ -352,10 +178,8 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
     const hasPackage = Boolean(existingPackage);
     const hasFlake = await fileExists(path.join(targetDir, 'flake.nix'));
     const hasEnvrc = await fileExists(path.join(targetDir, '.envrc'));
-    const hasTsconfig = await fileExists(path.join(targetDir, 'tsconfig.json'));
     const detectedManager = await detectPackageManager(targetDir, existingPackage, config);
     const detectedNodeMajor = detectNodeMajor(existingPackage, config);
-    const existingTsMode = await describeExistingTsMode(targetDir);
 
     const answers = {
       backup: opts.backup,
@@ -363,7 +187,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
       force: opts.force,
     };
 
-    answers.nix = opts.nix ?? (hasFlake ? true : await boolChoice(rl, opts, 'nix', 'Use nix flake?', false));
+    answers.nix = opts.nix ?? (hasFlake ? true : await boolChoice(rl, opts, 'nix', 'Use nix flake?', true));
     answers.direnv = opts.direnv ?? (answers.nix
       ? hasEnvrc || await boolChoice(rl, opts, 'direnv', 'Use direnv?', true)
       : false);
@@ -387,7 +211,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
     );
     answers.nodeProject = opts.nodeProject ?? (hasPackage || nodeProjectRequested
       ? true
-      : await boolChoice(rl, opts, 'nodeProject', 'Node project?', false));
+      : await boolChoice(rl, opts, 'nodeProject', 'Node project?', true));
 
     if (answers.nodeProject) {
       answers.nodeMajor = await valueChoice(
@@ -422,7 +246,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
       answers.toolchainManager =
         answers.packageManager === 'keep' ? detectedManager || 'pnpm' : answers.packageManager;
 
-      answers.prettier = await boolChoice(rl, opts, 'prettier', 'Prettier?', false);
+      Object.assign(answers, await resolveTypescriptAnswers(rl, opts));
 
       answers.framework =
         hasPackage && opts.framework == null
@@ -455,51 +279,69 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
         answers.frameworkVersion = null;
       }
 
-      answers.typescript = await boolChoice(rl, opts, 'typescript', 'TypeScript?', false);
-      answers.tsMode = answers.typescript
-        ? await valueChoice(
-            rl,
-            opts,
-            'tsMode',
-            'TypeScript strictness?',
-            tsModeChoices(hasTsconfig, existingTsMode),
-            hasTsconfig ? 'preserve' : 'non-strict',
-          )
-        : 'preserve';
-
       if (answers.framework === 'none') {
-        const librariesRequested = Boolean(opts.devServer || opts.react || opts.tailwind || opts.vite || opts.vue);
-        const libraries = opts.libraries === false
-          ? false
-          : librariesRequested
-          ? true
-          : await boolChoice(rl, opts, 'libraries', 'Libraries?', false);
-        answers.vite = libraries ? await boolChoice(rl, opts, 'vite', 'Vite?', false) : false;
-        answers.devServer = answers.vite
-          ? await boolChoice(rl, opts, 'devServer', 'Dev server script?', false)
-          : false;
+        const libraryChoices = opts.libraries === false
+          ? []
+          : [
+              { key: 'vite', label: 'Vite', hint: 'dev server and production build' },
+              { key: 'react', label: 'React starter' },
+              { key: 'vue', label: 'Vue starter' },
+              { key: 'tailwind', label: 'Tailwind CSS', hint: 'local Vite setup' },
+            ];
+        const selectedFeatures = await featureSet(rl, opts, 'Select features to include:', [
+          { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
+          ...libraryChoices,
+          { key: 'vitest', label: 'Vitest', hint: 'unit testing' },
+        ]);
+        answers.prettier = selectedFeatures.prettier;
+        answers.vite = Boolean(selectedFeatures.vite);
+        answers.react = Boolean(selectedFeatures.react);
+        answers.vue = Boolean(selectedFeatures.vue);
+        answers.tailwind = Boolean(selectedFeatures.tailwind);
+        answers.vitest = Boolean(selectedFeatures.vitest);
+
+        if (answers.devServer) {
+          answers.vite = true;
+        }
+        if (answers.tailwind) {
+          if (opts.vite === false) {
+            throw new Error('--tailwind requires --vite for local starters');
+          }
+          answers.vite = true;
+        }
+        if (answers.vue && answers.react && rl) {
+          const starter = await promptChoice(
+            rl,
+            'Frontend starter?',
+            [
+              { label: 'React', value: 'react' },
+              { label: 'Vue', value: 'vue' },
+            ],
+            'react',
+          );
+          answers.react = starter === 'react';
+          answers.vue = starter === 'vue';
+        }
+        answers.devServer = opts.devServer ?? answers.vite;
         answers.devPort = answers.devServer
           ? Number(
               opts.devPort ??
                 (rl ? await promptText(rl, 'Dev server port?', '3000', validatePort) : '3000'),
             )
           : 3000;
-        answers.react = libraries ? await boolChoice(rl, opts, 'react', 'React?', false) : false;
-        answers.vue = libraries && !answers.react
-          ? await boolChoice(rl, opts, 'vue', 'Vue?', false)
-          : false;
-        answers.tailwind = answers.vite || answers.react || answers.vue
-          ? await boolChoice(rl, opts, 'tailwind', 'Tailwind?', false)
-          : Boolean(opts.tailwind);
-        answers.vitest = await boolChoice(rl, opts, 'vitest', 'Vitest?', false);
       } else {
+        const selectedFeatures = await featureSet(rl, opts, 'Select features to include:', [
+          { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
+          { key: 'tailwind', label: 'Tailwind CSS' },
+        ]);
+        answers.prettier = selectedFeatures.prettier;
         answers.vite = false;
         answers.devServer = false;
         answers.devPort = 3000;
         answers.vitest = false;
         answers.react = answers.framework === 'next';
         answers.vue = answers.framework === 'nuxt';
-        answers.tailwind = await boolChoice(rl, opts, 'tailwind', 'Tailwind?', false);
+        answers.tailwind = selectedFeatures.tailwind;
       }
     } else {
       Object.assign(answers, {

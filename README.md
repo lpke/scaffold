@@ -23,27 +23,23 @@ Local defaults and editable base files live under `share`.
 ## Choice Flow
 
 - Missing target dir: `Y/n`
-- Use nix flake: `y/N`, skipped and enabled when flake.nix exists
+- Use nix flake: `Y/n`, skipped and enabled when flake.nix exists
 - Use direnv: `Y/n` when nix is enabled; skipped and enabled when .envrc exists
-- Node project: `y/N`, skipped and enabled for existing package.json
+- Node project: `Y/n`, skipped and enabled for existing package.json
 - Node version: default detected from `engines.node`, else `24`; options `26`, `24`, `22`, `20`, `18`, `16`
 - Package manager: `pnpm` default, or `keep detected <manager>` when available; `yarn`, `npm`
-- Prettier: `y/N`
+- TypeScript: select one of `none`, `non-strict`, `strict`; `non-strict` default
 - Framework: `none` default; `Next.js`, `Nuxt`; skipped for existing package unless `--framework` is provided
-- Framework version: latest npm version is printed; latest version is default; custom selection prints recent exact versions by major and requires Enter
-- TypeScript: `y/N`
-- TypeScript strictness: existing tsconfig defaults to `preserve`; no tsconfig offers `strict`/`non-strict` and defaults to `non-strict`
+- Framework version: highest semver, latest tag (default), or specify version; custom input shows highest versions by recent majors
+- Prettier: selected by default in feature prompts
 - No framework path:
-  - Libraries: `y/N` (skipped with `--no-libraries`)
-  - Vite: `y/N` when libraries is enabled
-  - Dev server script: `y/N`
-  - Dev server port: `3000`
-  - React: `y/N` when libraries is enabled
-  - Vue: `y/N` when libraries is enabled and React is no
-  - Tailwind: `y/N` when Vite, React, or Vue is selected; local Vite starters install Tailwind CSS and wire the Vite plugin/CSS entry; with Prettier, installs the Tailwind Prettier plugin
-  - Vitest: `y/N`
+  - Feature multiselect: Prettier, Vite, React, Vue, Tailwind, Vitest; Prettier defaults on
+  - Vite includes dev server scripts by default
+  - Dev server port: `3000`, prompted when dev server scripts will be added
+  - React and Vue are mutually exclusive; selecting both asks which starter to keep
+  - Tailwind implies Vite; local Vite starters install Tailwind CSS and wire the Vite plugin/CSS entry; with Prettier, installs and configures the Tailwind Prettier plugin in `prettier.config.mjs`
 - Framework path:
-  - Tailwind: `y/N`; Next.js passes `--tailwind` or `--no-tailwind`
+  - Feature multiselect: Prettier, Tailwind; Prettier defaults on; Next.js passes `--tailwind` or `--no-tailwind`
 - License: `y/N`
 - License type: `AGPL-3.0-only` default
 - AGENTS.md: `y/N`

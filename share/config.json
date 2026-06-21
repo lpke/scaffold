@@ -108,8 +108,8 @@
     },
     "nuxt": {
       "label": "Nuxt",
-      "latestPackage": "nuxi",
-      "commandPackage": "nuxi",
+      "latestPackage": "nuxt",
+      "commandPackage": "nuxt",
       "commandArgs": [
         "init",
         "${targetDir}",
