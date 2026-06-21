@@ -10,8 +10,15 @@ scaffold help
 scaffold help --framework
 ```
 
-The installed entrypoint is `bin/scaffold`. Local defaults and editable base
-files live under `share/scaffold`.
+The source repo lives at `~/.local/src/scaffold`. Chezmoi installs a real
+wrapper at `~/.local/bin/scaffold`:
+
+```sh
+#!/usr/bin/env sh
+exec node "$HOME/.local/src/scaffold/bin/scaffold" "$@"
+```
+
+Local defaults and editable base files live under `share/scaffold`.
 
 ## Choice Flow
 
