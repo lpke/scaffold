@@ -27,6 +27,8 @@ const STRICT_TS = {
   skipLibCheck: true,
 };
 
+const TAILWIND_CSS_IMPORT = "@import 'tailwindcss';";
+
 const NEXT_ROUTE_ALIASES = {
   '@/components/*': ['./src/app/_components/*'],
   '@/hooks/*': ['./src/app/_hooks/*'],
@@ -128,6 +130,9 @@ const dependencySet = (answers, config) => {
     if (answers.react) {
       addDep('react');
       addDep('react-dom');
+      if (answers.router) {
+        addDep('react-router');
+      }
       addDev('@vitejs/plugin-react');
       addDev('@types/react');
       addDev('@types/react-dom');
@@ -140,6 +145,9 @@ const dependencySet = (answers, config) => {
     if (answers.react) {
       addDep('react');
       addDep('react-dom');
+      if (answers.router) {
+        addDep('react-router');
+      }
       addDev('@types/react');
       addDev('@types/react-dom');
     }
@@ -579,7 +587,41 @@ const applyGeneratedViteTailwind = async (workspace, answers) => {
   }
 
   const cssPath = answers.react ? 'src/index.css' : 'src/style.css';
-  await workspace.copyTemplate('starters/vite/tailwind.css', cssPath, { overwrite: true });
+  const absoluteCssPath = workspace.targetPath(cssPath);
+  if (await fileExists(absoluteCssPath)) {
+    const css = await readText(absoluteCssPath);
+    if (css.includes(TAILWIND_CSS_IMPORT)) {
+      workspace.skipped.push(`${cssPath} already has Tailwind`);
+      workspace.mark(cssPath);
+    } else {
+      await workspace.write(cssPath, `${TAILWIND_CSS_IMPORT}\n\n${css}`, { overwrite: true });
+    }
+  } else {
+    await workspace.copyTemplate('starters/vite/tailwind.css', cssPath, { overwrite: true });
+  }
+};
+
+const applyGeneratedReactRouter = async (workspace, answers) => {
+  if (!answers.router || answers.framework !== 'none' || answers.frontendBase !== 'react') {
+    return;
+  }
+
+  const appPath = answers.typescript ? 'src/App.tsx' : 'src/App.jsx';
+  const mainPath = answers.typescript ? 'src/main.tsx' : 'src/main.jsx';
+  const appImport = answers.typescript ? './App' : './App.jsx';
+  const rootTarget = answers.typescript
+    ? "document.querySelector('#root')!"
+    : "document.querySelector('#root')";
+  await workspace.write(
+    appPath,
+    "import { Link, Route, Routes } from 'react-router';\n\nexport function App() {\n  return (\n    <Routes>\n      <Route path=\"/\" element={<main><h1>Hello from scaffold</h1><Link to=\"/about\">About</Link></main>} />\n      <Route path=\"/about\" element={<main><h1>About</h1><Link to=\"/\">Home</Link></main>} />\n    </Routes>\n  );\n}\n",
+    { overwrite: true },
+  );
+  await workspace.write(
+    mainPath,
+    `import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport { BrowserRouter } from 'react-router';\n\nimport { App } from '${appImport}';\nimport './index.css';\n\ncreateRoot(${rootTarget}).render(\n  <StrictMode>\n    <BrowserRouter>\n      <App />\n    </BrowserRouter>\n  </StrictMode>,\n);\n`,
+    { overwrite: true },
+  );
 };
 
 const applyLicense = async ({ workspace, answers, config }) => {
@@ -670,6 +712,7 @@ module.exports = {
   applyLicense,
   applyLocalStarter,
   applyGeneratedViteTailwind,
+  applyGeneratedReactRouter,
   applyNix,
   applyNextTsconfig,
   applyPackageJson,

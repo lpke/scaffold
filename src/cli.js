@@ -85,7 +85,7 @@ Set package.json packageManager and package manager engine. "keep" is valid only
     help: `Usage: scaffold [dir] --prettier
        scaffold [dir] --no-prettier
 
-Create or skip prettier.config.mjs, Prettier dependency, and format/format:all package.json scripts.`,
+Create or skip prettier.config.mjs, Prettier dependency, format scripts, and final project formatting.`,
   },
   {
     topic: '--tailwind',
@@ -212,11 +212,12 @@ Pass --jsx to create-vue when Vue frontend base is selected.`,
   {
     topic: '--router',
     names: ['--router', '--no-router'],
-    summary: 'Use or skip Vue Router',
-    help: `Usage: scaffold [dir] --frontend-base vue --router
+    summary: 'Use or skip frontend router',
+    help: `Usage: scaffold [dir] --frontend-base react --router
+       scaffold [dir] --frontend-base vue --router
        scaffold [dir] --frontend-base vue --no-router
 
-Pass --router to create-vue when Vue frontend base is selected.`,
+Add React Router for React frontend base, or pass --router to create-vue when Vue frontend base is selected.`,
   },
   {
     topic: '--pinia',

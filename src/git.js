@@ -45,6 +45,28 @@ const gitAddAll = (targetDir, dryRun) => {
   runCommand('git', ['-C', targetDir, 'add', '--all', '--', '.'], targetDir, dryRun);
 };
 
+const gitCommitPath = (targetDir, message, dryRun) => {
+  runCommand(
+    'git',
+    [
+      '-C',
+      targetDir,
+      '-c',
+      'user.name=scaffold',
+      '-c',
+      'user.email=scaffold@localhost',
+      'commit',
+      '--allow-empty',
+      '-m',
+      message,
+      '--',
+      '.',
+    ],
+    targetDir,
+    dryRun,
+  );
+};
+
 const commitInitial = (targetDir, dryRun) => {
   runCommand(
     'git',
@@ -79,6 +101,32 @@ const replaceGitWithInitialCommit = async ({ answers, targetDir, workspace }) =>
   commitInitial(targetDir, answers.dryRun);
   answers.gitMode = 'keep';
   workspace.changed.push('replaced git repo and committed initial state');
+};
+
+const commitBaseScaffold = async ({ answers, commandDisplay, targetDir, workspace }) => {
+  if (!commandDisplay) {
+    return;
+  }
+  if (answers.gitMode === 'skip') {
+    workspace.skipped.push('base scaffold commit skipped because git is skipped');
+    return;
+  }
+  if (!commandExists('git')) {
+    workspace.skipped.push('git not found');
+    return;
+  }
+
+  const before = detectGit(targetDir);
+  if (!before.inside) {
+    initGit(targetDir, answers.dryRun);
+  }
+  gitAddAll(targetDir, answers.dryRun);
+  gitCommitPath(targetDir, `base scaffold from ${commandDisplay}`, answers.dryRun);
+  answers.gitAdd = true;
+  if (answers.gitMode === 'init') {
+    answers.gitMode = 'keep';
+  }
+  workspace.changed.push('committed base scaffold');
 };
 
 const prepareGit = async ({ answers, targetDir, workspace }) => {
@@ -146,6 +194,7 @@ const stageForNix = async ({ answers, targetDir, workspace }) => {
 };
 
 module.exports = {
+  commitBaseScaffold,
   prepareGit,
   replaceGitWithInitialCommit,
   stageForNix,

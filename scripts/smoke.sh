@@ -68,10 +68,11 @@ const { resolveTypescriptAnswers } = require('./src/prompt-features');
   assert(!command.args.includes('--javascript'));
 
   command = frontendBaseCommand({
-    answers: { frontendBase: 'react', typescript: true },
+    answers: { frontendBase: 'react', typescript: true, router: true },
     targetDir: '/tmp/scaffold-react',
   });
   assert.deepEqual(command.args.slice(-4), ['--', '--template', 'react-ts', '--no-interactive']);
+  assert.equal(parseArgs(['--frontend-base', 'react', '--router']).router, true);
 
   command = frontendBaseCommand({
     answers: {

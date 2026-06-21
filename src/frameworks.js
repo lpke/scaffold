@@ -65,9 +65,18 @@ const frontendBaseCommand = ({ answers, targetDir }) => {
   throw new Error(`Unknown frontend base: ${answers.frontendBase}`);
 };
 
+const shortCommandDisplay = (command, args, targetDir) => {
+  const resolvedTarget = path.resolve(targetDir);
+  const targetName = path.basename(resolvedTarget);
+  return displayCommand(
+    command,
+    args.map((arg) => (arg === resolvedTarget || arg === targetDir ? targetName : arg)),
+  );
+};
+
 const runFrontendBase = async ({ answers, targetDir, dryRun, force }) => {
   if (!answers.frontendBase || answers.frontendBase === 'none') {
-    return;
+    return null;
   }
   const empty = await isDirEmpty(targetDir);
   if (!empty && !force) {
@@ -77,13 +86,15 @@ const runFrontendBase = async ({ answers, targetDir, dryRun, force }) => {
   }
   const resolvedTarget = path.resolve(targetDir);
   const { command, args } = frontendBaseCommand({ answers, targetDir: path.basename(resolvedTarget) });
-  console.log(color.dim(`frontend base command: ${displayCommand(command, args)}`));
+  const commandDisplay = displayCommand(command, args);
+  console.log(color.dim(`frontend base command: ${commandDisplay}`));
   runCommand(command, args, path.dirname(resolvedTarget), dryRun);
+  return { commandDisplay };
 };
 
 const runFramework = async ({ answers, config, targetDir, dryRun, force }) => {
   if (answers.framework === 'none') {
-    return;
+    return null;
   }
   const empty = await isDirEmpty(targetDir);
   if (!empty && !force) {
@@ -92,8 +103,10 @@ const runFramework = async ({ answers, config, targetDir, dryRun, force }) => {
     );
   }
   const { command, args } = frameworkCommand({ answers, config, targetDir: path.resolve(targetDir) });
-  console.log(color.dim(`framework command: ${displayCommand(command, args)}`));
+  const commandDisplay = shortCommandDisplay(command, args, targetDir);
+  console.log(color.dim(`framework command: ${commandDisplay}`));
   runCommand(command, args, path.dirname(path.resolve(targetDir)), dryRun);
+  return { commandDisplay };
 };
 
 module.exports = {

@@ -143,13 +143,15 @@ const inferDependentOptions = (opts, { interactive }) => {
   }
   const vueBaseFlags = [
     [opts.jsx === true, '--jsx'],
-    [opts.router === true, '--router'],
     [opts.pinia === true, '--pinia'],
     [opts.eslint === true, '--eslint'],
   ];
   const vueBaseFlag = vueBaseFlags.find(([enabled]) => enabled);
   if (vueBaseFlag && opts.frontendBase !== 'vue') {
     throw new Error(`${vueBaseFlag[1]} requires --frontend-base vue`);
+  }
+  if (opts.router === true && !['react', 'vue'].includes(opts.frontendBase)) {
+    throw new Error('--router requires --frontend-base react or --frontend-base vue');
   }
 
   if (opts.tsMode != null) {
@@ -468,9 +470,13 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                       { key: 'eslint', label: 'Linter', hint: 'ESLint via create-vue' },
                     ]
                   : [];
+                const reactBaseChoices = baseReact
+                  ? [{ key: 'router', label: 'React Router', hint: 'post-create-vite' }]
+                  : [];
                 const selectedFeatures = await featureSet(rl, opts, 'Select features to include:', [
                   { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
                   ...libraryChoices,
+                  ...reactBaseChoices,
                   ...vueBaseChoices,
                   { key: 'vitest', label: 'Vitest', hint: 'unit testing' },
                 ]);
@@ -486,7 +492,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                   tailwind,
                   vitest: Boolean(selectedFeatures.vitest),
                   jsx: baseVue && Boolean(selectedFeatures.jsx),
-                  router: baseVue && Boolean(selectedFeatures.router),
+                  router: (baseReact || baseVue) && Boolean(selectedFeatures.router),
                   pinia: baseVue && Boolean(selectedFeatures.pinia),
                   eslint: baseVue && Boolean(selectedFeatures.eslint),
                 };

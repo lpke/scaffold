@@ -8,11 +8,18 @@ const { commandExists, runCommand } = require('./commands');
 const { loadConfig } = require('./config');
 const { fileExists, readJsonFile, statOrNull } = require('./detect');
 const { runFramework, runFrontendBase } = require('./frameworks');
-const { prepareGit, replaceGitWithInitialCommit, stageForNix, stageGit } = require('./git');
+const {
+  commitBaseScaffold,
+  prepareGit,
+  replaceGitWithInitialCommit,
+  stageForNix,
+  stageGit,
+} = require('./git');
 const {
   applyAgents,
   applyCommon,
   applyLicense,
+  applyGeneratedReactRouter,
   applyGeneratedViteTailwind,
   applyLocalStarter,
   applyNix,
@@ -89,6 +96,43 @@ const runPostChecks = async ({ answers, config, targetDir, workspace }) => {
   }
 };
 
+const runFinalFormat = async ({ answers, config, targetDir, workspace }) => {
+  if (!answers.prettier) {
+    return;
+  }
+  const hasPrettier = await fileExists(path.join(targetDir, 'node_modules', 'prettier'));
+  const hasTailwindPlugin =
+    !answers.tailwind ||
+    (await fileExists(path.join(targetDir, 'node_modules', 'prettier-plugin-tailwindcss')));
+  if (hasPrettier && hasTailwindPlugin) {
+    runCommand('npx', ['--no-install', 'prettier', '--write', '.'], targetDir, answers.dryRun);
+  } else {
+    if (answers.tailwind) {
+      workspace.skipped.push('Tailwind Prettier plugin not installed; formatting without project config');
+    }
+    runCommand(
+      'npx',
+      [
+        '--yes',
+        '--package',
+        `prettier@${config.versions.prettier}`,
+        'prettier',
+        '--write',
+        '.',
+        '--ignore-unknown',
+        '--single-quote',
+        '--no-config',
+      ],
+      targetDir,
+      answers.dryRun,
+    );
+  }
+  workspace.changed.push('formatted project with Prettier');
+  if (answers.gitMode !== 'skip') {
+    answers.gitAdd = true;
+  }
+};
+
 const printSummary = ({ answers, targetDir, workspace }) => {
   console.log('');
   console.log(`${color.green('◇')} ${color.bold('scaffold')} ${color.dim(targetDir)}`);
@@ -140,18 +184,30 @@ const main = async () => {
 
   await replaceGitWithInitialCommit({ answers, targetDir, workspace });
 
-  await runFramework({
+  const frameworkRun = await runFramework({
     answers,
     config,
     targetDir,
     dryRun: answers.dryRun,
     force: answers.force,
   });
-  await runFrontendBase({
+  await commitBaseScaffold({
+    answers,
+    commandDisplay: frameworkRun?.commandDisplay,
+    targetDir,
+    workspace,
+  });
+  const frontendBaseRun = await runFrontendBase({
     answers,
     targetDir,
     dryRun: answers.dryRun,
     force: answers.force,
+  });
+  await commitBaseScaffold({
+    answers,
+    commandDisplay: frontendBaseRun?.commandDisplay,
+    targetDir,
+    workspace,
   });
 
   if (!answers.dryRun) {
@@ -163,6 +219,7 @@ const main = async () => {
   await applyTypescriptConfig(workspace, answers);
   await applyLocalStarter(workspace, answers);
   await applyGeneratedViteTailwind(workspace, answers);
+  await applyGeneratedReactRouter(workspace, answers);
   await applyPnpmWorkspace({ workspace, answers });
   await applyPackageJson({ workspace, answers, existingPackage, config });
   await applyReadme({ workspace });
@@ -178,6 +235,7 @@ const main = async () => {
   await prepareGit({ answers, targetDir, workspace });
   await stageForNix({ answers, targetDir, workspace });
   await runPostChecks({ answers, config, targetDir, workspace });
+  await runFinalFormat({ answers, config, targetDir, workspace });
   await stageGit({ answers, targetDir, workspace });
 
   printSummary({ answers, targetDir, workspace });

@@ -43,7 +43,7 @@ const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
         'skip',
       );
     } else {
-      gitMode = (await promptYesNo(rl, 'Initialize git repo?', false)) ? 'init' : 'skip';
+      gitMode = (await promptYesNo(rl, 'Initialize git repo?', true)) ? 'init' : 'skip';
     }
   }
 
