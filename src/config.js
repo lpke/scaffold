@@ -28,6 +28,15 @@ const loadConfig = async () => {
     requireString(target.nixpkgs, `nodeTargets.${major}.nixpkgs`);
     requireString(target.nodePackage, `nodeTargets.${major}.nodePackage`);
     requireString(target.engine, `nodeTargets.${major}.engine`);
+    if (
+      target.permittedInsecurePackages !== undefined &&
+      (!Array.isArray(target.permittedInsecurePackages) ||
+        target.permittedInsecurePackages.some((pkg) => typeof pkg !== 'string' || !pkg.trim()))
+    ) {
+      throw new Error(
+        `Expected nodeTargets.${major}.permittedInsecurePackages to be an array of non-empty strings`,
+      );
+    }
   }
 
   for (const [name, manager] of Object.entries(config.packageManagers)) {

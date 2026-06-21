@@ -241,6 +241,20 @@ const renderPackageList = (answers, config) => {
   return packages.map((pkg) => `            ${pkg}`).join('\n');
 };
 
+const renderNixpkgsConfig = (nodeConfig) => {
+  const permitted = nodeConfig.permittedInsecurePackages ?? [];
+  if (permitted.length === 0) {
+    return '';
+  }
+  const packages = permitted.map((pkg) => `              "${pkg}"`).join('\n');
+  return `
+          config = {
+            permittedInsecurePackages = [
+${packages}
+            ];
+          };`;
+};
+
 const applyNix = async ({ workspace, answers, config }) => {
   if (!answers.nix) {
     return;
@@ -249,6 +263,7 @@ const applyNix = async ({ workspace, answers, config }) => {
   const flake = await renderAsset('templates/nix/flake.nix.tmpl', {
     PROJECT_NAME: sanitizePackageName(workspace.targetDir),
     NIXPKGS: nodeConfig.nixpkgs,
+    NIXPKGS_CONFIG: renderNixpkgsConfig(nodeConfig),
     PACKAGES: renderPackageList(answers, config),
   });
   await workspace.write('flake.nix', flake);

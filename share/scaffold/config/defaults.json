@@ -30,7 +30,8 @@
     "16": {
       "nixpkgs": "nixos-23.05",
       "nodePackage": "nodejs_16",
-      "engine": ">=16"
+      "engine": ">=16",
+      "permittedInsecurePackages": ["nodejs-16.20.2"]
     }
   },
   "packageManagers": {
