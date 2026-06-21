@@ -1,0 +1,14 @@
+{
+  "name": "@lpke/scaffold",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "bin": {
+    "scaffold": "./bin/scaffold"
+  },
+  "scripts": {
+    "check": "node --check bin/scaffold",
+    "smoke": "node --check bin/scaffold && bin/scaffold --help >/dev/null && bin/scaffold help --profile >/dev/null"
+  },
+  "license": "AGPL-3.0-only"
+}

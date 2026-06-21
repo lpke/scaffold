@@ -1,0 +1,17 @@
+node_modules
+.nuxt
+.output
+.next
+dist
+coverage
+.vite
+*.log
+.env
+.env.*
+!.env.example
+.flake.local/
+.direnv
+.DS_Store
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
