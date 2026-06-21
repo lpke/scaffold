@@ -19,7 +19,7 @@ for flag in \
   --node-project --no-node-project --node --package-manager \
   --prettier --no-prettier --tailwind --no-tailwind --framework \
   --framework-version --typescript --no-typescript --strict \
-  --non-strict --preserve-ts --vite --no-vite --dev-server \
+  --non-strict --preserve-ts --vite --no-vite --no-libraries --dev-server \
   --no-dev-server --dev-port --vitest --no-vitest --react \
   --no-react --vue --no-vue --license --no-license --license-type \
   --agents --no-agents --flake-lock --no-flake-lock --install \
@@ -33,6 +33,7 @@ done
 node <<'NODE'
 const assert = require('node:assert/strict');
 const { loadConfig } = require('./src/config');
+const { parseArgs } = require('./src/cli');
 const { frameworkCommand } = require('./src/frameworks');
 
 (async () => {
@@ -62,6 +63,8 @@ const { frameworkCommand } = require('./src/frameworks');
   assert(command.args.includes('--js'));
   assert(command.args.includes('--no-tailwind'));
   assert(!command.args.includes('--javascript'));
+
+  assert.equal(parseArgs(['--no-libraries']).libraries, false);
 })().catch((error) => {
   console.error(error);
   process.exit(1);

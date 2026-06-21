@@ -229,6 +229,21 @@ const inferDependentOptions = (opts, { interactive }) => {
     inferred.devServer = true;
   }
 
+  if (opts.libraries === false) {
+    const libraryFlags = [
+      [opts.devServer === true, '--dev-server'],
+      [opts.devPort != null, '--dev-port'],
+      [opts.react === true, '--react'],
+      [opts.tailwind === true, '--tailwind'],
+      [opts.vite === true, '--vite'],
+      [opts.vue === true, '--vue'],
+    ];
+    const requested = libraryFlags.find(([enabled]) => enabled);
+    if (requested) {
+      throw new Error(`${requested[1]} cannot be used with --no-libraries`);
+    }
+  }
+
   if (opts.licenseType != null) {
     if (opts.license === false) {
       throw new Error('--license-type requires --license');
@@ -454,7 +469,9 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
 
       if (answers.framework === 'none') {
         const librariesRequested = Boolean(opts.devServer || opts.react || opts.tailwind || opts.vite || opts.vue);
-        const libraries = librariesRequested
+        const libraries = opts.libraries === false
+          ? false
+          : librariesRequested
           ? true
           : await boolChoice(rl, opts, 'libraries', 'Libraries?', false);
         answers.vite = libraries ? await boolChoice(rl, opts, 'vite', 'Vite?', false) : false;

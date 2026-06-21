@@ -34,7 +34,7 @@ Local defaults and editable base files live under `share`.
 - TypeScript: `y/N`
 - TypeScript strictness: existing tsconfig defaults to `preserve`; no tsconfig offers `strict`/`non-strict` and defaults to `non-strict`
 - No framework path:
-  - Libraries: `y/N`
+  - Libraries: `y/N` (skipped with `--no-libraries`)
   - Vite: `y/N` when libraries is enabled
   - Dev server script: `y/N`
   - Dev server port: `3000`

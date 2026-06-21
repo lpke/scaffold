@@ -141,6 +141,14 @@ Set strict compiler options, non-strict compiler options, or preserve an existin
 Use local Vite starter files when no framework is selected.`,
   },
   {
+    topic: '--no-libraries',
+    names: ['--no-libraries'],
+    summary: 'Skip local frontend library prompts',
+    help: `Usage: scaffold [dir] --no-libraries
+
+Skip Vite, dev server, React, Vue, and Tailwind prompts for local projects.`,
+  },
+  {
     topic: '--dev-server',
     names: ['--dev-server', '--no-dev-server'],
     summary: 'Create or skip dev server scripts',
@@ -437,6 +445,9 @@ const parseArgs = (argv) => {
         break;
       case '--no-vite':
         setBool('vite', false);
+        break;
+      case '--no-libraries':
+        setBool('libraries', false);
         break;
       case '--dev-server':
         setBool('devServer', true);
