@@ -8,6 +8,7 @@ const { detectGit, fileExists } = require('./detect');
 
 const initGit = (targetDir, dryRun) => {
   runCommand('git', ['-C', targetDir, 'init'], targetDir, dryRun);
+  runCommand('git', ['-C', targetDir, 'branch', '-M', 'main'], targetDir, dryRun);
 };
 
 const replaceGit = async (targetDir, dryRun) => {
@@ -35,20 +36,52 @@ const configureRemote = (targetDir, name, url, dryRun) => {
   }
 };
 
-const gitAddIntent = async (targetDir, files, dryRun) => {
-  const existing = [];
-  for (const file of files) {
-    if (await fileExists(path.join(targetDir, file))) {
-      existing.push(file);
-    }
-  }
-  if (existing.length === 0) {
-    return;
-  }
-  runCommand('git', ['-C', targetDir, 'add', '-N', '--', ...existing], targetDir, dryRun);
+const configureMainTracking = (targetDir, name, dryRun) => {
+  runCommand('git', ['-C', targetDir, 'config', 'branch.main.remote', name], targetDir, dryRun);
+  runCommand('git', ['-C', targetDir, 'config', 'branch.main.merge', 'refs/heads/main'], targetDir, dryRun);
 };
 
-const applyGit = async ({ answers, targetDir, workspace }) => {
+const gitAddAll = (targetDir, dryRun) => {
+  runCommand('git', ['-C', targetDir, 'add', '--all', '--', '.'], targetDir, dryRun);
+};
+
+const commitInitial = (targetDir, dryRun) => {
+  runCommand(
+    'git',
+    [
+      '-C',
+      targetDir,
+      '-c',
+      'user.name=scaffold',
+      '-c',
+      'user.email=scaffold@localhost',
+      'commit',
+      '--allow-empty',
+      '-m',
+      'initial commit',
+    ],
+    targetDir,
+    dryRun,
+  );
+};
+
+const replaceGitWithInitialCommit = async ({ answers, targetDir, workspace }) => {
+  if (answers.gitMode !== 'replace') {
+    return;
+  }
+  if (!commandExists('git')) {
+    workspace.skipped.push('git not found');
+    return;
+  }
+
+  await replaceGit(targetDir, answers.dryRun);
+  gitAddAll(targetDir, answers.dryRun);
+  commitInitial(targetDir, answers.dryRun);
+  answers.gitMode = 'keep';
+  workspace.changed.push('replaced git repo and committed initial state');
+};
+
+const prepareGit = async ({ answers, targetDir, workspace }) => {
   if (answers.gitMode === 'skip') {
     workspace.skipped.push('git skipped');
     return;
@@ -79,13 +112,29 @@ const applyGit = async ({ answers, targetDir, workspace }) => {
 
   if (answers.gitRemote) {
     configureRemote(targetDir, answers.gitRemoteName, answers.gitRemote, answers.dryRun);
+    configureMainTracking(targetDir, answers.gitRemoteName, answers.dryRun);
   }
+};
 
+const stageGit = async ({ answers, targetDir, workspace }) => {
+  if (answers.gitMode === 'skip' || !answers.gitAdd) {
+    return;
+  }
+  if (!commandExists('git')) {
+    return;
+  }
+  const git = detectGit(targetDir);
+  if (!git.inside && !answers.dryRun) {
+    workspace.skipped.push('no git repo for staging');
+    return;
+  }
   if (answers.gitAdd) {
-    await gitAddIntent(targetDir, Array.from(workspace.touchedFiles), answers.dryRun);
+    gitAddAll(targetDir, answers.dryRun);
   }
 };
 
 module.exports = {
-  applyGit,
+  prepareGit,
+  replaceGitWithInitialCommit,
+  stageGit,
 };

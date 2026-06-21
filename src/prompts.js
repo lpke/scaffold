@@ -18,14 +18,22 @@ const boolChoice = async (rl, opts, key, message, defaultValue) => {
   return promptYesNo(rl, message, defaultValue);
 };
 
+const preferredChoiceDefault = (choices, fallback) => {
+  const preferred = choices.find((choice) =>
+    /^(keep detected|preserve existing)\b/i.test(choice.label),
+  );
+  return preferred?.value ?? fallback;
+};
+
 const valueChoice = async (rl, opts, key, message, choices, defaultValue) => {
   if (opts[key] != null) {
     return opts[key];
   }
+  const resolvedDefault = preferredChoiceDefault(choices, defaultValue);
   if (!rl) {
-    return defaultValue;
+    return resolvedDefault;
   }
-  return promptChoice(rl, message, choices, defaultValue);
+  return promptChoice(rl, message, choices, resolvedDefault);
 };
 
 const packageManagerChoices = (config, hasPackage, detectedManager) => {
@@ -58,12 +66,15 @@ const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
   const git = detectGit(targetDir);
   const validModes = ['auto', 'skip', 'keep', 'init', 'replace'];
   let gitMode = opts.gitMode ?? 'auto';
+  const remoteRequested = Boolean(opts.gitRemote);
   if (!validModes.includes(gitMode)) {
     throw new Error(`Unknown git mode: ${gitMode}`);
   }
 
   if (gitMode === 'auto') {
-    if (!rl) {
+    if (remoteRequested) {
+      gitMode = git.inside ? 'keep' : 'init';
+    } else if (!rl) {
       gitMode = git.inside ? 'keep' : 'skip';
     } else if (git.hasOwnGit) {
       gitMode = await promptChoice(
@@ -74,7 +85,7 @@ const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
           { label: 'replace with a fresh repo', value: 'replace' },
           { label: 'skip git changes', value: 'skip' },
         ],
-        'keep',
+        'skip',
       );
     } else if (git.inside) {
       gitMode = await promptChoice(
@@ -85,7 +96,7 @@ const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
           { label: 'init nested repo here', value: 'init' },
           { label: 'skip git changes', value: 'skip' },
         ],
-        'keep',
+        'skip',
       );
     } else {
       gitMode = (await promptYesNo(rl, 'Initialize git repo?', false)) ? 'init' : 'skip';
@@ -97,13 +108,12 @@ const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
   const gitRemoteName = opts.gitRemoteName || 'origin';
   if (canRemote && !gitRemote && rl) {
     const remotes = git.inside ? listGitRemotes(targetDir) : [];
-    const defaultConfigure = Boolean(opts.gitRemote);
     const configure = await promptYesNo(
       rl,
       remotes.length > 0
         ? `Configure git remote? ${color.dim(`existing: ${remotes.join(', ')}`)}`
         : 'Configure git remote?',
-      defaultConfigure,
+      false,
     );
     if (configure) {
       gitRemote = await promptText(rl, `Remote URL for ${gitRemoteName}`, '', (value) =>
@@ -112,13 +122,7 @@ const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
     }
   }
 
-  const gitAdd =
-    opts.gitAdd ??
-    (canRemote && (git.inside || gitMode === 'init' || gitMode === 'replace')
-      ? rl
-        ? await promptYesNo(rl, 'Mark generated files with git add -N?', true)
-        : true
-      : false);
+  const gitAdd = opts.gitAdd ?? canRemote;
 
   return {
     gitAdd,
@@ -144,18 +148,31 @@ const resolveAnswers = async ({ opts, targetDir, existingPackage, config }) => {
       tailwindPrettier: Boolean(opts.tailwindPrettier),
     };
 
-    answers.nix = await boolChoice(rl, opts, 'nix', 'Use nix flake?', true);
+    answers.nix = await boolChoice(rl, opts, 'nix', 'Use nix flake?', false);
     answers.direnv = answers.nix
-      ? await boolChoice(rl, opts, 'direnv', 'Use direnv?', true)
+      ? await boolChoice(rl, opts, 'direnv', 'Use direnv?', false)
       : false;
     if (!answers.nix && opts.direnv) {
       throw new Error('--direnv requires --nix because the managed .envrc uses "use flake"');
     }
 
     const frameworkRequested = opts.framework && opts.framework !== 'none';
-    answers.nodeProject = frameworkRequested
+    const nodeProjectRequested = Boolean(
+      frameworkRequested ||
+        opts.devServer ||
+        opts.install ||
+        opts.nodeMajor ||
+        opts.packageManager ||
+        opts.prettier ||
+        opts.react ||
+        opts.typescript ||
+        opts.vite ||
+        opts.vitest ||
+        opts.vue,
+    );
+    answers.nodeProject = opts.nodeProject ?? (hasPackage || nodeProjectRequested
       ? true
-      : await boolChoice(rl, opts, 'nodeProject', 'Node project?', true);
+      : await boolChoice(rl, opts, 'nodeProject', 'Node project?', false));
 
     if (answers.nodeProject) {
       answers.nodeMajor = await valueChoice(
@@ -190,20 +207,23 @@ const resolveAnswers = async ({ opts, targetDir, existingPackage, config }) => {
       answers.toolchainManager =
         answers.packageManager === 'keep' ? detectedManager || 'pnpm' : answers.packageManager;
 
-      answers.prettier = await boolChoice(rl, opts, 'prettier', 'Prettier?', true);
+      answers.prettier = await boolChoice(rl, opts, 'prettier', 'Prettier?', false);
 
-      answers.framework = await valueChoice(
-        rl,
-        opts,
-        'framework',
-        'Framework?',
-        [
-          { label: 'none', value: 'none' },
-          { label: 'Next.js', value: 'next' },
-          { label: 'Nuxt', value: 'nuxt' },
-        ],
-        'none',
-      );
+      answers.framework =
+        hasPackage && opts.framework == null
+          ? 'none'
+          : await valueChoice(
+              rl,
+              opts,
+              'framework',
+              'Framework?',
+              [
+                { label: 'none', value: 'none' },
+                { label: 'Next.js', value: 'next' },
+                { label: 'Nuxt', value: 'nuxt' },
+              ],
+              'none',
+            );
       if (answers.framework !== 'none' && !config.frameworks[answers.framework]) {
         throw new Error(`Unknown framework: ${answers.framework}`);
       }
@@ -233,7 +253,7 @@ const resolveAnswers = async ({ opts, targetDir, existingPackage, config }) => {
         answers.frameworkVersion = null;
       }
 
-      answers.typescript = await boolChoice(rl, opts, 'typescript', 'TypeScript?', true);
+      answers.typescript = await boolChoice(rl, opts, 'typescript', 'TypeScript?', false);
       answers.tsMode = answers.typescript
         ? await valueChoice(
             rl,
@@ -250,9 +270,9 @@ const resolveAnswers = async ({ opts, targetDir, existingPackage, config }) => {
         : 'preserve';
 
       if (answers.framework === 'none') {
-        answers.vite = await boolChoice(rl, opts, 'vite', 'Vite?', true);
+        answers.vite = await boolChoice(rl, opts, 'vite', 'Vite?', false);
         answers.devServer = answers.vite
-          ? await boolChoice(rl, opts, 'devServer', 'Dev server script?', true)
+          ? await boolChoice(rl, opts, 'devServer', 'Dev server script?', false)
           : false;
         answers.devPort = answers.devServer
           ? Number(
@@ -309,7 +329,7 @@ const resolveAnswers = async ({ opts, targetDir, existingPackage, config }) => {
         )
       : opts.licenseType || null;
 
-    answers.agents = await boolChoice(rl, opts, 'agents', 'AGENTS.md?', true);
+    answers.agents = await boolChoice(rl, opts, 'agents', 'AGENTS.md?', false);
 
     answers.flakeLock = answers.nix
       ? await boolChoice(rl, opts, 'flakeLock', 'Run nix flake lock after writing files?', true)

@@ -23,29 +23,30 @@ Local defaults and editable base files live under `share/scaffold`.
 ## Choice Flow
 
 - Missing target dir: `Y/n`
-- Use nix flake: `Y/n`
-- Use direnv: `Y/n` when nix is enabled
-- Node project: `Y/n`
+- Use nix flake: `y/N`
+- Use direnv: `y/N` when nix is enabled
+- Node project: `y/N`, skipped and enabled for existing package.json
 - Node version: default detected from `engines.node`, else `24`; options `26`, `24`, `22`, `20`, `18`, `16`
-- Package manager: `pnpm` default; `yarn`, `npm`, and `keep detected <manager>` when available
-- Prettier: `Y/n`
-- Framework: `none` default; `Next.js`, `Nuxt`
+- Package manager: `pnpm` default, or `keep detected <manager>` when available; `yarn`, `npm`
+- Prettier: `y/N`
+- Framework: `none` default; `Next.js`, `Nuxt`; skipped for existing package unless `--framework` is provided
 - Framework version: latest npm version is printed; latest version is default
-- TypeScript: `Y/n`
+- TypeScript: `y/N`
 - TypeScript strictness: existing package defaults to `preserve`; new package defaults to `strict`
 - No framework path:
-  - Vite: `Y/n`
-  - Dev server script: `Y/n`
+  - Vite: `y/N`
+  - Dev server script: `y/N`
   - Dev server port: `3000`
   - Vitest: `y/N`
   - React: `y/N`
   - Vue: `y/N`, only when React is no
 - License: `y/N`
 - License type: `AGPL-3.0-only` default
-- AGENTS.md: `Y/n`
+- AGENTS.md: `y/N`
 - Run nix flake lock: `Y/n` when nix is enabled
 - Run package install: `y/N` when Node project is enabled
-- Git: keep/init/replace/skip depending on repo state; optional remote; `git add -N` defaults on when a repo is active
+- Git: defaults to skip in interactive mode; replace mode commits the pre-scaffold state as `initial commit`; optional remote with `main` tracking config; `git add --all -- .` defaults on when a repo is active, before Nix flake commands and again at the end
+- cd to scaffolded dir: `y/N` when target differs from current dir; opens a shell there unless shell integration handles a real cd
 
 Every flag has `scaffold --flag --help` and `scaffold help --flag`.
 

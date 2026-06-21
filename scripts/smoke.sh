@@ -35,6 +35,7 @@ bin/scaffold "$tmp/app" \
   --no-flake-lock \
   --no-install \
   --git skip \
+  --typescript \
   --react \
   --vitest \
   --license \
@@ -44,3 +45,27 @@ test -f "$tmp/app/package.json"
 test -f "$tmp/app/AGENTS.md"
 test -f "$tmp/app/LICENSE"
 test -f "$tmp/app/src/App.tsx"
+
+if command -v git >/dev/null 2>&1; then
+  mkdir -p "$tmp/replace"
+  printf '{"name":"old"}\n' >"$tmp/replace/package.json"
+  printf 'before\n' >"$tmp/replace/existing.txt"
+  git -C "$tmp/replace" init >/dev/null
+  git -C "$tmp/replace" config user.name test
+  git -C "$tmp/replace" config user.email test@example.com
+  git -C "$tmp/replace" add package.json existing.txt
+  git -C "$tmp/replace" commit -m old >/dev/null
+
+  bin/scaffold "$tmp/replace" \
+    --yes \
+    --no-nix \
+    --no-agents \
+    --no-license \
+    --no-install \
+    --git replace >/dev/null
+
+  test "$(git -C "$tmp/replace" log --format=%s -1)" = "initial commit"
+  test "$(git -C "$tmp/replace" rev-list --count HEAD)" = "1"
+  git -C "$tmp/replace" ls-tree -r --name-only HEAD | grep -Fx existing.txt >/dev/null
+  git -C "$tmp/replace" diff --cached --name-only | grep -Fx .editorconfig >/dev/null
+fi

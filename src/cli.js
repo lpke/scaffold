@@ -237,7 +237,7 @@ auto: prompt/default based on target state.
 skip: no git actions.
 keep: use existing repo.
 init: initialize a new repo when none exists.
-replace: remove target .git and initialize a new repo.`,
+replace: remove target .git, initialize a new repo, commit current files as "initial commit", then stage scaffold changes.`,
   },
   {
     topic: '--git-remote',
@@ -245,7 +245,7 @@ replace: remove target .git and initialize a new repo.`,
     summary: 'Set git remote URL',
     help: `Usage: scaffold [dir] --git-remote <url>
 
-Add or update a git remote after git setup. Use with --git-remote-name to change remote name.`,
+Add or update a git remote after git setup. Also configures main to track <remote>/main without pushing. Use with --git-remote-name to change remote name.`,
   },
   {
     topic: '--git-remote-name',
@@ -258,11 +258,11 @@ Remote name used with --git-remote. Default: origin.`,
   {
     topic: '--git-add',
     names: ['--git-add', '--no-git-add'],
-    summary: 'Run or skip git add -N',
+    summary: 'Run or skip git add',
     help: `Usage: scaffold [dir] --git-add
        scaffold [dir] --no-git-add
 
-Run or skip git add -N for generated files when target is in a git repo.`,
+Run or skip git add --all for the target directory when target is in a git repo.`,
   },
   {
     topic: '--force',

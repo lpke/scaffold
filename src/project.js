@@ -462,21 +462,25 @@ const applyAgents = async ({ workspace, answers }) => {
     return;
   }
   const tech = [];
-  if (answers.nix) tech.push('- Nix flake dev shell.');
-  if (answers.direnv) tech.push('- direnv loads the flake shell.');
-  if (answers.nodeProject) tech.push(`- Node ${answers.nodeMajor} with ${answers.toolchainManager}.`);
-  if (answers.framework !== 'none') tech.push(`- ${answers.framework === 'next' ? 'Next.js' : 'Nuxt'} project.`);
-  if (answers.vite) tech.push(`- Vite${answers.react ? ' + React' : answers.vue ? ' + Vue' : ''}.`);
-  if (answers.typescript) tech.push('- TypeScript.');
-  if (answers.vitest) tech.push('- Vitest.');
-  if (answers.prettier) tech.push('- Prettier.');
+  if (answers.nix) tech.push('- Nix flake dev shell');
+  if (answers.direnv) tech.push('- direnv loads the flake shell');
+  if (answers.nodeProject) tech.push(`- Node ${answers.nodeMajor} with ${answers.toolchainManager}`);
+  if (answers.framework !== 'none') tech.push(`- ${answers.framework === 'next' ? 'Next.js' : 'Nuxt'} project`);
+  if (answers.vite) tech.push(`- Vite${answers.react ? ' + React' : answers.vue ? ' + Vue' : ''}`);
+  if (answers.typescript) tech.push('- TypeScript');
+  if (answers.vitest) tech.push('- Vitest');
+  if (answers.prettier) tech.push('- Prettier');
 
   const rules = [];
   if (answers.prettier) {
-    rules.push('- Format changed files with the package format script before committing.');
+    rules.push(
+      '- **Formatting:** When creating brand new files or making large edits, run `pnpm format:all` when you are done with all edits. For single-file-only edits, run `pnpm format <file>` when done with all edits.',
+    );
   }
-  if (answers.vite && answers.devServer) {
-    rules.push(`- Dev server defaults to port ${answers.devPort}; do not kill existing dev servers without checking first.`);
+  if (answers.devServer || answers.framework !== 'none') {
+    rules.push(
+      '- **Dev servers:** Do not kill existing dev servers unless explicitly asked to. If you start a dev server while responding to a request, ensure that it is stopped when you are done.',
+    );
   }
   if (rules.length === 0) {
     rules.push('- Keep changes scoped and document non-obvious project decisions.');
@@ -485,7 +489,7 @@ const applyAgents = async ({ workspace, answers }) => {
   await workspace.write(
     'AGENTS.md',
     await renderAsset('templates/agents/AGENTS.md.tmpl', {
-      TECH: tech.length ? tech.join('\n') : '- No runtime stack selected.',
+      TECH: tech.length ? tech.join('\n') : '- No runtime stack selected',
       RULES: rules.join('\n'),
     }),
     { overwrite: false },

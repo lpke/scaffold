@@ -1,14 +1,15 @@
 'use strict';
 
+const cp = require('node:child_process');
 const fsp = require('node:fs').promises;
 const path = require('node:path');
 
 const { parseArgs, printRequestedHelp } = require('./cli');
-const { commandExists, runCommand } = require('./commands');
+const { commandExists, displayCommand, runCommand } = require('./commands');
 const { loadConfig } = require('./config');
 const { fileExists, readJsonFile, statOrNull } = require('./detect');
 const { runFramework } = require('./frameworks');
-const { applyGit } = require('./git');
+const { prepareGit, replaceGitWithInitialCommit, stageGit } = require('./git');
 const {
   applyAgents,
   applyCommon,
@@ -102,6 +103,30 @@ const printSummary = ({ answers, targetDir, workspace }) => {
   }
 };
 
+const offerCd = async ({ opts, targetDir }) => {
+  if (!isInteractive(opts) || path.resolve(process.cwd()) === path.resolve(targetDir)) {
+    return;
+  }
+
+  const rl = createPrompter();
+  let cd = false;
+  try {
+    cd = await promptYesNo(rl, `cd to ${targetDir}?`, false);
+  } finally {
+    rl.close();
+  }
+  if (!cd) {
+    return;
+  }
+  if (process.env.SCAFFOLD_CD_FILE) {
+    await fsp.writeFile(process.env.SCAFFOLD_CD_FILE, `${targetDir}\n`);
+    return;
+  }
+  const shell = process.env.SHELL || '/bin/sh';
+  console.log(`${color.dim('shell:')} ${displayCommand(shell, [])}`);
+  cp.spawnSync(shell, { cwd: targetDir, stdio: 'inherit' });
+};
+
 const main = async () => {
   const argv = process.argv.slice(2);
   if (printRequestedHelp(argv)) {
@@ -117,6 +142,16 @@ const main = async () => {
   let existingPackage = await readExistingPackage(targetDir);
   const answers = await resolveAnswers({ opts, targetDir, existingPackage, config });
 
+  const workspace = new Workspace({
+    targetDir,
+    dryRun: answers.dryRun,
+    backup: answers.backup,
+    force: answers.force,
+  });
+  const hadTsconfig = await fileExists(path.join(targetDir, 'tsconfig.json'));
+
+  await replaceGitWithInitialCommit({ answers, targetDir, workspace });
+
   await runFramework({
     answers,
     config,
@@ -128,14 +163,6 @@ const main = async () => {
   if (!answers.dryRun) {
     existingPackage = await readExistingPackage(targetDir);
   }
-
-  const workspace = new Workspace({
-    targetDir,
-    dryRun: answers.dryRun,
-    backup: answers.backup,
-    force: answers.force,
-  });
-  const hadTsconfig = await fileExists(path.join(targetDir, 'tsconfig.json'));
 
   await applyCommon({ workspace, answers });
   await applyNix({ workspace, answers, config });
@@ -151,10 +178,15 @@ const main = async () => {
   }
   await applyLicense({ workspace, answers, config });
   await applyAgents({ workspace, answers });
+  await prepareGit({ answers, targetDir, workspace });
+  if (answers.nix) {
+    await stageGit({ answers, targetDir, workspace });
+  }
   await runPostChecks({ answers, config, targetDir, workspace });
-  await applyGit({ answers, targetDir, workspace });
+  await stageGit({ answers, targetDir, workspace });
 
   printSummary({ answers, targetDir, workspace });
+  await offerCd({ opts, targetDir });
 };
 
 module.exports = {
