@@ -84,7 +84,7 @@ Set package.json packageManager and package manager engine. "keep" is valid only
     summary: 'Set foundation',
     help: `Usage: scaffold [target] --foundation <owned|next|nuxt|react-vite|vue-vite>
 
-Choose the starting foundation. "owned" copies scaffold-owned templates. Other values run a seed command, then scaffold applies defaults, features, and seeded-foundation overrides.`,
+Choose the starting template. "owned" copies scaffold custom templates. Other values run a seed command, then scaffold applies defaults, features, and seeded-foundation overrides.`,
   },
   {
     topic: '--seed-version',

@@ -2,7 +2,7 @@
 
 const { promptChoice, promptMultiselect } = require('./ui');
 
-const featureSet = async (rl, opts, message, choices) => {
+const featureSet = async (rl, opts, message, choices, options = {}) => {
   const answers = {};
   const promptChoices = [];
   const defaultValues = [];
@@ -30,7 +30,20 @@ const featureSet = async (rl, opts, message, choices) => {
       answers[choice.value] = Boolean(choice.defaultValue);
     }
   } else if (rl && promptChoices.length > 0) {
-    const selected = new Set(await promptMultiselect(rl, message, promptChoices, defaultValues));
+    const selected = new Set(
+      await promptMultiselect(rl, message, promptChoices, defaultValues, {
+        validate: options.validate
+          ? (selectedValues) => {
+              const selectedSet = new Set(selectedValues);
+              const selectedAnswers = { ...answers };
+              for (const choice of promptChoices) {
+                selectedAnswers[choice.value] = selectedSet.has(choice.value);
+              }
+              return options.validate(selectedAnswers);
+            }
+          : undefined,
+      }),
+    );
     for (const choice of promptChoices) {
       answers[choice.value] = selected.has(choice.value);
     }

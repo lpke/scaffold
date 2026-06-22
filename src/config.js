@@ -22,6 +22,9 @@ const loadConfig = async () => {
   requireObject(config.seedCommands, 'seedCommands');
   requireObject(config.licenseTypes, 'licenseTypes');
   requireString(config.defaultLicense, 'defaultLicense');
+  if (config.featureConflicts !== undefined && !Array.isArray(config.featureConflicts)) {
+    throw new Error('Expected featureConflicts to be an array in config.json');
+  }
 
   for (const [major, target] of Object.entries(config.nodeTargets)) {
     requireObject(target, `nodeTargets.${major}`);
@@ -57,6 +60,38 @@ const loadConfig = async () => {
     if (seed.commandArgs !== undefined && !Array.isArray(seed.commandArgs)) {
       throw new Error(`Expected seedCommands.${name}.commandArgs to be an array`);
     }
+  }
+
+  for (const [index, conflict] of Object.entries(config.featureConflicts || [])) {
+    requireObject(conflict, `featureConflicts.${index}`);
+    if (conflict.features !== undefined) {
+      if (
+        !Array.isArray(conflict.features) ||
+        conflict.features.length < 2 ||
+        conflict.features.some((feature) => typeof feature !== 'string' || !feature.trim())
+      ) {
+        throw new Error(`Expected featureConflicts.${index}.features to be an array of feature names`);
+      }
+    }
+    if (conflict.when !== undefined) {
+      requireObject(conflict.when, `featureConflicts.${index}.when`);
+      for (const [feature, value] of Object.entries(conflict.when)) {
+        if (!feature.trim() || typeof value !== 'boolean') {
+          throw new Error(`Expected featureConflicts.${index}.when values to be booleans`);
+        }
+      }
+    }
+    if (conflict.features === undefined && conflict.when === undefined) {
+      throw new Error(`Expected featureConflicts.${index}.features or .when`);
+    }
+    if (
+      conflict.foundations !== undefined &&
+      (!Array.isArray(conflict.foundations) ||
+        conflict.foundations.some((foundation) => typeof foundation !== 'string' || !foundation.trim()))
+    ) {
+      throw new Error(`Expected featureConflicts.${index}.foundations to be an array of names`);
+    }
+    requireString(conflict.message, `featureConflicts.${index}.message`);
   }
 
   if (!config.licenseTypes[config.defaultLicense]) {

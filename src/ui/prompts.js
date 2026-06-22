@@ -454,7 +454,7 @@ const promptChoice = async (rl, message, choices, defaultValue) => {
   }
 };
 
-const promptMultiselectKeys = (rl, message, choices, defaultValues, { required = false } = {}) => {
+const promptMultiselectKeys = (rl, message, choices, defaultValues, options = {}) => {
   if (!canUseKeys(rl)) {
     return null;
   }
@@ -464,6 +464,7 @@ const promptMultiselectKeys = (rl, message, choices, defaultValues, { required =
   const selectedValues = new Set(defaultValues);
   let selected = 0;
   let renderedLines = 0;
+  let error = null;
 
   return new Promise((resolve, reject) => {
     let done = false;
@@ -473,6 +474,11 @@ const promptMultiselectKeys = (rl, message, choices, defaultValues, { required =
     const values = () => choices
       .filter((choice) => selectedValues.has(choice.value))
       .map((choice) => choice.value);
+
+    const refreshError = () => {
+      const valid = options.validate ? options.validate(values()) : true;
+      error = valid === true ? null : valid || 'Invalid selection.';
+    };
 
     const renderChoice = (choice, index) => {
       const active = index === selected;
@@ -486,17 +492,27 @@ const promptMultiselectKeys = (rl, message, choices, defaultValues, { required =
       renderedLines = renderBlock(output, renderedLines, [
         questionLine(message, backPending ? backHelp : messageHint),
         ...choices.map(renderChoice),
+        ...(error ? [`${activeRail()}  ${color.red(error)}`] : []),
         activeEnd(),
       ]);
     };
 
     const finish = (submittedWithEnter = false) => {
       const selected = values();
-      if (required && selected.length === 0) {
+      if (options.required && selected.length === 0) {
         if (submittedWithEnter) {
           renderedLines += 1;
         }
+        error = null;
         render(color.yellow('(select at least one option)'));
+        return;
+      }
+      refreshError();
+      if (error) {
+        if (submittedWithEnter) {
+          renderedLines += 1;
+        }
+        render();
         return;
       }
       if (done) {
@@ -566,11 +582,13 @@ const promptMultiselectKeys = (rl, message, choices, defaultValues, { required =
       }
       if (key.name === 'space') {
         toggleCurrent();
+        refreshError();
         render();
         return;
       }
       if (str === 'a') {
         toggleAll();
+        refreshError();
         render();
         return;
       }
@@ -607,10 +625,13 @@ const promptMultiselect = async (rl, message, choices, defaultValues = [], optio
       ? answer.split(',').map((value) => value.trim()).filter(Boolean)
       : [];
     const valid = values.every((value) => choices.some((choice) => choice.value === value));
-    if (valid && (!options.required || values.length > 0)) {
+    const validation = valid && (!options.required || values.length > 0)
+      ? options.validate?.(values) ?? true
+      : false;
+    if (valid && (!options.required || values.length > 0) && validation === true) {
       return values;
     }
-    console.log(color.yellow('Pick listed values only.'));
+    console.log(color.yellow(validation || 'Pick listed values only.'));
   }
 };
 

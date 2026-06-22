@@ -8,11 +8,11 @@ const { color } = require('./ui');
 
 const OWNED_FOUNDATION = 'owned';
 const FOUNDATION_CHOICES = [
-  { label: 'owned templates', value: OWNED_FOUNDATION },
-  { label: 'Next.js seed', value: 'next' },
-  { label: 'Nuxt seed', value: 'nuxt' },
-  { label: 'React + Vite seed', value: 'react-vite' },
-  { label: 'Vue + Vite seed', value: 'vue-vite' },
+  { label: 'custom', value: OWNED_FOUNDATION },
+  { label: 'Next.js', value: 'next' },
+  { label: 'Nuxt', value: 'nuxt' },
+  { label: 'React + Vite', value: 'react-vite' },
+  { label: 'Vue + Vite', value: 'vue-vite' },
 ];
 
 const SEEDED_FOUNDATIONS = new Set(['next', 'nuxt', 'react-vite', 'vue-vite']);
@@ -30,7 +30,7 @@ const isNextFoundation = (foundation) => foundation === 'next';
 
 const foundationLabel = (foundation, config) => {
   if (foundation === OWNED_FOUNDATION) {
-    return 'owned templates';
+    return 'custom';
   }
   return config.seedCommands[foundation]?.label ?? foundation;
 };

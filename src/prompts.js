@@ -33,6 +33,26 @@ const { clearRendered } = require('./ui/frame');
 
 const isInteractive = (opts) => process.stdin.isTTY && process.stdout.isTTY && !opts.yes;
 
+const selectedFeatureConflict = (featureValues, conflicts = []) => {
+  for (const conflict of conflicts) {
+    if (
+      conflict.foundations &&
+      !conflict.foundations.includes(featureValues.foundation)
+    ) {
+      continue;
+    }
+    const featureMatch =
+      !conflict.features || conflict.features.every((feature) => Boolean(featureValues[feature]));
+    const whenMatch =
+      !conflict.when ||
+      Object.entries(conflict.when).every(([feature, value]) => Boolean(featureValues[feature]) === value);
+    if (featureMatch && whenMatch) {
+      return conflict.message;
+    }
+  }
+  return null;
+};
+
 const boolChoice = async (rl, opts, key, message, defaultValue) => {
   if (opts[key] != null) {
     return opts[key];
@@ -396,7 +416,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                       rl,
                       opts,
                       'foundation',
-                      'Foundation?',
+                      'Template?',
                       FOUNDATION_CHOICES,
                       OWNED_FOUNDATION,
                     );
@@ -450,9 +470,9 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                 const bareChoices = opts.featurePrompts === false || !owned
                   ? []
                   : [
-                      { key: 'vite', label: 'Vite barebones', hint: 'dev server and production build' },
-                      { key: 'react', label: 'React barebones' },
-                      { key: 'vue', label: 'Vue barebones' },
+                      { key: 'vite', label: 'Vite', hint: 'dev server and production build' },
+                      { key: 'react', label: 'React', hint: 'minimal' },
+                      { key: 'vue', label: 'Vue', hint: 'minimal' },
                     ];
                 const featureChoices = opts.featurePrompts === false
                   ? []
@@ -471,20 +491,27 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                 const reactSeedChoices = seededReact
                   ? [{ key: 'router', label: 'React Router', hint: 'post-create-vite' }]
                   : [];
-                const selectedFeatures = await featureSet(rl, opts, 'Select features to include:', [
-                  { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
-                  ...featureChoices,
-                  ...reactSeedChoices,
-                  ...vueSeedChoices,
-                  { key: 'vitest', label: 'Vitest', hint: 'unit testing' },
-                ]);
+                const selectedFeatures = await featureSet(
+                  rl,
+                  opts,
+                  'Select features to include:',
+                  [
+                    { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
+                    ...featureChoices,
+                    ...reactSeedChoices,
+                    ...vueSeedChoices,
+                    { key: 'vitest', label: 'Vitest', hint: 'unit testing' },
+                  ],
+                  {
+                    validate: (selected) =>
+                      selectedFeatureConflict({ ...answers, ...opts, ...selected }, config.featureConflicts) ||
+                      true,
+                  },
+                );
                 const tailwind = Boolean(selectedFeatures.tailwind);
-                if (tailwind && opts.vite === false && owned) {
-                  throw new Error('--tailwind requires --vite for owned foundations');
-                }
                 return {
                   prettier: selectedFeatures.prettier,
-                  vite: seededReact || seededVue || Boolean(selectedFeatures.vite) || tailwind,
+                  vite: seededReact || seededVue || Boolean(selectedFeatures.vite),
                   react: seededReact || Boolean(selectedFeatures.react),
                   vue: seededVue || Boolean(selectedFeatures.vue),
                   tailwind,
@@ -493,28 +520,6 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                   router: (seededReact || seededVue) && Boolean(selectedFeatures.router),
                   pinia: seededVue && Boolean(selectedFeatures.pinia),
                   eslint: seededVue && Boolean(selectedFeatures.eslint),
-                };
-              },
-            },
-            {
-              keys: ['react', 'vue'],
-              backStop: Boolean(rl && answers.vue && answers.react),
-              run: async () => {
-                if (!(answers.vue && answers.react && rl)) {
-                  return {};
-                }
-                const feature = await promptChoice(
-                  rl,
-                  'Frontend feature?',
-                  [
-                    { label: 'React', value: 'react' },
-                    { label: 'Vue', value: 'vue' },
-                  ],
-                  opts._rememberedAnswers?.vue && !opts._rememberedAnswers?.react ? 'vue' : 'react',
-                );
-                return {
-                  react: feature === 'react',
-                  vue: feature === 'vue',
                 };
               },
             },
@@ -771,8 +776,9 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
     }
     delete answers.gitConfigureRemote;
 
-    if (answers.vue && answers.react) {
-      throw new Error('React and Vue features are mutually exclusive');
+    const conflict = selectedFeatureConflict(answers, config.featureConflicts);
+    if (conflict) {
+      throw new Error(conflict);
     }
     if (isAppSeed(answers.foundation) && opts.vite) {
       throw new Error('--vite cannot be combined with Next/Nuxt seeded foundations');
