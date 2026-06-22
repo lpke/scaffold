@@ -45,6 +45,7 @@ const path = require('node:path');
 const { loadConfig } = require('./src/config');
 const { parseArgs } = require('./src/cli');
 const { buildSeedCommand } = require('./src/foundations');
+const { applySeededFoundationOverrides } = require('./src/override-pass');
 const { resolveTypescriptAnswers } = require('./src/prompt-features');
 const { applyPackageJson } = require('./src/project');
 const { Workspace } = require('./src/workspace');
@@ -211,6 +212,39 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   assert.equal(command.args[command.args.length - 1], '/tmp/scaffold-vue');
 
   await assertViteSeedPortScripts({ foundation: 'vue-vite', react: false, vue: true });
+
+  const assertVueSeedScriptLang = async ({ typescript, lang }) => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-vue-lang-${lang}-`));
+    fs.mkdirSync(path.join(tmp, 'src/assets'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'src/components'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'src/views'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'vite.config.ts'), "import { defineConfig } from 'vite'\nplugins: [vue()]\n");
+    fs.writeFileSync(path.join(tmp, 'index.html'), '<title>Vite App</title>\n');
+    fs.writeFileSync(path.join(tmp, 'src/main.ts'), "import './assets/main.css'\n");
+    fs.writeFileSync(path.join(tmp, 'src/assets/main.css'), 'demo\n');
+    fs.writeFileSync(path.join(tmp, 'src/components/HelloWorld.vue'), '<template />\n');
+    const workspace = new Workspace({
+      targetDir: tmp,
+      dryRun: false,
+      backup: false,
+      force: false,
+    });
+    await applySeededFoundationOverrides({
+      workspace,
+      seedRun: { foundation: 'vue-vite' },
+      answers: {
+        foundation: 'vue-vite',
+        typescript,
+        tailwind: false,
+        router: true,
+      },
+    });
+    assert(fs.readFileSync(path.join(tmp, 'src/App.vue'), 'utf8').includes(`<script setup lang="${lang}">`));
+    assert(fs.readFileSync(path.join(tmp, 'src/views/HomeView.vue'), 'utf8').includes(`<script setup lang="${lang}">`));
+  };
+
+  await assertVueSeedScriptLang({ typescript: false, lang: 'js' });
+  await assertVueSeedScriptLang({ typescript: true, lang: 'ts' });
 
   assert.equal(parseArgs(['--no-feature-prompts']).featurePrompts, false);
   assert.equal(parseArgs(['--foundation', 'react-vite']).foundation, 'react-vite');

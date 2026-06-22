@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="{{SCRIPT_LANG}}">
 import HelloWorld from '@/components/HelloWorld.vue'
 </script>
 
