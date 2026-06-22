@@ -3,6 +3,13 @@
   "description": "Common scaffold defaults applied to every project.",
   "actions": [
     {
+      "type": "file.copyTemplate",
+      "label": "Seed .editorconfig defaults",
+      "path": ".editorconfig",
+      "template": "shared/common/.editorconfig",
+      "overwrite": false
+    },
+    {
       "type": "text.setProperties",
       "label": "Ensure .editorconfig defaults",
       "path": ".editorconfig",
@@ -19,6 +26,13 @@
         "trim_trailing_whitespace": "true",
         "insert_final_newline": "true"
       }
+    },
+    {
+      "type": "file.copyTemplate",
+      "label": "Seed .gitignore defaults",
+      "path": ".gitignore",
+      "template": "shared/common/.gitignore",
+      "overwrite": false
     },
     {
       "type": "text.removeLines",
@@ -50,6 +64,14 @@
         "*.scaffold-backup",
         "*.scaffold-backup/"
       ]
+    },
+    {
+      "type": "file.copyTemplate",
+      "label": "Seed .prettierignore defaults",
+      "path": ".prettierignore",
+      "template": "shared/common/.prettierignore",
+      "when": "prettier",
+      "overwrite": false
     },
     {
       "type": "text.mergeLines",

@@ -1,10 +1,14 @@
 # scaffold assets
 
-Editable defaults and templates for `scaffold`.
+Editable defaults, templates, and override manifests for `scaffold`.
 
-Start with `config.json` for preference changes. Generated file
-templates live in `templates/`.
+Start with `config.json` for preference changes.
 
-Post-generator edits live in `overrides/`. Each JSON file is an action
-manifest. Use those when a framework or frontend base should be cleaned up or
-changed after its upstream generator runs.
+Template roots:
+
+- `templates/owned/`: starting files for the owned foundation.
+- `templates/seeded/`: file bodies referenced by seeded-foundation override manifests.
+- `templates/shared/`: reusable project pieces such as common dotfiles, Nix, AGENTS.md, licenses, and TypeScript configs.
+
+Defaults and seeded-foundation override passes live in `overrides/`. Each JSON
+file is an action manifest.

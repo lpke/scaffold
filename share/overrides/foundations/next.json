@@ -81,7 +81,7 @@
       "label": "Replace Next Tailwind CSS",
       "path": "src/app/_styles/globals.css",
       "when": "tailwind",
-      "template": "overrides/frameworks/next/app/_styles/globals.css"
+      "template": "seeded/next/app/_styles/globals.css"
     },
     {
       "type": "file.write",
@@ -90,7 +90,7 @@
       "when": {
         "not": "tailwind"
       },
-      "template": "starters/vite/reset.css"
+      "template": "owned/vite/reset.css"
     },
     {
       "type": "file.delete",
@@ -104,7 +104,7 @@
       "when": {
         "all": ["typescript", "tailwind"]
       },
-      "template": "overrides/frameworks/next/app/layout.tsx"
+      "template": "seeded/next/app/layout.tsx"
     },
     {
       "type": "file.write",
@@ -118,7 +118,7 @@
           }
         ]
       },
-      "template": "overrides/frameworks/next/app/layout.plain.tsx"
+      "template": "seeded/next/app/layout.plain.tsx"
     },
     {
       "type": "file.write",
@@ -132,7 +132,7 @@
           "tailwind"
         ]
       },
-      "template": "overrides/frameworks/next/app/layout.js"
+      "template": "seeded/next/app/layout.js"
     },
     {
       "type": "file.write",
@@ -148,14 +148,14 @@
           }
         ]
       },
-      "template": "overrides/frameworks/next/app/layout.plain.js"
+      "template": "seeded/next/app/layout.plain.js"
     },
     {
       "type": "file.write",
       "label": "Replace Next TypeScript home route",
       "path": "src/app/page.tsx",
       "when": "typescript",
-      "template": "overrides/frameworks/next/app/page.tsx"
+      "template": "seeded/next/app/page.tsx"
     },
     {
       "type": "file.write",
@@ -164,14 +164,14 @@
       "when": {
         "not": "typescript"
       },
-      "template": "overrides/frameworks/next/app/page.js"
+      "template": "seeded/next/app/page.js"
     },
     {
       "type": "file.write",
       "label": "Add Next TypeScript about route",
       "path": "src/app/(routes)/about/page.tsx",
       "when": "typescript",
-      "template": "overrides/frameworks/next/app/(routes)/about/page.tsx"
+      "template": "seeded/next/app/(routes)/about/page.tsx"
     },
     {
       "type": "file.write",
@@ -180,7 +180,7 @@
       "when": {
         "not": "typescript"
       },
-      "template": "overrides/frameworks/next/app/(routes)/about/page.js"
+      "template": "seeded/next/app/(routes)/about/page.js"
     },
     {
       "type": "text.replace",
@@ -240,7 +240,7 @@
       "when": {
         "all": ["vitest", "typescript"]
       },
-      "template": "overrides/frameworks/next/tests/page.test.tsx"
+      "template": "seeded/next/tests/page.test.tsx"
     },
     {
       "type": "file.write",
@@ -254,7 +254,7 @@
           }
         ]
       },
-      "template": "overrides/frameworks/next/tests/page.test.jsx"
+      "template": "seeded/next/tests/page.test.jsx"
     }
   ]
 }

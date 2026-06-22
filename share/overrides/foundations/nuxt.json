@@ -7,7 +7,7 @@
       "label": "Replace Nuxt app shell",
       "path": "app/app.vue",
       "when": "tailwind",
-      "template": "overrides/frameworks/nuxt/app/app.vue"
+      "template": "seeded/nuxt/app/app.vue"
     },
     {
       "type": "file.write",
@@ -16,26 +16,26 @@
       "when": {
         "not": "tailwind"
       },
-      "template": "overrides/frameworks/nuxt/app/app.plain.vue"
+      "template": "seeded/nuxt/app/app.plain.vue"
     },
     {
       "type": "file.write",
       "label": "Add Nuxt home route",
       "path": "app/pages/index.vue",
-      "template": "overrides/frameworks/nuxt/app/pages/index.vue"
+      "template": "seeded/nuxt/app/pages/index.vue"
     },
     {
       "type": "file.write",
       "label": "Add Nuxt about route",
       "path": "app/pages/about.vue",
-      "template": "overrides/frameworks/nuxt/app/pages/about.vue"
+      "template": "seeded/nuxt/app/pages/about.vue"
     },
     {
       "type": "file.write",
       "label": "Add Nuxt Tailwind CSS",
       "path": "app/assets/css/main.css",
       "when": "tailwind",
-      "template": "overrides/frameworks/nuxt/app/assets/css/main.css"
+      "template": "seeded/nuxt/app/assets/css/main.css"
     },
     {
       "type": "file.write",
@@ -44,14 +44,14 @@
       "when": {
         "not": "tailwind"
       },
-      "template": "starters/vite/reset.css"
+      "template": "owned/vite/reset.css"
     },
     {
       "type": "file.write",
       "label": "Replace Nuxt config",
       "path": "nuxt.config.ts",
       "when": "tailwind",
-      "template": "overrides/frameworks/nuxt/nuxt.config.ts"
+      "template": "seeded/nuxt/nuxt.config.ts"
     },
     {
       "type": "file.write",
@@ -60,7 +60,7 @@
       "when": {
         "not": "tailwind"
       },
-      "template": "overrides/frameworks/nuxt/nuxt.plain.config.ts"
+      "template": "seeded/nuxt/nuxt.plain.config.ts"
     },
     {
       "type": "file.write",
@@ -92,7 +92,7 @@
       "when": {
         "all": ["vitest", "typescript"]
       },
-      "template": "overrides/frameworks/nuxt/tests/index.test.ts"
+      "template": "seeded/nuxt/tests/index.test.ts"
     },
     {
       "type": "file.write",
@@ -106,7 +106,7 @@
           }
         ]
       },
-      "template": "overrides/frameworks/nuxt/tests/index.test.js"
+      "template": "seeded/nuxt/tests/index.test.js"
     }
   ]
 }

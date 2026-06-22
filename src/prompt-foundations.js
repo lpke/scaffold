@@ -4,50 +4,49 @@ const { npmLatest, npmPackageVersionExists, npmRecentMajorVersions } = require('
 const { color, isPromptBack, promptChoice, promptText } = require('./ui');
 const { clearRendered, doneLines } = require('./ui/frame');
 
-const latestFrameworkVersion = ({ config, framework }) => {
-  const meta = config.frameworks[framework];
-  if (!meta) {
-    return null;
-  }
-  return npmLatest(meta.latestPackage);
+const seedMeta = ({ config, foundation }) => config.seedCommands[foundation] ?? null;
+
+const latestSeedVersion = ({ config, foundation }) => {
+  const meta = seedMeta({ config, foundation });
+  return meta ? npmLatest(meta.versionPackage) : null;
 };
 
-const recentFrameworkMajorVersions = ({ config, framework }) => {
-  const meta = config.frameworks[framework];
-  if (!meta) {
-    return [];
-  }
-  return npmRecentMajorVersions(meta.latestPackage, 4);
+const recentSeedMajorVersions = ({ config, foundation }) => {
+  const meta = seedMeta({ config, foundation });
+  return meta ? npmRecentMajorVersions(meta.versionPackage, 4) : [];
 };
 
-const resolveFrameworkVersion = async ({ rl, opts, config, framework }) => {
-  const meta = config.frameworks[framework];
-  const latest = latestFrameworkVersion({ config, framework });
+const resolveSeedVersion = async ({ rl, opts, config, foundation }) => {
+  const meta = seedMeta({ config, foundation });
+  if (!meta) {
+    throw new Error(`Unknown seeded foundation: ${foundation}`);
+  }
+  const latest = latestSeedVersion({ config, foundation });
 
-  if (opts.frameworkVersion != null) {
-    return opts.frameworkVersion;
+  if (opts.seedVersion != null) {
+    return opts.seedVersion;
   }
 
   if (!rl) {
     return latest || 'latest';
   }
 
-  const recent = recentFrameworkMajorVersions({ config, framework });
+  const recent = recentSeedMajorVersions({ config, foundation });
   const highest = recent[0]?.version ?? latest;
-
   const highestMajors = recent.map(({ version }) => version);
   const hintLine = highestMajors.length > 0
     ? `${color.dim('(highest majors: ')}${color.bold(highestMajors[0])}${color.dim(
         `${highestMajors.slice(1).map((version) => ` • ${version}`).join('')})`,
       )}`
-    : color.yellow(`Could not check recent ${framework} versions.`);
+    : color.yellow(`Could not check recent ${foundation} seed versions.`);
 
   while (true) {
-    const remembered = opts._rememberedAnswers?.frameworkVersion;
-    const defaultChoice = remembered === 'latest' || remembered === highest ? remembered : remembered ? 'custom' : 'latest';
+    const remembered = opts._rememberedAnswers?.seedVersion;
+    const defaultChoice =
+      remembered === 'latest' || remembered === highest ? remembered : remembered ? 'custom' : 'latest';
     const selected = await promptChoice(
       rl,
-      'Framework version?',
+      'Seed version?',
       [
         { label: highest ? `${highest} (highest semver)` : 'highest semver', value: highest || 'latest' },
         { label: latest ? `${latest} (latest tag)` : 'latest tag', value: 'latest' },
@@ -62,13 +61,13 @@ const resolveFrameworkVersion = async ({ rl, opts, config, framework }) => {
     try {
       return await promptText(
         rl,
-        `${meta.label} version`,
+        `${meta.label} seed version`,
         remembered && remembered !== 'latest' ? remembered : highest || latest || 'latest',
         (value) => {
           if (!value) {
-            return 'Framework version is required.';
+            return 'Seed version is required.';
           }
-          return npmPackageVersionExists(meta.latestPackage, value)
+          return npmPackageVersionExists(meta.versionPackage, value)
             ? true
             : `${value} doesnt exist`;
         },
@@ -88,5 +87,5 @@ const resolveFrameworkVersion = async ({ rl, opts, config, framework }) => {
 };
 
 module.exports = {
-  resolveFrameworkVersion,
+  resolveSeedVersion,
 };

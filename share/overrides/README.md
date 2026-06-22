@@ -1,11 +1,10 @@
 # scaffold overrides
 
-Override manifests are declarative action lists applied after an upstream
-generator runs.
+Override manifests are declarative action lists used by defaults and override
+passes.
 
 - `common/defaults.json`: shared defaults for every project.
-- `frameworks/<name>.json`: runs after a framework generator, such as Next.js or Nuxt.
-- `frontend-bases/<name>.json`: runs after a frontend base generator, such as React or Vue.
+- `foundations/<name>.json`: runs after a seeded foundation, such as `next`, `nuxt`, `react-vite`, or `vue-vite`.
 
 Manifests use this shape:
 
@@ -18,7 +17,7 @@ Manifests use this shape:
       "type": "file.write",
       "label": "Human-readable action name",
       "path": "src/example.ts",
-      "template": "overrides/example.ts"
+      "template": "seeded/example.ts"
     }
   ]
 }

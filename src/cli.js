@@ -13,15 +13,15 @@ Show top-level help, or detailed help for a command or flag.
 
 Examples:
   scaffold help
-  scaffold help --framework
-  scaffold --framework --help`,
+  scaffold help --foundation
+  scaffold --foundation --help`,
   },
   {
     topic: '--yes',
     names: ['-y', '--yes'],
     summary: 'Use defaults without prompts',
-    help: `Usage: scaffold [dir] --yes
-       scaffold [dir] -y
+    help: `Usage: scaffold [target] --yes
+       scaffold [target] -y
 
 Use defaults without prompts. Suitable for scripts and CI.`,
   },
@@ -29,7 +29,7 @@ Use defaults without prompts. Suitable for scripts and CI.`,
     topic: '--dry-run',
     names: ['--dry-run'],
     summary: 'Print planned changes only',
-    help: `Usage: scaffold [dir] --dry-run
+    help: `Usage: scaffold [target] --dry-run
 
 Print file changes and commands without writing files or running tools.`,
   },
@@ -37,8 +37,8 @@ Print file changes and commands without writing files or running tools.`,
     topic: '--nix',
     names: ['--nix', '--no-nix'],
     summary: 'Create or skip flake.nix',
-    help: `Usage: scaffold [dir] --nix
-       scaffold [dir] --no-nix
+    help: `Usage: scaffold [target] --nix
+       scaffold [target] --no-nix
 
 Create or skip a Nix flake dev shell.`,
   },
@@ -46,8 +46,8 @@ Create or skip a Nix flake dev shell.`,
     topic: '--direnv',
     names: ['--direnv', '--no-direnv'],
     summary: 'Create or skip .envrc',
-    help: `Usage: scaffold [dir] --direnv
-       scaffold [dir] --no-direnv
+    help: `Usage: scaffold [target] --direnv
+       scaffold [target] --no-direnv
 
 Create or skip .envrc. This scaffold uses direnv with Nix flakes.`,
   },
@@ -55,16 +55,16 @@ Create or skip .envrc. This scaffold uses direnv with Nix flakes.`,
     topic: '--node-project',
     names: ['--node-project', '--no-node-project'],
     summary: 'Create or skip Node project files',
-    help: `Usage: scaffold [dir] --node-project
-       scaffold [dir] --no-node-project
+    help: `Usage: scaffold [target] --node-project
+       scaffold [target] --no-node-project
 
-Create or skip package.json, Node engine defaults, and JavaScript/TypeScript starter files.`,
+Create or skip package.json, Node engine defaults, and owned foundation templates.`,
   },
   {
     topic: '--node',
     names: ['--node'],
     summary: 'Set Node major version',
-    help: `Usage: scaffold [dir] --node <major>
+    help: `Usage: scaffold [target] --node <major>
 
 Choose Node major for package.json engines and flake.nix.
 
@@ -74,67 +74,59 @@ Values: 26, 24, 22, 20, 18, 16`,
     topic: '--package-manager',
     names: ['--package-manager'],
     summary: 'Set package manager',
-    help: `Usage: scaffold [dir] --package-manager <pnpm|yarn|npm|keep>
+    help: `Usage: scaffold [target] --package-manager <pnpm|yarn|npm|keep>
 
 Set package.json packageManager and package manager engine. "keep" is valid only when an existing package manager can be detected.`,
   },
   {
+    topic: '--foundation',
+    names: ['--foundation'],
+    summary: 'Set foundation',
+    help: `Usage: scaffold [target] --foundation <owned|next|nuxt|react-vite|vue-vite>
+
+Choose the starting foundation. "owned" copies scaffold-owned templates. Other values run a seed command, then scaffold applies defaults, features, and seeded-foundation overrides.`,
+  },
+  {
+    topic: '--seed-version',
+    names: ['--seed-version'],
+    summary: 'Set seed package version',
+    help: `Usage: scaffold [target] --foundation <next|nuxt|react-vite|vue-vite> --seed-version <version|latest>
+
+Choose the seed package version used by the seed command. Default is the latest dist-tag.`,
+  },
+  {
     topic: '--prettier',
     names: ['--prettier', '--no-prettier'],
-    summary: 'Create or skip Prettier config',
-    help: `Usage: scaffold [dir] --prettier
-       scaffold [dir] --no-prettier
+    summary: 'Use or skip Prettier',
+    help: `Usage: scaffold [target] --prettier
+       scaffold [target] --no-prettier
 
-Create or skip prettier.config.mjs, Prettier dependency, format scripts, and final project formatting.`,
+Add Prettier config, dependency, format scripts, and final formatting.`,
   },
   {
     topic: '--tailwind',
-    names: ['--tailwind', '--no-tailwind', '--tailwind-prettier'],
+    names: ['--tailwind', '--no-tailwind'],
     summary: 'Use or skip Tailwind support',
-    help: `Usage: scaffold [dir] --tailwind
-       scaffold [dir] --no-tailwind
+    help: `Usage: scaffold [target] --tailwind
+       scaffold [target] --no-tailwind
 
-Enable Tailwind-aware scaffold behavior. Local Vite starters install Tailwind CSS, add the Vite plugin, and include src/style.css. Next.js passes --tailwind or --no-tailwind. With --prettier, also installs and configures prettier-plugin-tailwindcss.`,
-  },
-  {
-    topic: '--framework',
-    names: ['--framework'],
-    summary: 'Set framework',
-    help: `Usage: scaffold [dir] --framework <none|next|nuxt>
-
-Choose framework. "next" runs create-next-app for Next.js (React). "nuxt" runs nuxi init for Nuxt (Vue). "none" uses local templates or a frontend base.`,
-  },
-  {
-    topic: '--frontend-base',
-    names: ['--frontend-base'],
-    summary: 'Set frontend base generator',
-    help: `Usage: scaffold [dir] --frontend-base <none|react|vue>
-
-Choose a frontend base when --framework is none. "react" runs create-vite with the React template. "vue" runs create-vue with selected feature flags. "none" keeps local barebones starters.`,
-  },
-  {
-    topic: '--framework-version',
-    names: ['--framework-version'],
-    summary: 'Set framework generator version',
-    help: `Usage: scaffold [dir] --framework-version <version|latest>
-
-Choose framework generator package version. Requires --framework <next|nuxt>. The interactive prompt can collect a specified version. Default is the latest dist-tag.`,
+Enable Tailwind-aware scaffold behavior. Owned Vite foundations install Tailwind CSS and wire the Vite plugin/CSS entry. Next.js seed commands receive --tailwind or --no-tailwind.`,
   },
   {
     topic: '--nuxt-offline',
     names: ['--nuxt-offline', '--nuxt-prefer-offline'],
-    summary: 'Use Nuxt offline modes',
-    help: `Usage: scaffold [dir] --framework nuxt --nuxt-offline
-       scaffold [dir] --framework nuxt --nuxt-prefer-offline
+    summary: 'Use Nuxt seed offline modes',
+    help: `Usage: scaffold [target] --foundation nuxt --nuxt-offline
+       scaffold [target] --foundation nuxt --nuxt-prefer-offline
 
-Pass --offline or --preferOffline to Nuxt init.`,
+Pass --offline or --preferOffline to the Nuxt seed command.`,
   },
   {
     topic: '--typescript',
     names: ['--typescript', '--no-typescript'],
     summary: 'Use or skip TypeScript',
-    help: `Usage: scaffold [dir] --typescript
-       scaffold [dir] --no-typescript
+    help: `Usage: scaffold [target] --typescript
+       scaffold [target] --no-typescript
 
 Create TypeScript config/source, or JavaScript source only.`,
   },
@@ -142,35 +134,35 @@ Create TypeScript config/source, or JavaScript source only.`,
     topic: '--strict',
     names: ['--strict', '--non-strict', '--preserve-ts'],
     summary: 'Set TypeScript strictness',
-    help: `Usage: scaffold [dir] --strict
-       scaffold [dir] --non-strict
-       scaffold [dir] --preserve-ts
+    help: `Usage: scaffold [target] --strict
+       scaffold [target] --non-strict
+       scaffold [target] --preserve-ts
 
 Set strict compiler options, non-strict compiler options, or preserve an existing tsconfig. Implies --typescript.`,
   },
   {
     topic: '--vite',
     names: ['--vite', '--no-vite'],
-    summary: 'Use or skip Vite',
-    help: `Usage: scaffold [dir] --vite
-       scaffold [dir] --no-vite
+    summary: 'Use or skip Vite feature',
+    help: `Usage: scaffold [target] --foundation owned --vite
+       scaffold [target] --foundation owned --no-vite
 
-Use local Vite starter files when no framework is selected.`,
+Use owned Vite template files. Seeded Vite foundations set this automatically.`,
   },
   {
-    topic: '--no-libraries',
-    names: ['--no-libraries'],
-    summary: 'Skip local frontend library prompts',
-    help: `Usage: scaffold [dir] --no-libraries
+    topic: '--no-feature-prompts',
+    names: ['--no-feature-prompts'],
+    summary: 'Skip optional feature prompts',
+    help: `Usage: scaffold [target] --no-feature-prompts
 
-Skip Vite, dev server, React, Vue, and Tailwind prompts for local projects.`,
+Skip optional frontend feature prompts for the owned foundation.`,
   },
   {
     topic: '--dev-server',
     names: ['--dev-server', '--no-dev-server'],
     summary: 'Create or skip dev server scripts',
-    help: `Usage: scaffold [dir] --dev-server
-       scaffold [dir] --no-dev-server
+    help: `Usage: scaffold [target] --dev-server
+       scaffold [target] --no-dev-server
 
 Create or skip Vite dev and preview package.json scripts.`,
   },
@@ -178,80 +170,80 @@ Create or skip Vite dev and preview package.json scripts.`,
     topic: '--dev-port',
     names: ['--dev-port'],
     summary: 'Set dev server port',
-    help: `Usage: scaffold [dir] --dev-port <port>
+    help: `Usage: scaffold [target] --dev-port <port>
 
-Set Vite dev/preview port. Implies --vite and --dev-server. Default: 3000.`,
+Set Vite dev/preview port. Implies --vite and --dev-server for the owned foundation. Default: 3000.`,
   },
   {
     topic: '--vitest',
     names: ['--vitest', '--no-vitest'],
     summary: 'Use or skip Vitest',
-    help: `Usage: scaffold [dir] --vitest
-       scaffold [dir] --no-vitest
+    help: `Usage: scaffold [target] --vitest
+       scaffold [target] --no-vitest
 
 Add Vitest scripts, dependency, config, and a sample test where supported.`,
   },
   {
     topic: '--react',
     names: ['--react', '--no-react'],
-    summary: 'Use or skip React starter',
-    help: `Usage: scaffold [dir] --react
-       scaffold [dir] --no-react
+    summary: 'Use or skip React feature',
+    help: `Usage: scaffold [target] --react
+       scaffold [target] --no-react
 
-Add minimal React source/dependencies. Vue prompt is skipped when React is selected.`,
+Add React source/dependencies for the owned foundation. React seeded foundations set this automatically.`,
   },
   {
     topic: '--vue',
     names: ['--vue', '--no-vue'],
-    summary: 'Use or skip Vue starter',
-    help: `Usage: scaffold [dir] --vue
-       scaffold [dir] --no-vue
+    summary: 'Use or skip Vue feature',
+    help: `Usage: scaffold [target] --vue
+       scaffold [target] --no-vue
 
-Add minimal Vue source/dependencies. Only used when React is not selected.`,
+Add Vue source/dependencies for the owned foundation. Vue seeded foundations set this automatically.`,
   },
   {
     topic: '--jsx',
     names: ['--jsx', '--no-jsx'],
     summary: 'Use or skip Vue JSX support',
-    help: `Usage: scaffold [dir] --frontend-base vue --jsx
-       scaffold [dir] --frontend-base vue --no-jsx
+    help: `Usage: scaffold [target] --foundation vue-vite --jsx
+       scaffold [target] --foundation vue-vite --no-jsx
 
-Pass --jsx to create-vue when Vue frontend base is selected.`,
+Pass --jsx to the create-vue seed command.`,
   },
   {
     topic: '--router',
     names: ['--router', '--no-router'],
     summary: 'Use or skip frontend router',
-    help: `Usage: scaffold [dir] --frontend-base react --router
-       scaffold [dir] --frontend-base vue --router
-       scaffold [dir] --frontend-base vue --no-router
+    help: `Usage: scaffold [target] --foundation react-vite --router
+       scaffold [target] --foundation vue-vite --router
+       scaffold [target] --foundation vue-vite --no-router
 
-Add React Router for React frontend base, or pass --router to create-vue when Vue frontend base is selected.`,
+Add React Router after the React + Vite seed, or pass --router to create-vue.`,
   },
   {
     topic: '--pinia',
     names: ['--pinia', '--no-pinia'],
     summary: 'Use or skip Pinia',
-    help: `Usage: scaffold [dir] --frontend-base vue --pinia
-       scaffold [dir] --frontend-base vue --no-pinia
+    help: `Usage: scaffold [target] --foundation vue-vite --pinia
+       scaffold [target] --foundation vue-vite --no-pinia
 
-Pass --pinia to create-vue when Vue frontend base is selected.`,
+Pass --pinia to the create-vue seed command.`,
   },
   {
     topic: '--eslint',
     names: ['--eslint', '--no-eslint', '--linter', '--no-linter'],
     summary: 'Use or skip Vue linter',
-    help: `Usage: scaffold [dir] --frontend-base vue --eslint
-       scaffold [dir] --frontend-base vue --no-eslint
+    help: `Usage: scaffold [target] --foundation vue-vite --eslint
+       scaffold [target] --foundation vue-vite --no-eslint
 
-Pass --eslint to create-vue when Vue frontend base is selected. --linter is an alias.`,
+Pass --eslint to the create-vue seed command. --linter is an alias.`,
   },
   {
     topic: '--license',
     names: ['--license', '--no-license'],
     summary: 'Create or skip license files',
-    help: `Usage: scaffold [dir] --license
-       scaffold [dir] --no-license
+    help: `Usage: scaffold [target] --license
+       scaffold [target] --no-license
 
 Add LICENSE, README license note, and package.json license field when package.json exists.`,
   },
@@ -259,7 +251,7 @@ Add LICENSE, README license note, and package.json license field when package.js
     topic: '--license-type',
     names: ['--license-type'],
     summary: 'Set license type',
-    help: `Usage: scaffold [dir] --license-type <id>
+    help: `Usage: scaffold [target] --license-type <id>
 
 Implies --license. Built-in values: AGPL-3.0-only, MIT, Apache-2.0, GPL-3.0-only, UNLICENSED.`,
   },
@@ -267,17 +259,17 @@ Implies --license. Built-in values: AGPL-3.0-only, MIT, Apache-2.0, GPL-3.0-only
     topic: '--agents',
     names: ['--agents', '--no-agents'],
     summary: 'Create or skip AGENTS.md',
-    help: `Usage: scaffold [dir] --agents
-       scaffold [dir] --no-agents
+    help: `Usage: scaffold [target] --agents
+       scaffold [target] --no-agents
 
-Create AGENTS.md with Tech and Rules sections based on scaffold choices.`,
+Create AGENTS.md with Tech and Rules sections based on scaffold answers.`,
   },
   {
     topic: '--flake-lock',
     names: ['--flake-lock', '--no-flake-lock'],
     summary: 'Run or skip nix flake lock',
-    help: `Usage: scaffold [dir] --flake-lock
-       scaffold [dir] --no-flake-lock
+    help: `Usage: scaffold [target] --flake-lock
+       scaffold [target] --no-flake-lock
 
 Run or skip nix flake lock after writing files. --flake-lock implies --nix.`,
   },
@@ -285,8 +277,8 @@ Run or skip nix flake lock after writing files. --flake-lock implies --nix.`,
     topic: '--install',
     names: ['--install', '--no-install'],
     summary: 'Run or skip package install',
-    help: `Usage: scaffold [dir] --install
-       scaffold [dir] --no-install
+    help: `Usage: scaffold [target] --install
+       scaffold [target] --no-install
 
 Run or skip package manager install after writing files.`,
   },
@@ -294,7 +286,7 @@ Run or skip package manager install after writing files.`,
     topic: '--git',
     names: ['--git'],
     summary: 'Set git handling',
-    help: `Usage: scaffold [dir] --git <auto|skip|keep|init|replace>
+    help: `Usage: scaffold [target] --git <auto|skip|keep|init|replace>
 
 auto: prompt/default based on target state.
 skip: no git actions.
@@ -306,7 +298,7 @@ replace: remove target .git, initialize a new repo, commit current files as "ini
     topic: '--git-remote',
     names: ['--git-remote'],
     summary: 'Set git remote URL',
-    help: `Usage: scaffold [dir] --git-remote <url>
+    help: `Usage: scaffold [target] --git-remote <url>
 
 Add or update a git remote after git setup. Also configures main to track <remote>/main without pushing. Use with --git-remote-name to change remote name.`,
   },
@@ -314,7 +306,7 @@ Add or update a git remote after git setup. Also configures main to track <remot
     topic: '--git-remote-name',
     names: ['--git-remote-name'],
     summary: 'Set git remote name',
-    help: `Usage: scaffold [dir] --git-remote-name <name>
+    help: `Usage: scaffold [target] --git-remote-name <name>
 
 Remote name used with --git-remote. With prompts enabled, omitting --git-remote asks for the URL. Default: origin.`,
   },
@@ -322,25 +314,25 @@ Remote name used with --git-remote. With prompts enabled, omitting --git-remote 
     topic: '--git-add',
     names: ['--git-add', '--no-git-add'],
     summary: 'Run or skip git add',
-    help: `Usage: scaffold [dir] --git-add
-       scaffold [dir] --no-git-add
+    help: `Usage: scaffold [target] --git-add
+       scaffold [target] --no-git-add
 
 Run or skip git add --all for the target directory when target is in a git repo.`,
   },
   {
     topic: '--force',
     names: ['--force'],
-    summary: 'Overwrite starter files',
-    help: `Usage: scaffold [dir] --force
+    summary: 'Overwrite template files',
+    help: `Usage: scaffold [target] --force
 
-Overwrite starter/template files when they already exist. package.json is still merged.`,
+Overwrite template files when they already exist. package.json is still merged.`,
   },
   {
     topic: '--backup',
     names: ['--backup', '--no-backup'],
     summary: 'Create or skip backups',
-    help: `Usage: scaffold [dir] --backup
-       scaffold [dir] --no-backup
+    help: `Usage: scaffold [target] --backup
+       scaffold [target] --no-backup
 
 Create or skip one-time *.scaffold-backup files before overwriting existing files. Filesystem backups are only written when git mode is skip; git history is the backup for git-backed scaffolds.`,
   },
@@ -359,7 +351,7 @@ for (const topic of FLAG_TOPICS) {
 const isHelpFlag = (arg) => arg === '-h' || arg === '--help';
 
 const printUsage = () => {
-  console.log(`Usage: scaffold <dir> [options]
+  console.log(`Usage: scaffold <target> [options]
        scaffold help [topic]
 
 Scaffold a project with editable local defaults.
@@ -376,8 +368,8 @@ Options:`);
 Examples:
   scaffold my-app
   scaffold . --dry-run
-  scaffold help --framework
-  scaffold --framework --help`);
+  scaffold help --foundation
+  scaffold --foundation --help`);
 };
 
 const printTopic = (name) => {
@@ -482,7 +474,6 @@ const parseArgs = (argv) => {
         setBool('prettier', false);
         break;
       case '--tailwind':
-      case '--tailwind-prettier':
         setBool('tailwind', true);
         break;
       case '--no-tailwind':
@@ -500,8 +491,8 @@ const parseArgs = (argv) => {
       case '--no-vite':
         setBool('vite', false);
         break;
-      case '--no-libraries':
-        setBool('libraries', false);
+      case '--no-feature-prompts':
+        setBool('featurePrompts', false);
         break;
       case '--nuxt-offline':
         setBool('nuxtOffline', true);
@@ -609,9 +600,8 @@ const parseArgs = (argv) => {
         break;
       case '--node':
       case '--package-manager':
-      case '--framework':
-      case '--frontend-base':
-      case '--framework-version':
+      case '--foundation':
+      case '--seed-version':
       case '--dev-port':
       case '--license-type':
       case '--git':
@@ -621,9 +611,8 @@ const parseArgs = (argv) => {
         index += 1;
         if (arg === '--node') opts.nodeMajor = value;
         if (arg === '--package-manager') opts.packageManager = value;
-        if (arg === '--framework') opts.framework = value;
-        if (arg === '--frontend-base') opts.frontendBase = value;
-        if (arg === '--framework-version') opts.frameworkVersion = value;
+        if (arg === '--foundation') opts.foundation = value;
+        if (arg === '--seed-version') opts.seedVersion = value;
         if (arg === '--dev-port') opts.devPort = value;
         if (arg === '--license-type') opts.licenseType = value;
         if (arg === '--git') opts.gitMode = value;

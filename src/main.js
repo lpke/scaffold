@@ -6,21 +6,21 @@ const path = require('node:path');
 const { parseArgs, printRequestedHelp } = require('./cli');
 const { commandExists, runCommand } = require('./commands');
 const { loadConfig } = require('./config');
-const { fileExists, readJsonFile, statOrNull } = require('./detect');
-const { runFramework, runFrontendBase } = require('./frameworks');
+const { fileExists, isDirEmpty, readJsonFile, statOrNull } = require('./detect');
+const { foundationLabel, isNextFoundation, isSeededFoundation, runSeedPass } = require('./foundations');
 const {
-  commitBaseScaffold,
+  commitSeedOutput,
   prepareGit,
   replaceGitWithInitialCommit,
   stageForNix,
   stageGit,
 } = require('./git');
-const { applyTemplateOverrides } = require('./overrides');
+const { applySeededFoundationOverrides } = require('./override-pass');
 const {
   applyAgents,
   applyCommon,
   applyLicense,
-  applyLocalStarter,
+  applyOwnedFoundationTemplates,
   applyNix,
   applyPackageJson,
   applyPnpmWorkspace,
@@ -63,6 +63,8 @@ const readExistingPackage = async (targetDir) => {
   return (await fileExists(packagePath)) ? readJsonFile(packagePath) : null;
 };
 
+const resolveTargetMode = async (targetDir) => ((await isDirEmpty(targetDir)) ? 'fresh' : 'overlay');
+
 const runPostChecks = async ({ answers, config, targetDir, workspace }) => {
   if (answers.direnv) {
     if (commandExists('direnv')) {
@@ -82,8 +84,8 @@ const runPostChecks = async ({ answers, config, targetDir, workspace }) => {
     }
   }
 
-  if (answers.install && answers.framework === 'next') {
-    workspace.skipped.push('package install handled by framework generator');
+  if (answers.install && isNextFoundation(answers.foundation)) {
+    workspace.skipped.push('package install handled by seed command');
   } else if (answers.install) {
     const installCommand = config.packageManagers[answers.toolchainManager].installCommand;
     if (answers.nix && commandExists('nix') && (await fileExists(path.join(targetDir, 'flake.nix')))) {
@@ -152,7 +154,7 @@ const formatChangeLine = (line) => {
   return `${style.color(style.symbol)} ${style.color(descriptor.padEnd(9))} ${rest.join(' ')}`;
 };
 
-const printSummary = ({ answers, targetDir, workspace }) => {
+const printSummary = ({ answers, config, mode, targetDir, workspace }) => {
   console.log('');
   console.log(`${color.green('◇')} ${color.bold('scaffold')} ${color.dim(targetDir)}`);
   for (const line of workspace.changed) {
@@ -164,11 +166,12 @@ const printSummary = ({ answers, targetDir, workspace }) => {
   if (workspace.changed.length === 0 && workspace.skipped.length === 0) {
     console.log(`${color.dim('│')} ${color.dim('no file changes')}`);
   }
-  if (answers.framework !== 'none') {
-    console.log(`${color.dim('│')} ${color.dim('framework:')} ${answers.framework}@${answers.frameworkVersion}`);
-  }
-  if (answers.frontendBase && answers.frontendBase !== 'none') {
-    console.log(`${color.dim('│')} ${color.dim('frontend base:')} ${answers.frontendBase}`);
+  console.log(`${color.dim('│')} ${color.dim('mode:')} ${mode}`);
+  if (answers.nodeProject) {
+    const version = isSeededFoundation(answers.foundation) ? `@${answers.seedVersion}` : '';
+    console.log(
+      `${color.dim('│')} ${color.dim('foundation:')} ${foundationLabel(answers.foundation, config)}${version}`,
+    );
   }
   console.log(`${color.dim('└')} ${color.green('done')}`);
 };
@@ -190,6 +193,7 @@ const main = async () => {
 
   await ensureTargetDir(targetDir, opts);
 
+  const mode = await resolveTargetMode(targetDir);
   let existingPackage = await readExistingPackage(targetDir);
   const answers = await resolveAnswers({ opts, targetDir, existingPackage, config });
 
@@ -203,28 +207,16 @@ const main = async () => {
 
   await replaceGitWithInitialCommit({ answers, targetDir, workspace });
 
-  const frameworkRun = await runFramework({
+  const seedRun = await runSeedPass({
     answers,
     config,
     targetDir,
     dryRun: answers.dryRun,
     force: answers.force,
   });
-  await commitBaseScaffold({
+  await commitSeedOutput({
     answers,
-    commandDisplay: frameworkRun?.commandDisplay,
-    targetDir,
-    workspace,
-  });
-  const frontendBaseRun = await runFrontendBase({
-    answers,
-    targetDir,
-    dryRun: answers.dryRun,
-    force: answers.force,
-  });
-  await commitBaseScaffold({
-    answers,
-    commandDisplay: frontendBaseRun?.commandDisplay,
+    commandDisplay: seedRun?.commandDisplay,
     targetDir,
     workspace,
   });
@@ -236,8 +228,8 @@ const main = async () => {
   await applyCommon({ workspace, answers });
   await applyNix({ workspace, answers, config });
   await applyTypescriptConfig(workspace, answers);
-  await applyLocalStarter(workspace, answers);
-  await applyTemplateOverrides({ workspace, answers, frameworkRun, frontendBaseRun });
+  await applyOwnedFoundationTemplates(workspace, answers);
+  await applySeededFoundationOverrides({ workspace, answers, seedRun });
   await applyPnpmWorkspace({ workspace, answers });
   if (!answers.dryRun) {
     existingPackage = await readExistingPackage(targetDir);
@@ -246,19 +238,19 @@ const main = async () => {
   await applyReadme({ workspace });
   if (
     answers.typescript &&
-    (hadTsconfig || answers.tsMode === 'non-strict' || answers.framework !== 'none')
+    (hadTsconfig || answers.tsMode === 'non-strict' || isSeededFoundation(answers.foundation))
   ) {
     await applyTsMode(workspace, answers.tsMode);
   }
   await applyLicense({ workspace, answers, config });
-  await applyAgents({ workspace, answers });
+  await applyAgents({ workspace, answers, config });
   await prepareGit({ answers, targetDir, workspace });
   await stageForNix({ answers, targetDir, workspace });
   await runPostChecks({ answers, config, targetDir, workspace });
   await runFinalFormat({ answers, config, targetDir, workspace });
   await stageGit({ answers, targetDir, workspace });
 
-  printSummary({ answers, targetDir, workspace });
+  printSummary({ answers, config, mode, targetDir, workspace });
 };
 
 module.exports = {

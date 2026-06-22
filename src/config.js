@@ -19,7 +19,7 @@ const loadConfig = async () => {
   requireObject(config.nodeTargets, 'nodeTargets');
   requireObject(config.packageManagers, 'packageManagers');
   requireObject(config.versions, 'versions');
-  requireObject(config.frameworks, 'frameworks');
+  requireObject(config.seedCommands, 'seedCommands');
   requireObject(config.licenseTypes, 'licenseTypes');
   requireString(config.defaultLicense, 'defaultLicense');
 
@@ -46,6 +46,16 @@ const loadConfig = async () => {
     requireString(manager.lockfile, `packageManagers.${name}.lockfile`);
     if (!Array.isArray(manager.installCommand) || manager.installCommand.length === 0) {
       throw new Error(`Expected packageManagers.${name}.installCommand to be a non-empty array`);
+    }
+  }
+
+  for (const [name, seed] of Object.entries(config.seedCommands)) {
+    requireObject(seed, `seedCommands.${name}`);
+    requireString(seed.label, `seedCommands.${name}.label`);
+    requireString(seed.versionPackage, `seedCommands.${name}.versionPackage`);
+    requireString(seed.commandPackage, `seedCommands.${name}.commandPackage`);
+    if (seed.commandArgs !== undefined && !Array.isArray(seed.commandArgs)) {
+      throw new Error(`Expected seedCommands.${name}.commandArgs to be an array`);
     }
   }
 

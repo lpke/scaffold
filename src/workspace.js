@@ -12,7 +12,6 @@ const sourceTemplatePath = (relativePath) => {
 };
 
 const BACKUP_SUFFIX = '.scaffold-backup';
-const outputName = (name) => (name.startsWith('dot_') ? `.${name.slice(4)}` : name);
 const isBackupArtifactPath = (filePath) =>
   path.normalize(filePath).split(path.sep).some((part) => part.endsWith(BACKUP_SUFFIX));
 
@@ -174,7 +173,7 @@ class Workspace {
 
     for (const entry of entries) {
       const sourceRel = path.posix.join(relativePath, entry.name);
-      const targetRel = path.posix.join(outputBase, outputName(entry.name));
+      const targetRel = path.posix.join(outputBase, entry.name);
       if (entry.isDirectory()) {
         await this.copyTemplateDir(sourceRel, targetRel);
       } else if (entry.isFile()) {

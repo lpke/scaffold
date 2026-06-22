@@ -5,6 +5,14 @@ const path = require('node:path');
 const { commandVersion } = require('./commands');
 const { readAsset, renderAsset } = require('./assets');
 const { fileExists, readText } = require('./detect');
+const {
+  foundationLabel,
+  isAppSeed,
+  isNextFoundation,
+  isNuxtFoundation,
+  isOwnedFoundation,
+  isSeededFoundation,
+} = require('./foundations');
 const { applyActionManifest } = require('./helpers/actions');
 const { parseJson } = require('./json');
 const { formatJson } = require('./json-format');
@@ -87,17 +95,17 @@ const dependencySet = (answers, config) => {
     addDev('tailwindcss');
   }
 
-  if (answers.framework !== 'none') {
-    if (answers.framework === 'nuxt' && answers.tailwind) {
+  if (isAppSeed(answers.foundation)) {
+    if (isNuxtFoundation(answers.foundation) && answers.tailwind) {
       addDev('@tailwindcss/vite');
       addDev('tailwindcss');
     }
     if (answers.vitest) {
       addDev('vitest');
-      if (answers.framework === 'next') {
+      if (isNextFoundation(answers.foundation)) {
         addDev('@vitejs/plugin-react');
       }
-      if (answers.framework === 'nuxt') {
+      if (isNuxtFoundation(answers.foundation)) {
         addDev('@vitejs/plugin-vue');
         addDev('jsdom');
       }
@@ -179,7 +187,7 @@ const scriptSet = (answers) => {
     return scripts;
   }
 
-  if (answers.framework !== 'none') {
+  if (isAppSeed(answers.foundation)) {
     if (answers.typescript) {
       scripts.typecheck = 'tsc --noEmit';
     }
@@ -259,7 +267,7 @@ const applyPackageJson = async ({ workspace, answers, existingPackage, config })
   pkg.engines.node = nodeConfig.engine;
   applyPackageManager(pkg, answers.packageManager, answers.toolchainManager, config);
 
-  if (creating && answers.framework === 'none') {
+  if (creating && isOwnedFoundation(answers.foundation)) {
     pkg.type ??= 'module';
   }
 
@@ -272,7 +280,7 @@ const applyPackageJson = async ({ workspace, answers, existingPackage, config })
   pkg.scripts ??= {};
   const scripts = scriptSet(answers);
   mergeObjectDefaults(pkg.scripts, scripts);
-  if (answers.framework === 'none' && answers.vite && answers.devServer) {
+  if (isOwnedFoundation(answers.foundation) && answers.vite && answers.devServer) {
     for (const name of ['dev', 'dev:nohost', 'preview', 'preview:nohost']) {
       pkg.scripts[name] = scripts[name];
     }
@@ -323,7 +331,7 @@ const applyNix = async ({ workspace, answers, config }) => {
     return;
   }
   const nodeConfig = config.nodeTargets[answers.nodeMajor] ?? config.nodeTargets['24'];
-  const flake = await renderAsset('templates/nix/flake.nix.tmpl', {
+  const flake = await renderAsset('templates/shared/nix/flake.nix.tmpl', {
     PROJECT_NAME: sanitizePackageName(workspace.targetDir),
     NIXPKGS: nodeConfig.nixpkgs,
     NIXPKGS_CONFIG: renderNixpkgsConfig(nodeConfig),
@@ -332,13 +340,13 @@ const applyNix = async ({ workspace, answers, config }) => {
   await workspace.write('flake.nix', flake);
   await workspace.write(
     '.flake.local/bin/example',
-    await renderAsset('templates/nix/flake.local/bin/example', {
+    await renderAsset('templates/shared/nix/flake.local/bin/example', {
       PROJECT_NAME: sanitizePackageName(workspace.targetDir),
     }),
     { mode: 0o755 },
   );
   if (answers.direnv) {
-    await workspace.copyTemplate('common/dot_envrc', '.envrc', { overwrite: false });
+    await workspace.copyTemplate('shared/nix/.envrc', '.envrc', { overwrite: false });
   }
 };
 
@@ -397,15 +405,15 @@ const licenseReadmeBlock = (licenseType, config) =>
   `${licenseReadmeSentence(licenseType)}\n\nCopyright © ${new Date().getFullYear()} ${config.author}`;
 
 const applyTypescriptConfig = async (workspace, answers) => {
-  if (!answers.typescript || answers.framework !== 'none' || answers.frontendBase !== 'none') {
+  if (!answers.typescript || !isOwnedFoundation(answers.foundation)) {
     return;
   }
-  const template = answers.vite ? 'typescript/tsconfig.vite.json' : 'typescript/tsconfig.node.json';
+  const template = answers.vite ? 'shared/typescript/tsconfig.vite.json' : 'shared/typescript/tsconfig.node.json';
   await workspace.copyTemplate(template, 'tsconfig.json', { overwrite: false });
 };
 
-const applyLocalStarter = async (workspace, answers) => {
-  if (!answers.nodeProject || answers.framework !== 'none' || answers.frontendBase !== 'none') {
+const applyOwnedFoundationTemplates = async (workspace, answers) => {
+  if (!answers.nodeProject || !isOwnedFoundation(answers.foundation)) {
     return;
   }
   if (answers.vite) {
@@ -413,7 +421,7 @@ const applyLocalStarter = async (workspace, answers) => {
     const rootId = answers.react ? 'root' : 'app';
     await workspace.write(
       'index.html',
-      await renderAsset('templates/starters/vite/index.html.tmpl', {
+      await renderAsset('templates/owned/vite/index.html.tmpl', {
         PROJECT_TITLE: viteProjectTitle(answers),
         ROOT_ID: rootId,
         ENTRY_FILE: `main.${entryExt}`,
@@ -424,26 +432,26 @@ const applyLocalStarter = async (workspace, answers) => {
 
     if (answers.react) {
       await workspace.copyTemplateDir(
-        `starters/react-${answers.typescript ? 'ts' : 'js'}${answers.tailwind ? '-tailwind' : ''}/src`,
+        `owned/react-${answers.typescript ? 'ts' : 'js'}${answers.tailwind ? '-tailwind' : ''}/src`,
         'src',
       );
     } else if (answers.vue) {
       await workspace.copyTemplateDir(
-        `starters/vue-${answers.typescript ? 'ts' : 'js'}${answers.tailwind ? '-tailwind' : ''}/src`,
+        `owned/vue-${answers.typescript ? 'ts' : 'js'}${answers.tailwind ? '-tailwind' : ''}/src`,
         'src',
       );
     } else {
       await workspace.copyTemplate(
-        `starters/vite/vanilla-main${answers.tailwind ? '-tailwind' : ''}.${answers.typescript ? 'ts' : 'js'}`,
+        `owned/vite/vanilla-main${answers.tailwind ? '-tailwind' : ''}.${answers.typescript ? 'ts' : 'js'}`,
         `src/main.${answers.typescript ? 'ts' : 'js'}`,
       );
     }
 
     const viteTemplate = answers.react
-      ? 'starters/vite/vite.config.react.js.tmpl'
+      ? 'owned/vite/vite.config.react.js.tmpl'
       : answers.vue
-        ? 'starters/vite/vite.config.vue.js.tmpl'
-        : 'starters/vite/vite.config.js.tmpl';
+        ? 'owned/vite/vite.config.vue.js.tmpl'
+        : 'owned/vite/vite.config.js.tmpl';
     const viteValues = {
       DEV_PORT: answers.devPort,
       TAILWIND_IMPORT: answers.tailwind ? "import tailwindcss from '@tailwindcss/vite';\n" : '',
@@ -459,7 +467,7 @@ const applyLocalStarter = async (workspace, answers) => {
     });
 
     await workspace.copyTemplate(
-      answers.tailwind ? 'starters/vite/tailwind.css' : 'starters/vite/reset.css',
+      answers.tailwind ? 'owned/vite/tailwind.css' : 'owned/vite/reset.css',
       'src/style.css',
     );
 
@@ -471,7 +479,7 @@ const applyLocalStarter = async (workspace, answers) => {
       const pluginConfig = vitestPluginConfig(answers);
       await workspace.write(
         'vitest.config.mts',
-        await renderAsset('templates/starters/vite/vitest.config.mts.tmpl', {
+        await renderAsset('templates/owned/vite/vitest.config.mts.tmpl', {
           VITEST_ENVIRONMENT: 'jsdom',
           TEST_EXTENSIONS: answers.typescript
             ? answers.react
@@ -486,19 +494,19 @@ const applyLocalStarter = async (workspace, answers) => {
         }),
       );
       if (answers.react) {
-        await workspace.copyTemplate(`starters/vite/setupTests.${setupExt}`, `src/setupTests.${setupExt}`);
+        await workspace.copyTemplate(`owned/vite/setupTests.${setupExt}`, `src/setupTests.${setupExt}`);
         await workspace.copyTemplate(
-          `starters/tests/react/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
+          `owned/tests/react/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
           `src/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
         );
       } else if (answers.vue) {
         await workspace.copyTemplate(
-          `starters/tests/vue/App.test.${answers.typescript ? 'ts' : 'js'}`,
+          `owned/tests/vue/App.test.${answers.typescript ? 'ts' : 'js'}`,
           `src/App.test.${answers.typescript ? 'ts' : 'js'}`,
         );
       } else {
         await workspace.copyTemplate(
-          `starters/tests/vanilla/main.test.${answers.typescript ? 'ts' : 'js'}`,
+          `owned/tests/vanilla/main.test.${answers.typescript ? 'ts' : 'js'}`,
           `src/main.test.${answers.typescript ? 'ts' : 'js'}`,
         );
       }
@@ -514,7 +522,7 @@ const applyLocalStarter = async (workspace, answers) => {
     const pluginConfig = vitestPluginConfig(answers);
     await workspace.write(
       'vitest.config.mts',
-      await renderAsset('templates/starters/vite/vitest.config.mts.tmpl', {
+      await renderAsset('templates/owned/vite/vitest.config.mts.tmpl', {
         VITEST_ENVIRONMENT: answers.react || answers.vue ? 'jsdom' : 'node',
         TEST_EXTENSIONS: answers.typescript
           ? answers.react
@@ -531,31 +539,31 @@ const applyLocalStarter = async (workspace, answers) => {
   }
 
   if (answers.react) {
-    await workspace.copyTemplateDir(`starters/react-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
+    await workspace.copyTemplateDir(`owned/react-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
     if (answers.vitest) {
       const setupExt = answers.typescript ? 'ts' : 'js';
-      await workspace.copyTemplate(`starters/vite/setupTests.${setupExt}`, `src/setupTests.${setupExt}`);
+      await workspace.copyTemplate(`owned/vite/setupTests.${setupExt}`, `src/setupTests.${setupExt}`);
       await workspace.copyTemplate(
-        `starters/tests/react/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
+        `owned/tests/react/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
         `src/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
       );
     }
     return;
   }
   if (answers.vue) {
-    await workspace.copyTemplateDir(`starters/vue-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
+    await workspace.copyTemplateDir(`owned/vue-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
     if (answers.vitest) {
       await workspace.copyTemplate(
-        `starters/tests/vue/App.test.${answers.typescript ? 'ts' : 'js'}`,
+        `owned/tests/vue/App.test.${answers.typescript ? 'ts' : 'js'}`,
         `src/App.test.${answers.typescript ? 'ts' : 'js'}`,
       );
     }
     return;
   }
-  await workspace.copyTemplateDir(`starters/node-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
+  await workspace.copyTemplateDir(`owned/node-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
   if (answers.vitest) {
     await workspace.copyTemplate(
-      `starters/tests/node/index.test.${answers.typescript ? 'ts' : 'js'}`,
+      `owned/tests/node/index.test.${answers.typescript ? 'ts' : 'js'}`,
       `src/index.test.${answers.typescript ? 'ts' : 'js'}`,
     );
   }
@@ -596,7 +604,7 @@ const applyReadme = async ({ workspace }) => {
   });
 };
 
-const applyAgents = async ({ workspace, answers }) => {
+const applyAgents = async ({ workspace, answers, config }) => {
   if (!answers.agents) {
     return;
   }
@@ -604,7 +612,7 @@ const applyAgents = async ({ workspace, answers }) => {
   if (answers.nix) tech.push('- Nix flake dev shell');
   if (answers.direnv) tech.push('- direnv loads the flake shell');
   if (answers.nodeProject) tech.push(`- Node ${answers.nodeMajor} with ${answers.toolchainManager}`);
-  if (answers.framework !== 'none') tech.push(`- ${answers.framework === 'next' ? 'Next.js' : 'Nuxt'} project`);
+  if (answers.nodeProject) tech.push(`- ${foundationLabel(answers.foundation, config)} foundation`);
   if (answers.vite) tech.push(`- Vite${answers.react ? ' + React' : answers.vue ? ' + Vue' : ''}`);
   if (answers.typescript) tech.push('- TypeScript');
   if (answers.vitest) tech.push('- Vitest');
@@ -617,19 +625,19 @@ const applyAgents = async ({ workspace, answers }) => {
       '- **Formatting:** When creating brand new files or making large edits, run `pnpm format:all` when you are done with all edits. For single-file-only edits, run `pnpm format <file>` when done with all edits.',
     );
   }
-  if (answers.devServer || answers.framework !== 'none') {
+  if (answers.devServer || isSeededFoundation(answers.foundation)) {
     rules.push(
       '- **Dev servers:** Do not kill existing dev servers unless explicitly asked to. If you start a dev server while responding to a request, ensure that it is stopped when you are done.',
     );
   }
-  if (answers.framework === 'next') {
+  if (isNextFoundation(answers.foundation)) {
     rules.push(
       '- **This is NOT the Next.js you know.** This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.',
     );
   }
   await workspace.write(
     'AGENTS.md',
-    await renderAsset('templates/agents/AGENTS.md.tmpl', {
+    await renderAsset('templates/shared/agents/AGENTS.md.tmpl', {
       TECH: tech.length ? tech.join('\n') : '- No runtime stack selected',
       RULES: rules.join('\n'),
     }),
@@ -647,7 +655,7 @@ module.exports = {
   applyAgents,
   applyCommon,
   applyLicense,
-  applyLocalStarter,
+  applyOwnedFoundationTemplates,
   applyNix,
   applyPackageJson,
   applyPnpmWorkspace,

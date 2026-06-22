@@ -1,71 +1,116 @@
 # scaffold
 
-Personal project scaffold command.
+`scaffold` creates a new project or updates an existing one from the same set of
+local defaults. You can answer prompts interactively, or pass flags for a
+repeatable run.
 
-## Run
+The tool works in three layers:
+
+1. It inspects the target directory.
+2. It creates or uses a foundation.
+3. It applies passes that add defaults, selected features, overrides, and final setup.
+
+## Running
 
 ```sh
-scaffold <dir>
+scaffold <target>
+scaffold . --dry-run
 scaffold help
-scaffold help --framework
+scaffold help --foundation
 ```
 
-The source repo lives at `~/.local/src/scaffold`. Chezmoi installs a real
-wrapper at `~/.local/bin/scaffold`:
+The source repo lives at `~/.local/src/scaffold`. Chezmoi installs the command
+wrapper at `~/.local/bin/scaffold`.
+
+## How It Thinks
+
+The target is the directory passed to `scaffold <target>`. It can be missing,
+empty, or already contain a project.
+
+The mode describes the target before scaffold changes it:
+
+- `fresh`: the target is new or empty.
+- `overlay`: the target already has files and scaffold will add or merge changes.
+
+The foundation is the starting project shape:
+
+- `owned`: scaffold copies local templates from `share/templates/owned`.
+- `next`: scaffold runs create-next-app, then applies scaffold overrides.
+- `nuxt`: scaffold runs Nuxt init, then applies scaffold overrides.
+- `react-vite`: scaffold runs create-vite, then applies scaffold overrides.
+- `vue-vite`: scaffold runs create-vue, then applies scaffold overrides.
+
+Passes are the phases after answers are resolved. A seeded foundation starts
+with a seed pass; an owned foundation starts with a template pass. Then scaffold
+applies common defaults, selected features, seeded overrides where needed, and
+final setup such as README, license, AGENTS.md, install, format, Nix, and git.
+
+Answers, templates, defaults, features, and overrides stack. They are not
+exclusive choices.
+
+## Common Flows
+
+Fresh owned scaffold:
 
 ```sh
-#!/usr/bin/env sh
-exec node "$HOME/.local/src/scaffold/bin/scaffold" "$@"
+scaffold my-tool --foundation owned
 ```
 
-Local defaults and editable base files live under `share`.
+Fresh seeded scaffold:
 
-## Choice Flow
+```sh
+scaffold my-app --foundation react-vite
+scaffold my-site --foundation next
+```
 
-- Missing target dir: `Y/n`
-- Use nix flake: `Y/n`, skipped and enabled when flake.nix exists
-- Use direnv: `Y/n` when nix is enabled; skipped and enabled when .envrc exists
-- Node project: `Y/n`, skipped and enabled for existing package.json
-- Node version: default detected from `engines.node`, else `24`; options `26`, `24`, `22`, `20`, `18`, `16`
-- Package manager: `pnpm` default, or `keep detected <manager>` when available; `yarn`, `npm`
-- TypeScript: select one of `none`, `non-strict`, `strict`; `strict` default
-- Framework: `none` default; `Next.js (React)`, `Nuxt (Vue)`; skipped for existing package unless `--framework` is provided
-- Framework version: highest semver, latest tag (default), or specify version; custom input shows highest versions by recent majors
-- Frontend base: after `Framework: none`, choose `none`, `React`, or `Vue`; default `none`
-- Prettier: selected by default in feature prompts
-- When Prettier is selected, scaffold runs `prettier --write .` after generation/install and stages the formatted result
-- No framework path:
-  - With `Frontend base: none`, feature multiselect: Prettier, Vite barebones, React barebones, Vue barebones, Tailwind, Vitest; Prettier defaults on
-  - With `Frontend base: React`, scaffold first runs `npm create vite@latest <dir> -- --template react-ts --no-interactive` for TypeScript, or `react` for JavaScript; optional `--router` adds React Router on top
-  - With `Frontend base: Vue`, scaffold first runs `npm create vue@latest -- --ts/--jsx/--router/--pinia/--vitest/--eslint/--prettier <dir>` based on selected features, or `--default` when no create-vue feature flags are selected
-  - Command-based base scaffolds are committed first as `base scaffold from <command>`; scaffold preferences are applied after and left staged
-  - React frontend base feature choices add React Router; Vue frontend base feature choices add JSX support, Vue Router, Pinia, and Linter
-  - Vite includes dev server scripts by default
-  - Dev server port: `3000`, prompted when dev server scripts will be added
-  - React and Vue are mutually exclusive; selecting both asks which starter to keep
-  - Tailwind implies Vite; local Vite starters install Tailwind CSS and wire the Vite plugin/CSS entry; with Prettier, installs and configures the Tailwind Prettier plugin in `prettier.config.mjs`
-- Framework path:
-  - Feature multiselect: Prettier, Tailwind, Vitest; Prettier defaults on; Next.js passes `--tailwind` or `--no-tailwind`
-  - Nuxt uses `--force --template minimal --packageManager <selected> --gitInit=false --no-modules --no-install`; optional offline/prefer-offline flags are passed through, and scaffold handles git/install afterward
-- License: `y/N`
-- License type: `AGPL-3.0-only` default
-- AGENTS.md: `y/N`
-- Run nix flake lock: `Y/n` when nix is enabled
-- Run package install: `y/N` when Node project is enabled
-- Git: defaults to skip in interactive mode; replace mode commits the pre-scaffold state as `initial commit`; optional remote with `main` tracking config; Nix projects stage before Nix commands; `git add --all -- .` defaults on when a repo is active at the end
+Overlay an existing project:
 
-Every flag has `scaffold --flag --help` and `scaffold help --flag`.
+```sh
+scaffold . --dry-run
+scaffold . --foundation owned
+```
 
-## Editable Defaults
+Use `--dry-run` first when you want to inspect planned file changes and commands.
 
-- `share/config.json`: versions, Node/Nix targets, package managers, framework commands, license choices
-- `share/templates/common`: dotfile defaults
-- `share/templates/nix`: flake template
-- `share/templates/agents`: AGENTS.md template
-- `share/templates/licenses`: license templates
-- `share/templates/starters`: source/config starter files
-- `share/overrides`: declarative post-generator action manifests
-- `share/templates/overrides`: larger file bodies used by override manifests
+## Main Choices
+
+- Nix and direnv support
+- Node version and package manager
+- TypeScript mode: none, non-strict, strict, or preserve existing tsconfig
+- Foundation and seed version
+- Features such as Prettier, Tailwind, Vitest, React, Vue, router, Pinia, and ESLint
+- License and AGENTS.md generation
+- Install, format, flake lock, and git handling
+
+Every flag supports help:
+
+```sh
+scaffold --foundation --help
+scaffold help --seed-version
+```
+
+## Project Files
+
+`share/config.json`
+: Versions, Node/Nix targets, package managers, seed commands, and license choices.
+
+`share/templates/owned`
+: Starting files for the owned foundation.
+
+`share/templates/seeded`
+: File bodies used by seeded-foundation override manifests.
+
+`share/templates/shared`
+: Reusable project pieces such as common dotfiles, Nix files, AGENTS.md, licenses, and TypeScript configs.
+
+`share/overrides/common/defaults.json`
+: Common defaults applied across projects.
+
+`share/overrides/foundations`
+: Override manifests applied after seeded foundations.
+
+`src/helpers/actions`
+: The action engine used by common defaults and seeded-foundation overrides.
 
 Template rendering fails if an expected token is missing or any `{{TOKEN}}`
 remains unresolved.

@@ -86,10 +86,10 @@
     "vitest": "^4.1.6",
     "vue": "^3.5.38"
   },
-  "frameworks": {
+  "seedCommands": {
     "next": {
       "label": "Next.js",
-      "latestPackage": "create-next-app",
+      "versionPackage": "create-next-app",
       "commandPackage": "create-next-app",
       "commandArgs": [
         "${targetDir}",
@@ -109,7 +109,7 @@
     },
     "nuxt": {
       "label": "Nuxt",
-      "latestPackage": "nuxt",
+      "versionPackage": "nuxt",
       "commandPackage": "nuxt",
       "commandArgs": [
         "init",
@@ -125,24 +125,34 @@
         "${nuxtPreferOfflineFlag}",
         "${installFlag}"
       ]
+    },
+    "react-vite": {
+      "label": "React + Vite",
+      "versionPackage": "create-vite",
+      "commandPackage": "vite"
+    },
+    "vue-vite": {
+      "label": "Vue + Vite",
+      "versionPackage": "create-vue",
+      "commandPackage": "vue"
     }
   },
   "licenseTypes": {
     "AGPL-3.0-only": {
       "label": "AGPL-3.0-only",
-      "template": "licenses/AGPL-3.0-only.txt"
+      "template": "shared/licenses/AGPL-3.0-only.txt"
     },
     "MIT": {
       "label": "MIT",
-      "template": "licenses/MIT.txt"
+      "template": "shared/licenses/MIT.txt"
     },
     "Apache-2.0": {
       "label": "Apache-2.0",
-      "template": "licenses/Apache-2.0.txt"
+      "template": "shared/licenses/Apache-2.0.txt"
     },
     "GPL-3.0-only": {
       "label": "GPL-3.0-only",
-      "template": "licenses/GPL-3.0-only.txt"
+      "template": "shared/licenses/GPL-3.0-only.txt"
     },
     "UNLICENSED": {
       "label": "UNLICENSED",

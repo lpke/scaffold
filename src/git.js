@@ -103,12 +103,12 @@ const replaceGitWithInitialCommit = async ({ answers, targetDir, workspace }) =>
   workspace.changed.push('replaced git repo and committed initial state');
 };
 
-const commitBaseScaffold = async ({ answers, commandDisplay, targetDir, workspace }) => {
+const commitSeedOutput = async ({ answers, commandDisplay, targetDir, workspace }) => {
   if (!commandDisplay) {
     return;
   }
   if (answers.gitMode === 'skip') {
-    workspace.skipped.push('base scaffold commit skipped because git is skipped');
+    workspace.skipped.push('seed output commit skipped because git is skipped');
     return;
   }
   if (!commandExists('git')) {
@@ -121,12 +121,12 @@ const commitBaseScaffold = async ({ answers, commandDisplay, targetDir, workspac
     initGit(targetDir, answers.dryRun);
   }
   gitAddAll(targetDir, answers.dryRun);
-  gitCommitPath(targetDir, `base scaffold from ${commandDisplay}`, answers.dryRun);
+  gitCommitPath(targetDir, `seed output from ${commandDisplay}`, answers.dryRun);
   answers.gitAdd = true;
   if (answers.gitMode === 'init') {
     answers.gitMode = 'keep';
   }
-  workspace.changed.push('committed base scaffold');
+  workspace.changed.push('committed seed output');
 };
 
 const prepareGit = async ({ answers, targetDir, workspace }) => {
@@ -194,7 +194,7 @@ const stageForNix = async ({ answers, targetDir, workspace }) => {
 };
 
 module.exports = {
-  commitBaseScaffold,
+  commitSeedOutput,
   prepareGit,
   replaceGitWithInitialCommit,
   stageForNix,

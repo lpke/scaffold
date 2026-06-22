@@ -18,7 +18,7 @@ This interactive CLI tool helps the user create or update projects by answering 
   - **seed pass:** Runs the external seed command.
   - **template pass:** Copies or renders scaffold-owned files.
   - **defaults pass:** Applies shared scaffold defaults.
-  - **feature pass:** Applies selected answers such as TypeScript, Tailwind, Vitest, router, framework, or frontend base.
+  - **feature pass:** Applies selected answers such as TypeScript, Tailwind, Vitest, router, React, Vue, or tooling features.
   - **override pass:** Applies declarative file, text, JSON, or directory actions.
   - **final pass:** Runs final install, format, git, Nix, README, license, or AGENTS steps.
 
@@ -48,15 +48,17 @@ The usual order is:
 - For an owned foundation, copy or render scaffold-owned templates.
 - Apply common defaults.
 - Apply selected features: package dependencies, scripts, TypeScript config, Vite files, tests, README/license/AGENTS files, and similar project pieces.
-- For seeded foundations, apply framework/frontend override manifests to reshape seed output.
+- For seeded foundations, apply seeded-foundation override manifests to reshape seed output.
 - Run final steps such as install, format, Nix, and git handling when selected.
 
 **Answers, templates, common defaults, features, and overrides stack. They are not mutually exclusive.**
 
 ## Config Locations
 
-- `share/config.json`: package versions, Node/Nix targets, package managers, framework seed commands, and license choices.
-- `share/templates`: scaffold-owned template files.
-- `share/overrides`: action manifests for common defaults and seeded-foundation overrides.
-- `share/templates/overrides`: larger file bodies used by override manifests.
+- `share/config.json`: package versions, Node/Nix targets, package managers, foundation seed commands, and license choices.
+- `share/templates/owned`: owned foundation templates.
+- `share/templates/seeded`: file bodies used by seeded-foundation override manifests.
+- `share/templates/shared`: reusable project pieces such as common dotfiles, Nix, AGENTS.md, licenses, and TypeScript configs.
+- `share/overrides/common/defaults.json`: common defaults action manifest.
+- `share/overrides/foundations`: seeded-foundation override manifests.
 - `src/helpers/actions`: action engine implementation.

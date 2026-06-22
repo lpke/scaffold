@@ -25,7 +25,11 @@ const featureSet = async (rl, opts, message, choices) => {
     }
   }
 
-  if (rl && promptChoices.length > 0) {
+  if (opts.featurePrompts === false) {
+    for (const choice of promptChoices) {
+      answers[choice.value] = Boolean(choice.defaultValue);
+    }
+  } else if (rl && promptChoices.length > 0) {
     const selected = new Set(await promptMultiselect(rl, message, promptChoices, defaultValues));
     for (const choice of promptChoices) {
       answers[choice.value] = selected.has(choice.value);

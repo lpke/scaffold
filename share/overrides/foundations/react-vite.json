@@ -59,7 +59,7 @@
       "label": "Replace React CSS with Tailwind import",
       "path": "src/index.css",
       "when": "tailwind",
-      "template": "starters/vite/tailwind.css"
+      "template": "owned/vite/tailwind.css"
     },
     {
       "type": "file.write",
@@ -68,7 +68,7 @@
       "when": {
         "not": "tailwind"
       },
-      "template": "starters/vite/reset.css"
+      "template": "owned/vite/reset.css"
     },
     {
       "type": "file.delete",
@@ -89,7 +89,7 @@
       "when": {
         "all": ["router", "typescript"]
       },
-      "template": "overrides/frontend-bases/react/router/App.tsx"
+      "template": "seeded/react-vite/router/App.tsx"
     },
     {
       "type": "file.write",
@@ -98,7 +98,7 @@
       "when": {
         "all": ["router", "typescript", "tailwind"]
       },
-      "template": "overrides/frontend-bases/react/router/components/Layout.tsx"
+      "template": "seeded/react-vite/router/components/Layout.tsx"
     },
     {
       "type": "file.write",
@@ -113,7 +113,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/router/components/Layout.plain.tsx"
+      "template": "seeded/react-vite/router/components/Layout.plain.tsx"
     },
     {
       "type": "file.write",
@@ -122,7 +122,7 @@
       "when": {
         "all": ["router", "typescript"]
       },
-      "template": "overrides/frontend-bases/react/router/pages/HomePage.tsx"
+      "template": "seeded/react-vite/router/pages/HomePage.tsx"
     },
     {
       "type": "file.write",
@@ -131,7 +131,7 @@
       "when": {
         "all": ["router", "typescript"]
       },
-      "template": "overrides/frontend-bases/react/router/pages/AboutPage.tsx"
+      "template": "seeded/react-vite/router/pages/AboutPage.tsx"
     },
     {
       "type": "file.write",
@@ -140,7 +140,7 @@
       "when": {
         "all": ["router", "typescript"]
       },
-      "template": "overrides/frontend-bases/react/router/main.tsx"
+      "template": "seeded/react-vite/router/main.tsx"
     },
     {
       "type": "file.write",
@@ -155,7 +155,7 @@
           "tailwind"
         ]
       },
-      "template": "overrides/frontend-bases/react/plain/App.tailwind.tsx"
+      "template": "seeded/react-vite/plain/App.tailwind.tsx"
     },
     {
       "type": "file.write",
@@ -172,7 +172,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/plain/App.tsx"
+      "template": "seeded/react-vite/plain/App.tsx"
     },
     {
       "type": "file.write",
@@ -186,7 +186,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/router/App.jsx"
+      "template": "seeded/react-vite/router/App.jsx"
     },
     {
       "type": "file.write",
@@ -201,7 +201,7 @@
           "tailwind"
         ]
       },
-      "template": "overrides/frontend-bases/react/router/components/Layout.jsx"
+      "template": "seeded/react-vite/router/components/Layout.jsx"
     },
     {
       "type": "file.write",
@@ -218,7 +218,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/router/components/Layout.plain.jsx"
+      "template": "seeded/react-vite/router/components/Layout.plain.jsx"
     },
     {
       "type": "file.write",
@@ -232,7 +232,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/router/pages/HomePage.jsx"
+      "template": "seeded/react-vite/router/pages/HomePage.jsx"
     },
     {
       "type": "file.write",
@@ -246,7 +246,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/router/pages/AboutPage.jsx"
+      "template": "seeded/react-vite/router/pages/AboutPage.jsx"
     },
     {
       "type": "file.write",
@@ -260,7 +260,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/router/main.jsx"
+      "template": "seeded/react-vite/router/main.jsx"
     },
     {
       "type": "file.write",
@@ -277,7 +277,7 @@
           "tailwind"
         ]
       },
-      "template": "overrides/frontend-bases/react/plain/App.tailwind.jsx"
+      "template": "seeded/react-vite/plain/App.tailwind.jsx"
     },
     {
       "type": "file.write",
@@ -296,7 +296,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/plain/App.jsx"
+      "template": "seeded/react-vite/plain/App.jsx"
     },
     {
       "type": "file.write",
@@ -328,7 +328,7 @@
       "when": {
         "all": ["vitest", "typescript"]
       },
-      "template": "overrides/frontend-bases/react/tests/setupTests.ts"
+      "template": "seeded/react-vite/tests/setupTests.ts"
     },
     {
       "type": "file.write",
@@ -342,7 +342,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/tests/setupTests.js"
+      "template": "seeded/react-vite/tests/setupTests.js"
     },
     {
       "type": "file.write",
@@ -351,7 +351,7 @@
       "when": {
         "all": ["vitest", "router", "typescript"]
       },
-      "template": "overrides/frontend-bases/react/tests/App.router.test.tsx"
+      "template": "seeded/react-vite/tests/App.router.test.tsx"
     },
     {
       "type": "file.write",
@@ -366,7 +366,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/tests/App.router.test.jsx"
+      "template": "seeded/react-vite/tests/App.router.test.jsx"
     },
     {
       "type": "file.write",
@@ -381,7 +381,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/tests/App.test.tsx"
+      "template": "seeded/react-vite/tests/App.test.tsx"
     },
     {
       "type": "file.write",
@@ -398,7 +398,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/react/tests/App.test.jsx"
+      "template": "seeded/react-vite/tests/App.test.jsx"
     }
   ]
 }

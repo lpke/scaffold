@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Post-create-vue project shape. Keeps the useful Vue starter pieces and replaces the demo shell with a small Tailwind-ready app.",
+  "description": "Post-create-vue seeded foundation shape. Keeps useful Vue seed output and replaces the demo shell with a small Tailwind-ready app.",
   "actions": [
     {
       "type": "text.prepend",
@@ -59,7 +59,7 @@
       "label": "Put Tailwind import in create-vue's imported CSS path",
       "path": "src/assets/base.css",
       "when": "tailwind",
-      "template": "starters/vite/tailwind.css"
+      "template": "owned/vite/tailwind.css"
     },
     {
       "type": "file.write",
@@ -68,7 +68,7 @@
       "when": {
         "not": "tailwind"
       },
-      "template": "starters/vite/reset.css"
+      "template": "owned/vite/reset.css"
     },
     {
       "type": "file.delete",
@@ -135,7 +135,7 @@
       "when": {
         "all": ["router", "tailwind"]
       },
-      "template": "overrides/frontend-bases/vue/src/App.vue"
+      "template": "seeded/vue-vite/src/App.vue"
     },
     {
       "type": "file.write",
@@ -149,7 +149,7 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/vue/src/App.plain.vue"
+      "template": "seeded/vue-vite/src/App.plain.vue"
     },
     {
       "type": "file.write",
@@ -163,7 +163,7 @@
           "tailwind"
         ]
       },
-      "template": "overrides/frontend-bases/vue/src/no-router/App.vue"
+      "template": "seeded/vue-vite/src/no-router/App.vue"
     },
     {
       "type": "file.write",
@@ -179,21 +179,21 @@
           }
         ]
       },
-      "template": "overrides/frontend-bases/vue/src/no-router/App.plain.vue"
+      "template": "seeded/vue-vite/src/no-router/App.plain.vue"
     },
     {
       "type": "file.write",
       "label": "Replace create-vue home route",
       "path": "src/views/HomeView.vue",
       "when": "router",
-      "template": "overrides/frontend-bases/vue/src/views/HomeView.vue"
+      "template": "seeded/vue-vite/src/views/HomeView.vue"
     },
     {
       "type": "file.write",
       "label": "Replace create-vue about route",
       "path": "src/views/AboutView.vue",
       "when": "router",
-      "template": "overrides/frontend-bases/vue/src/views/AboutView.vue"
+      "template": "seeded/vue-vite/src/views/AboutView.vue"
     },
     {
       "type": "dir.clean",

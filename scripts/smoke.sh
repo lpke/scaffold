@@ -9,18 +9,22 @@ node --check bin/scaffold
 
 test -f share/config.json
 test -d share/templates
+test -d share/templates/owned
+test -d share/templates/seeded
+test -d share/templates/shared
+test -f share/overrides/common/defaults.json
 test ! -e share/scaffold
 
 bin/scaffold --help >/dev/null
-bin/scaffold help --framework >/dev/null
+bin/scaffold help --foundation >/dev/null
 
 for flag in \
   --yes --dry-run --nix --no-nix --direnv --no-direnv \
   --node-project --no-node-project --node --package-manager \
-  --prettier --no-prettier --tailwind --no-tailwind --framework \
-  --frontend-base --framework-version --typescript --no-typescript --strict \
+  --foundation --seed-version \
+  --prettier --no-prettier --tailwind --no-tailwind --typescript --no-typescript --strict \
   --nuxt-offline --nuxt-prefer-offline \
-  --non-strict --preserve-ts --vite --no-vite --no-libraries --dev-server \
+  --non-strict --preserve-ts --vite --no-vite --no-feature-prompts --dev-server \
   --no-dev-server --dev-port --vitest --no-vitest --react \
   --no-react --vue --no-vue --jsx --no-jsx --router --no-router \
   --pinia --no-pinia --eslint --no-eslint --linter --no-linter \
@@ -40,7 +44,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { loadConfig } = require('./src/config');
 const { parseArgs } = require('./src/cli');
-const { frameworkCommand, frontendBaseCommand } = require('./src/frameworks');
+const { buildSeedCommand } = require('./src/foundations');
 const { resolveTypescriptAnswers } = require('./src/prompt-features');
 const { Workspace } = require('./src/workspace');
 const { applyActionManifest, applyActions } = require('./src/helpers/actions');
@@ -48,13 +52,13 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
 (async () => {
   const config = await loadConfig();
   const baseAnswers = {
-    framework: 'next',
-    frameworkVersion: '15.0.0',
+    foundation: 'next',
+    seedVersion: '15.0.0',
     install: false,
     toolchainManager: 'pnpm',
   };
 
-  let command = frameworkCommand({
+  let command = buildSeedCommand({
     answers: { ...baseAnswers, tailwind: true, typescript: true },
     config,
     targetDir: '/tmp/scaffold-next',
@@ -64,7 +68,7 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   }
   assert(!command.args.includes('--typescript'));
 
-  command = frameworkCommand({
+  command = buildSeedCommand({
     answers: { ...baseAnswers, tailwind: false, typescript: false },
     config,
     targetDir: '/tmp/scaffold-next',
@@ -73,17 +77,18 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   assert(command.args.includes('--no-tailwind'));
   assert(!command.args.includes('--javascript'));
 
-  command = frontendBaseCommand({
-    answers: { frontendBase: 'react', typescript: true, router: true },
+  command = buildSeedCommand({
+    answers: { foundation: 'react-vite', seedVersion: 'latest', typescript: true, router: true },
+    config,
     targetDir: '/tmp/scaffold-react',
   });
   assert.deepEqual(command.args.slice(-4), ['--', '--template', 'react-ts', '--no-interactive']);
-  assert.equal(parseArgs(['--frontend-base', 'react', '--router']).router, true);
+  assert.equal(parseArgs(['--foundation', 'react-vite', '--router']).router, true);
 
-  command = frameworkCommand({
+  command = buildSeedCommand({
     answers: {
-      framework: 'nuxt',
-      frameworkVersion: 'latest',
+      foundation: 'nuxt',
+      seedVersion: 'latest',
       install: true,
       toolchainManager: 'pnpm',
     },
@@ -110,10 +115,10 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   assert(command.args.includes('--force'));
   assert(!command.args.includes('--install'));
 
-  command = frameworkCommand({
+  command = buildSeedCommand({
     answers: {
-      framework: 'nuxt',
-      frameworkVersion: 'latest',
+      foundation: 'nuxt',
+      seedVersion: 'latest',
       install: true,
       toolchainManager: 'pnpm',
       nuxtPreferOffline: true,
@@ -134,9 +139,10 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
     assert(command.args.includes(arg), `missing ${arg}`);
   }
 
-  command = frontendBaseCommand({
+  command = buildSeedCommand({
     answers: {
-      frontendBase: 'vue',
+      foundation: 'vue-vite',
+      seedVersion: 'latest',
       typescript: true,
       jsx: true,
       router: true,
@@ -145,6 +151,7 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
       eslint: true,
       prettier: true,
     },
+    config,
     targetDir: '/tmp/scaffold-vue',
   });
   for (const arg of ['--ts', '--jsx', '--router', '--pinia', '--vitest', '--eslint', '--prettier']) {
@@ -153,8 +160,8 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   assert.equal(command.args[2], '--');
   assert.equal(command.args[command.args.length - 1], '/tmp/scaffold-vue');
 
-  assert.equal(parseArgs(['--no-libraries']).libraries, false);
-  assert.equal(parseArgs(['--frontend-base', 'react']).frontendBase, 'react');
+  assert.equal(parseArgs(['--no-feature-prompts']).featurePrompts, false);
+  assert.equal(parseArgs(['--foundation', 'react-vite']).foundation, 'react-vite');
   assert.deepEqual(await resolveTypescriptAnswers(null, { typescript: true }), {
     typescript: true,
     tsMode: 'strict',

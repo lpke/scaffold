@@ -4,12 +4,24 @@ const path = require('node:path');
 
 const { nodeChoices } = require('./config');
 const {
+  FOUNDATION_CHOICES,
+  OWNED_FOUNDATION,
+  isAppSeed,
+  isNextFoundation,
+  isNuxtFoundation,
+  isOwnedFoundation,
+  isReactFoundation,
+  isSeededFoundation,
+  isViteSeed,
+  isVueFoundation,
+} = require('./foundations');
+const {
   detectNodeMajor,
   detectPackageManager,
   fileExists,
 } = require('./detect');
 const { featureSet, resolveTypescriptAnswers } = require('./prompt-features');
-const { resolveFrameworkVersion } = require('./prompt-frameworks');
+const { resolveSeedVersion } = require('./prompt-foundations');
 const {
   resolveGitAdd,
   resolveGitMode,
@@ -103,15 +115,12 @@ const inferDependentOptions = (opts, { interactive }) => {
     requireNix('--flake-lock');
   }
 
-  const frameworkOptionSet = opts.framework != null;
-  const frameworkRequested = frameworkOptionSet && opts.framework !== 'none';
-  const frontendBaseOptionSet = opts.frontendBase != null;
-  const frontendBaseRequested = frontendBaseOptionSet && opts.frontendBase !== 'none';
+  const foundationOptionSet = opts.foundation != null;
+  const seededFoundationRequested = foundationOptionSet && isSeededFoundation(opts.foundation);
   const nuxtOptionFlag = findNuxtOptionFlag(opts);
   const nodeRequests = [
-    [frameworkOptionSet, '--framework'],
-    [frontendBaseOptionSet, '--frontend-base'],
-    [opts.frameworkVersion != null, '--framework-version'],
+    [foundationOptionSet, '--foundation'],
+    [opts.seedVersion != null, '--seed-version'],
     [Boolean(nuxtOptionFlag), nuxtOptionFlag?.[1]],
     [opts.nodeMajor != null, '--node'],
     [opts.packageManager != null, '--package-manager'],
@@ -136,35 +145,32 @@ const inferDependentOptions = (opts, { interactive }) => {
     requireNodeProject(nodeRequest[1]);
   }
 
-  if (opts.frameworkVersion != null && !frameworkRequested) {
-    throw new Error('--framework-version requires --framework <next|nuxt>');
+  if (foundationOptionSet && !isOwnedFoundation(opts.foundation) && !isSeededFoundation(opts.foundation)) {
+    throw new Error(`Unknown foundation: ${opts.foundation}`);
   }
-  if (frameworkRequested && frontendBaseRequested) {
-    throw new Error('--frontend-base cannot be combined with --framework <next|nuxt>');
+  if (opts.seedVersion != null && !seededFoundationRequested) {
+    throw new Error('--seed-version requires --foundation <next|nuxt|react-vite|vue-vite>');
   }
-  if (nuxtOptionFlag && opts.framework !== 'nuxt') {
-    throw new Error(`${nuxtOptionFlag[1]} requires --framework nuxt`);
+  if (nuxtOptionFlag && opts.foundation !== 'nuxt') {
+    throw new Error(`${nuxtOptionFlag[1]} requires --foundation nuxt`);
   }
   if (opts.nuxtOffline && opts.nuxtPreferOffline) {
     throw new Error('--nuxt-offline cannot be combined with --nuxt-prefer-offline');
   }
-  if (frontendBaseRequested && opts.vite === false) {
-    throw new Error('--frontend-base react/vue cannot be combined with --no-vite');
+  if (isViteSeed(opts.foundation) && opts.vite === false) {
+    throw new Error('--foundation react-vite/vue-vite cannot be combined with --no-vite');
   }
-  if (!['none', 'react', 'vue', undefined, null].includes(opts.frontendBase)) {
-    throw new Error(`Unknown frontend base: ${opts.frontendBase}`);
+  if (isReactFoundation(opts.foundation) && opts.react === false) {
+    throw new Error(`--foundation ${opts.foundation} cannot be combined with --no-react`);
   }
-  if (opts.frontendBase === 'react' && opts.react === false) {
-    throw new Error('--frontend-base react cannot be combined with --no-react');
+  if (isVueFoundation(opts.foundation) && opts.vue === false) {
+    throw new Error(`--foundation ${opts.foundation} cannot be combined with --no-vue`);
   }
-  if (opts.frontendBase === 'vue' && opts.vue === false) {
-    throw new Error('--frontend-base vue cannot be combined with --no-vue');
+  if (isReactFoundation(opts.foundation) && opts.vue === true) {
+    throw new Error(`--foundation ${opts.foundation} cannot be combined with --vue`);
   }
-  if (opts.frontendBase === 'react' && opts.vue === true) {
-    throw new Error('--frontend-base react cannot be combined with --vue');
-  }
-  if (opts.frontendBase === 'vue' && opts.react === true) {
-    throw new Error('--frontend-base vue cannot be combined with --react');
+  if (isVueFoundation(opts.foundation) && opts.react === true) {
+    throw new Error(`--foundation ${opts.foundation} cannot be combined with --react`);
   }
   const vueBaseFlags = [
     [opts.jsx === true, '--jsx'],
@@ -172,11 +178,11 @@ const inferDependentOptions = (opts, { interactive }) => {
     [opts.eslint === true, '--eslint'],
   ];
   const vueBaseFlag = vueBaseFlags.find(([enabled]) => enabled);
-  if (vueBaseFlag && opts.frontendBase !== 'vue') {
-    throw new Error(`${vueBaseFlag[1]} requires --frontend-base vue`);
+  if (vueBaseFlag && opts.foundation !== 'vue-vite') {
+    throw new Error(`${vueBaseFlag[1]} requires --foundation vue-vite`);
   }
-  if (opts.router === true && !['react', 'vue'].includes(opts.frontendBase)) {
-    throw new Error('--router requires --frontend-base react or --frontend-base vue');
+  if (opts.router === true && !['react-vite', 'vue-vite'].includes(opts.foundation)) {
+    throw new Error('--router requires --foundation react-vite or --foundation vue-vite');
   }
 
   if (opts.tsMode != null) {
@@ -194,23 +200,23 @@ const inferDependentOptions = (opts, { interactive }) => {
     inferred.devServer = true;
   }
 
-  if (opts.libraries === false) {
-    const libraryFlags = [
+  if (opts.featurePrompts === false) {
+    const featureFlags = [
       [opts.devServer === true, '--dev-server'],
       [opts.devPort != null, '--dev-port'],
       [opts.react === true, '--react'],
       [opts.tailwind === true, '--tailwind'],
       [opts.vite === true, '--vite'],
       [opts.vue === true, '--vue'],
-      [frontendBaseRequested, '--frontend-base'],
+      [seededFoundationRequested, '--foundation'],
       [opts.jsx === true, '--jsx'],
       [opts.router === true, '--router'],
       [opts.pinia === true, '--pinia'],
       [opts.eslint === true, '--eslint'],
     ];
-    const requested = libraryFlags.find(([enabled]) => enabled);
+    const requested = featureFlags.find(([enabled]) => enabled);
     if (requested) {
-      throw new Error(`${requested[1]} cannot be used with --no-libraries`);
+      throw new Error(`${requested[1]} cannot be used with --no-feature-prompts`);
     }
   }
 
@@ -277,12 +283,10 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
       force: opts.force,
     };
 
-    const frameworkRequested = opts.framework && opts.framework !== 'none';
-    const frontendBaseRequested = opts.frontendBase && opts.frontendBase !== 'none';
+    const seededFoundationRequested = opts.foundation && isSeededFoundation(opts.foundation);
     const nuxtOptionFlag = findNuxtOptionFlag(opts);
     const nodeProjectRequested = Boolean(
-      frameworkRequested ||
-        frontendBaseRequested ||
+      seededFoundationRequested ||
         opts.devServer ||
         opts.install ||
         opts.nodeMajor ||
@@ -382,82 +386,46 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
             run: () => resolveTypescriptAnswers(rl, opts),
           },
           {
-            keys: ['framework', 'frameworkVersion'],
-            backStop: Boolean(rl && !(hasPackage && opts.framework == null) && opts.framework == null),
+            keys: ['foundation', 'seedVersion'],
+            backStop: Boolean(rl && !(hasPackage && opts.foundation == null) && opts.foundation == null),
             run: async () => {
-              const framework =
-                hasPackage && opts.framework == null
-                  ? 'none'
+              const foundation =
+                hasPackage && opts.foundation == null
+                  ? OWNED_FOUNDATION
                   : await valueChoice(
                       rl,
                       opts,
-                      'framework',
-                      'Framework?',
-                      [
-                        { label: 'none', value: 'none' },
-                        { label: 'Next.js (React)', value: 'next' },
-                        { label: 'Nuxt (Vue)', value: 'nuxt' },
-                      ],
-                      'none',
+                      'foundation',
+                      'Foundation?',
+                      FOUNDATION_CHOICES,
+                      OWNED_FOUNDATION,
                     );
-              if (framework !== 'none' && !config.frameworks[framework]) {
-                throw new Error(`Unknown framework: ${framework}`);
+              if (!isOwnedFoundation(foundation) && !isSeededFoundation(foundation)) {
+                throw new Error(`Unknown foundation: ${foundation}`);
               }
-              return { framework, frameworkVersion: null };
+              return { foundation, seedVersion: null };
             },
           },
         );
 
-        if (answers.framework !== 'none') {
+        if (isSeededFoundation(answers.foundation)) {
           steps.push({
-            keys: ['frameworkVersion'],
-            backStop: Boolean(rl && opts.frameworkVersion == null),
+            keys: ['seedVersion'],
+            backStop: Boolean(rl && opts.seedVersion == null),
             run: async () => ({
-              frameworkVersion: await resolveFrameworkVersion({
+              seedVersion: await resolveSeedVersion({
                 rl,
                 opts,
                 config,
-                framework: answers.framework,
+                foundation: answers.foundation,
                 interactive,
               }),
             }),
           });
         }
 
-        if (answers.framework === 'none') {
+        if (isOwnedFoundation(answers.foundation) || isViteSeed(answers.foundation)) {
           steps.push(
-            {
-              keys: ['frontendBase'],
-              backStop: Boolean(
-                rl &&
-                  !(hasPackage && opts.frontendBase == null) &&
-                  opts.frontendBase == null &&
-                  opts.libraries !== false,
-              ),
-              run: async () => {
-                const frontendBase =
-                  opts.frontendBase != null
-                    ? opts.frontendBase
-                    : hasPackage || opts.libraries === false
-                    ? 'none'
-                    : await valueChoice(
-                        rl,
-                        opts,
-                        'frontendBase',
-                        'Frontend base?',
-                        [
-                          { label: 'none', value: 'none' },
-                          { label: 'React', value: 'react' },
-                          { label: 'Vue', value: 'vue' },
-                        ],
-                        'none',
-                      );
-                if (!['none', 'react', 'vue'].includes(frontendBase)) {
-                  throw new Error(`Unknown frontend base: ${frontendBase}`);
-                }
-                return { frontendBase };
-              },
-            },
             {
               keys: ['prettier', 'vite', 'react', 'vue', 'tailwind', 'vitest', 'jsx', 'router', 'pinia', 'eslint'],
               backStop: Boolean(
@@ -476,22 +444,23 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                   ].some((value) => value == null),
               ),
               run: async () => {
-                const baseReact = answers.frontendBase === 'react';
-                const baseVue = answers.frontendBase === 'vue';
-                const bareChoices = opts.libraries === false || answers.frontendBase !== 'none'
+                const seededReact = answers.foundation === 'react-vite';
+                const seededVue = answers.foundation === 'vue-vite';
+                const owned = isOwnedFoundation(answers.foundation);
+                const bareChoices = opts.featurePrompts === false || !owned
                   ? []
                   : [
                       { key: 'vite', label: 'Vite barebones', hint: 'dev server and production build' },
                       { key: 'react', label: 'React barebones' },
                       { key: 'vue', label: 'Vue barebones' },
                     ];
-                const libraryChoices = opts.libraries === false
+                const featureChoices = opts.featurePrompts === false
                   ? []
                   : [
                       ...bareChoices,
                       { key: 'tailwind', label: 'Tailwind CSS', hint: 'Vite setup' },
                     ];
-                const vueBaseChoices = baseVue
+                const vueSeedChoices = seededVue
                   ? [
                       { key: 'jsx', label: 'JSX support', hint: 'create-vue' },
                       { key: 'router', label: 'Vue Router', hint: 'create-vue' },
@@ -499,31 +468,31 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                       { key: 'eslint', label: 'Linter', hint: 'ESLint via create-vue' },
                     ]
                   : [];
-                const reactBaseChoices = baseReact
+                const reactSeedChoices = seededReact
                   ? [{ key: 'router', label: 'React Router', hint: 'post-create-vite' }]
                   : [];
                 const selectedFeatures = await featureSet(rl, opts, 'Select features to include:', [
                   { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
-                  ...libraryChoices,
-                  ...reactBaseChoices,
-                  ...vueBaseChoices,
+                  ...featureChoices,
+                  ...reactSeedChoices,
+                  ...vueSeedChoices,
                   { key: 'vitest', label: 'Vitest', hint: 'unit testing' },
                 ]);
                 const tailwind = Boolean(selectedFeatures.tailwind);
-                if (tailwind && opts.vite === false && answers.frontendBase === 'none') {
-                  throw new Error('--tailwind requires --vite for local starters');
+                if (tailwind && opts.vite === false && owned) {
+                  throw new Error('--tailwind requires --vite for owned foundations');
                 }
                 return {
                   prettier: selectedFeatures.prettier,
-                  vite: baseReact || baseVue || Boolean(selectedFeatures.vite) || tailwind,
-                  react: baseReact || Boolean(selectedFeatures.react),
-                  vue: baseVue || Boolean(selectedFeatures.vue),
+                  vite: seededReact || seededVue || Boolean(selectedFeatures.vite) || tailwind,
+                  react: seededReact || Boolean(selectedFeatures.react),
+                  vue: seededVue || Boolean(selectedFeatures.vue),
                   tailwind,
                   vitest: Boolean(selectedFeatures.vitest),
-                  jsx: baseVue && Boolean(selectedFeatures.jsx),
-                  router: (baseReact || baseVue) && Boolean(selectedFeatures.router),
-                  pinia: baseVue && Boolean(selectedFeatures.pinia),
-                  eslint: baseVue && Boolean(selectedFeatures.eslint),
+                  jsx: seededVue && Boolean(selectedFeatures.jsx),
+                  router: (seededReact || seededVue) && Boolean(selectedFeatures.router),
+                  pinia: seededVue && Boolean(selectedFeatures.pinia),
+                  eslint: seededVue && Boolean(selectedFeatures.eslint),
                 };
               },
             },
@@ -534,9 +503,9 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                 if (!(answers.vue && answers.react && rl)) {
                   return {};
                 }
-                const starter = await promptChoice(
+                const feature = await promptChoice(
                   rl,
-                  'Frontend starter?',
+                  'Frontend feature?',
                   [
                     { label: 'React', value: 'react' },
                     { label: 'Vue', value: 'vue' },
@@ -544,8 +513,8 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                   opts._rememberedAnswers?.vue && !opts._rememberedAnswers?.react ? 'vue' : 'react',
                 );
                 return {
-                  react: starter === 'react',
-                  vue: starter === 'vue',
+                  react: feature === 'react',
+                  vue: feature === 'vue',
                 };
               },
             },
@@ -573,7 +542,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
               },
             },
           );
-        } else if (answers.framework) {
+        } else if (isAppSeed(answers.foundation)) {
           steps.push({
             keys: [
               'prettier',
@@ -593,12 +562,12 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                   opts.prettier,
                   opts.tailwind,
                   opts.vitest,
-                  answers.framework === 'nuxt' ? opts.nuxtOffline : false,
-                  answers.framework === 'nuxt' ? opts.nuxtPreferOffline : false,
+                  isNuxtFoundation(answers.foundation) ? opts.nuxtOffline : false,
+                  isNuxtFoundation(answers.foundation) ? opts.nuxtPreferOffline : false,
                 ].some((value) => value == null),
             ),
             run: async () => {
-              const nuxt = answers.framework === 'nuxt';
+              const nuxt = isNuxtFoundation(answers.foundation);
               const selectedFeatures = await featureSet(rl, opts, 'Select features to include:', [
                 { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
                 { key: 'tailwind', label: 'Tailwind CSS' },
@@ -619,8 +588,8 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                 devServer: false,
                 devPort: 3000,
                 vitest: Boolean(selectedFeatures.vitest),
-                react: answers.framework === 'next',
-                vue: answers.framework === 'nuxt',
+                react: isNextFoundation(answers.foundation),
+                vue: isNuxtFoundation(answers.foundation),
                 tailwind: selectedFeatures.tailwind,
                 nuxtOffline: nuxt && Boolean(selectedFeatures.nuxtOffline),
                 nuxtPreferOffline: nuxt && Boolean(selectedFeatures.nuxtPreferOffline),
@@ -633,9 +602,8 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
           keys: [
             'devPort',
             'devServer',
-            'frontendBase',
-            'framework',
-            'frameworkVersion',
+            'foundation',
+            'seedVersion',
             'jsx',
             'router',
             'pinia',
@@ -656,9 +624,8 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
           run: async () => ({
             devPort: 3000,
             devServer: false,
-            frontendBase: 'none',
-            framework: 'none',
-            frameworkVersion: null,
+            foundation: OWNED_FOUNDATION,
+            seedVersion: null,
             jsx: false,
             router: false,
             pinia: false,
@@ -805,13 +772,10 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
     delete answers.gitConfigureRemote;
 
     if (answers.vue && answers.react) {
-      throw new Error('React and Vue starters are mutually exclusive');
+      throw new Error('React and Vue features are mutually exclusive');
     }
-    if (answers.frontendBase && answers.frontendBase !== 'none' && answers.framework !== 'none') {
-      throw new Error('--frontend-base cannot be combined with --framework');
-    }
-    if (answers.framework !== 'none' && opts.vite) {
-      throw new Error('--vite cannot be combined with --framework');
+    if (isAppSeed(answers.foundation) && opts.vite) {
+      throw new Error('--vite cannot be combined with Next/Nuxt seeded foundations');
     }
     if (opts.devPort && validatePort(opts.devPort) !== true) {
       throw new Error(`Invalid --dev-port: ${opts.devPort}`);
