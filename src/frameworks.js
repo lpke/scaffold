@@ -23,7 +23,9 @@ const frameworkCommand = ({ answers, config, targetDir }) => {
   const version = answers.frameworkVersion || 'latest';
   const packageSpec = `${framework.commandPackage}@${version}`;
   const values = {
-    installFlag: answers.install ? (answers.framework === 'nuxt' ? '--install' : '') : answers.framework === 'nuxt' ? '--no-install' : '--skip-install',
+    installFlag: answers.framework === 'nuxt' ? '--no-install' : answers.install ? '' : '--skip-install',
+    nuxtOfflineFlag: answers.framework === 'nuxt' && answers.nuxtOffline ? '--offline' : '',
+    nuxtPreferOfflineFlag: answers.framework === 'nuxt' && answers.nuxtPreferOffline ? '--preferOffline' : '',
     packageManager: manager.nuxtValue || answers.toolchainManager,
     packageManagerFlag: manager.nextFlag || '',
     tailwindFlag: answers.tailwind ? '--tailwind' : '--no-tailwind',

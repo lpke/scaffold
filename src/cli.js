@@ -121,6 +121,15 @@ Choose a frontend base when --framework is none. "react" runs create-vite with t
 Choose framework generator package version. Requires --framework <next|nuxt>. The interactive prompt can collect a specified version. Default is the latest dist-tag.`,
   },
   {
+    topic: '--nuxt-offline',
+    names: ['--nuxt-offline', '--nuxt-prefer-offline'],
+    summary: 'Use Nuxt offline modes',
+    help: `Usage: scaffold [dir] --framework nuxt --nuxt-offline
+       scaffold [dir] --framework nuxt --nuxt-prefer-offline
+
+Pass --offline or --preferOffline to Nuxt init.`,
+  },
+  {
     topic: '--typescript',
     names: ['--typescript', '--no-typescript'],
     summary: 'Use or skip TypeScript',
@@ -333,7 +342,7 @@ Overwrite starter/template files when they already exist. package.json is still 
     help: `Usage: scaffold [dir] --backup
        scaffold [dir] --no-backup
 
-Create or skip one-time *.scaffold-backup files before overwriting existing files.`,
+Create or skip one-time *.scaffold-backup files before overwriting existing files. Filesystem backups are only written when git mode is skip; git history is the backup for git-backed scaffolds.`,
   },
 ];
 
@@ -493,6 +502,12 @@ const parseArgs = (argv) => {
         break;
       case '--no-libraries':
         setBool('libraries', false);
+        break;
+      case '--nuxt-offline':
+        setBool('nuxtOffline', true);
+        break;
+      case '--nuxt-prefer-offline':
+        setBool('nuxtPreferOffline', true);
         break;
       case '--dev-server':
         setBool('devServer', true);

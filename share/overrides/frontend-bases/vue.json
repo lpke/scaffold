@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "description": "Post-create-vue project shape. Keeps the useful Vue starter pieces and replaces the demo shell with a small Tailwind-ready app.",
+  "actions": [
+    {
+      "type": "text.prepend",
+      "label": "Import Tailwind Vite plugin in TypeScript Vite config",
+      "path": "vite.config.ts",
+      "when": {
+        "all": ["tailwind", "typescript"]
+      },
+      "content": "import tailwindcss from '@tailwindcss/vite'\n",
+      "skipIfContains": "@tailwindcss/vite"
+    },
+    {
+      "type": "text.replace",
+      "label": "Register Tailwind Vite plugin in TypeScript Vite config",
+      "path": "vite.config.ts",
+      "when": {
+        "all": ["tailwind", "typescript"]
+      },
+      "skipIfContains": "tailwindcss()",
+      "regex": "plugins:\\s*\\[([^\\]]*)\\]",
+      "replace": "plugins: [$1, tailwindcss()]"
+    },
+    {
+      "type": "text.prepend",
+      "label": "Import Tailwind Vite plugin in JavaScript Vite config",
+      "path": "vite.config.js",
+      "when": {
+        "all": [
+          "tailwind",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "content": "import tailwindcss from '@tailwindcss/vite'\n",
+      "skipIfContains": "@tailwindcss/vite"
+    },
+    {
+      "type": "text.replace",
+      "label": "Register Tailwind Vite plugin in JavaScript Vite config",
+      "path": "vite.config.js",
+      "when": {
+        "all": [
+          "tailwind",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "skipIfContains": "tailwindcss()",
+      "regex": "plugins:\\s*\\[([^\\]]*)\\]",
+      "replace": "plugins: [$1, tailwindcss()]"
+    },
+    {
+      "type": "file.write",
+      "label": "Put Tailwind import in create-vue's imported CSS path",
+      "path": "src/assets/base.css",
+      "when": "tailwind",
+      "template": "starters/vite/tailwind.css"
+    },
+    {
+      "type": "file.delete",
+      "label": "Remove unused Tailwind sidecar CSS path",
+      "path": "src/style.css",
+      "when": "tailwind"
+    },
+    {
+      "type": "dir.clean",
+      "label": "Remove create-vue asset demo files while keeping base.css",
+      "path": "src/assets",
+      "when": "tailwind",
+      "keep": ["base.css"]
+    },
+    {
+      "type": "text.replace",
+      "label": "Import the Tailwind CSS file from Vue entrypoint",
+      "path": "src/main.ts",
+      "when": {
+        "all": ["tailwind", "typescript"]
+      },
+      "replacements": [
+        {
+          "match": "import './assets/main.css'",
+          "replace": "import './assets/base.css'"
+        },
+        {
+          "match": "import './style.css'",
+          "replace": "import './assets/base.css'"
+        }
+      ]
+    },
+    {
+      "type": "text.replace",
+      "label": "Import the Tailwind CSS file from Vue entrypoint",
+      "path": "src/main.js",
+      "when": {
+        "all": [
+          "tailwind",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "replacements": [
+        {
+          "match": "import './assets/main.css'",
+          "replace": "import './assets/base.css'"
+        },
+        {
+          "match": "import './style.css'",
+          "replace": "import './assets/base.css'"
+        }
+      ]
+    },
+    {
+      "type": "file.write",
+      "label": "Replace create-vue app shell",
+      "path": "src/App.vue",
+      "when": "tailwind",
+      "template": "overrides/frontend-bases/vue/src/App.vue"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace create-vue home route",
+      "path": "src/views/HomeView.vue",
+      "when": {
+        "all": ["tailwind", "router"]
+      },
+      "template": "overrides/frontend-bases/vue/src/views/HomeView.vue"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace create-vue about route",
+      "path": "src/views/AboutView.vue",
+      "when": {
+        "all": ["tailwind", "router"]
+      },
+      "template": "overrides/frontend-bases/vue/src/views/AboutView.vue"
+    },
+    {
+      "type": "dir.clean",
+      "label": "Remove create-vue welcome/icon demo components",
+      "path": "src/components",
+      "when": "tailwind",
+      "keep": ["HelloWorld.vue", "__tests__/HelloWorld.spec.ts"]
+    }
+  ]
+}

@@ -4,6 +4,8 @@ const { detectGit, listGitRemotes } = require('./detect');
 const { sanitizePackageName } = require('./project');
 const { color, promptChoice, promptText, promptYesNo } = require('./ui');
 
+const remembered = (opts, key) => opts._rememberedAnswers?.[key];
+
 const resolveGitMode = async ({ rl, opts, targetDir }) => {
   const git = detectGit(targetDir);
   const validModes = ['auto', 'skip', 'keep', 'init', 'replace'];
@@ -21,6 +23,9 @@ const resolveGitMode = async ({ rl, opts, targetDir }) => {
     } else if (!rl) {
       gitMode = git.inside ? 'keep' : 'skip';
     } else if (git.hasOwnGit) {
+      const defaultMode = ['keep', 'replace', 'skip'].includes(remembered(opts, 'gitMode'))
+        ? remembered(opts, 'gitMode')
+        : 'skip';
       gitMode = await promptChoice(
         rl,
         'Git repository?',
@@ -29,9 +34,12 @@ const resolveGitMode = async ({ rl, opts, targetDir }) => {
           { label: 'replace with a fresh repo', value: 'replace' },
           { label: 'skip git changes', value: 'skip' },
         ],
-        'skip',
+        defaultMode,
       );
     } else if (git.inside) {
+      const defaultMode = ['keep', 'init', 'skip'].includes(remembered(opts, 'gitMode'))
+        ? remembered(opts, 'gitMode')
+        : 'skip';
       gitMode = await promptChoice(
         rl,
         `Git repository? ${color.dim(`currently inside ${git.root}`)}`,
@@ -40,10 +48,11 @@ const resolveGitMode = async ({ rl, opts, targetDir }) => {
           { label: 'init nested repo here', value: 'init' },
           { label: 'skip git changes', value: 'skip' },
         ],
-        'skip',
+        defaultMode,
       );
     } else {
-      gitMode = (await promptYesNo(rl, 'Initialize git repo?', true)) ? 'init' : 'skip';
+      const defaultInit = remembered(opts, 'gitMode') ? remembered(opts, 'gitMode') === 'init' : true;
+      gitMode = (await promptYesNo(rl, 'Initialize git repo?', defaultInit)) ? 'init' : 'skip';
     }
   }
 
@@ -70,7 +79,7 @@ const resolveGitRemoteConfigure = async ({ rl, opts, targetDir, gitMode }) => {
         remotes.length > 0
           ? `Configure git remote? ${color.dim(`existing: ${remotes.join(', ')}`)}`
           : 'Configure git remote?',
-        false,
+        remembered(opts, 'gitConfigureRemote') ?? false,
       );
 
   return { gitConfigureRemote, gitRemoteName };
@@ -80,7 +89,7 @@ const resolveGitRemote = async ({ rl, opts, targetDir, gitMode, gitConfigureRemo
   const canRemote = gitMode !== 'skip';
   let gitRemote = opts.gitRemote ?? null;
   if (canRemote && !gitRemote && gitConfigureRemote && rl) {
-    const defaultRemoteUrl = `https://github.com/lpke/${sanitizePackageName(targetDir)}`;
+    const defaultRemoteUrl = remembered(opts, 'gitRemote') || `https://github.com/lpke/${sanitizePackageName(targetDir)}`;
     gitRemote = await promptText(rl, `Remote URL for ${gitRemoteName}`, defaultRemoteUrl, (value) =>
       value ? true : 'Remote URL is required.',
     );

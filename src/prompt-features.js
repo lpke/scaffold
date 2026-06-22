@@ -13,13 +13,14 @@ const featureSet = async (rl, opts, message, choices) => {
       answers[choice.key] = value;
       continue;
     }
+    const remembered = opts._rememberedAnswers?.[choice.key];
     promptChoices.push({
-      defaultValue: choice.defaultValue,
+      defaultValue: remembered === true || remembered === false ? remembered : choice.defaultValue,
       label: choice.label,
       value: choice.key,
       hint: choice.hint,
     });
-    if (choice.defaultValue) {
+    if (remembered === true || (remembered !== false && choice.defaultValue)) {
       defaultValues.push(choice.key);
     }
   }
@@ -54,9 +55,15 @@ const resolveTypescriptAnswers = async (rl, opts) => {
   if (opts.typescript === true && !rl) {
     return { typescript: true, tsMode: 'strict' };
   }
+  const rememberedMode = opts._rememberedAnswers?.typescript === false
+    ? 'none'
+    : opts._rememberedAnswers?.tsMode;
+  const defaultMode = typescriptChoices.some((choice) => choice.value === rememberedMode)
+    ? rememberedMode
+    : 'strict';
 
   const selected = rl
-    ? await promptChoice(rl, 'TypeScript?', typescriptChoices, 'strict')
+    ? await promptChoice(rl, 'TypeScript?', typescriptChoices, defaultMode)
     : 'strict';
 
   return selected === 'none'

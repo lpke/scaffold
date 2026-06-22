@@ -4,4 +4,6 @@ dist/
 tmp/
 *.log
 .DS_Store
-assets/
+/assets/
+*.scaffold-backup
+*.scaffold-backup/

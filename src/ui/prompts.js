@@ -310,9 +310,6 @@ const promptYesNoKeys = (rl, message, defaultValue) => {
         finish(selected, true);
         return;
       }
-      if (isPrintable(str)) {
-        render();
-      }
     };
 
     controls = withKeypress({ rl, input, onKeypress, reject });
@@ -424,9 +421,6 @@ const promptChoiceKeys = (rl, message, choices, defaultValue) => {
       if (isEnter(key)) {
         finish(choices[selected].value, true);
         return;
-      }
-      if (isPrintable(str)) {
-        render();
       }
     };
 
@@ -583,9 +577,6 @@ const promptMultiselectKeys = (rl, message, choices, defaultValues, { required =
       if (isEnter(key)) {
         finish(true);
         return;
-      }
-      if (isPrintable(str)) {
-        render();
       }
     };
 

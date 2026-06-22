@@ -49,9 +49,19 @@ const clearRendered = (output, renderedLines) => {
   readline.clearScreenDown(output);
 };
 
+const stripAnsi = (value) => String(value).replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, '');
+
+const displayRows = (output, line) => {
+  const columns = output.columns || 0;
+  if (columns <= 0) {
+    return 1;
+  }
+  return Math.max(1, Math.ceil(stripAnsi(line).length / columns));
+};
+
 const writeLines = (output, lines) => {
   output.write(`${lines.join('\n')}\n`);
-  return lines.length;
+  return lines.reduce((total, line) => total + displayRows(output, line), 0);
 };
 
 const renderBlock = (output, renderedLines, lines) => {

@@ -25,6 +25,9 @@ const boolChoice = async (rl, opts, key, message, defaultValue) => {
   if (opts[key] != null) {
     return opts[key];
   }
+  if (rl && opts._rememberedAnswers && opts._rememberedAnswers[key] != null) {
+    return promptYesNo(rl, message, opts._rememberedAnswers[key]);
+  }
   if (!rl) {
     return defaultValue;
   }
@@ -42,7 +45,9 @@ const valueChoice = async (rl, opts, key, message, choices, defaultValue) => {
   if (opts[key] != null) {
     return opts[key];
   }
-  const resolvedDefault = preferredChoiceDefault(choices, defaultValue);
+  const remembered = opts._rememberedAnswers?.[key];
+  const rememberedValid = choices.some((choice) => choice.value === remembered);
+  const resolvedDefault = rememberedValid ? remembered : preferredChoiceDefault(choices, defaultValue);
   if (!rl) {
     return resolvedDefault;
   }
@@ -66,6 +71,13 @@ const validatePort = (value) => {
     ? true
     : 'Enter a port from 1 to 65535.';
 };
+
+const nuxtOptionFlags = (opts) => [
+  [opts.nuxtOffline === true, '--nuxt-offline'],
+  [opts.nuxtPreferOffline === true, '--nuxt-prefer-offline'],
+];
+
+const findNuxtOptionFlag = (opts) => nuxtOptionFlags(opts).find(([enabled]) => enabled);
 
 const inferDependentOptions = (opts, { interactive }) => {
   const inferred = { ...opts };
@@ -95,10 +107,12 @@ const inferDependentOptions = (opts, { interactive }) => {
   const frameworkRequested = frameworkOptionSet && opts.framework !== 'none';
   const frontendBaseOptionSet = opts.frontendBase != null;
   const frontendBaseRequested = frontendBaseOptionSet && opts.frontendBase !== 'none';
+  const nuxtOptionFlag = findNuxtOptionFlag(opts);
   const nodeRequests = [
     [frameworkOptionSet, '--framework'],
     [frontendBaseOptionSet, '--frontend-base'],
     [opts.frameworkVersion != null, '--framework-version'],
+    [Boolean(nuxtOptionFlag), nuxtOptionFlag?.[1]],
     [opts.nodeMajor != null, '--node'],
     [opts.packageManager != null, '--package-manager'],
     [opts.prettier === true, '--prettier'],
@@ -127,6 +141,12 @@ const inferDependentOptions = (opts, { interactive }) => {
   }
   if (frameworkRequested && frontendBaseRequested) {
     throw new Error('--frontend-base cannot be combined with --framework <next|nuxt>');
+  }
+  if (nuxtOptionFlag && opts.framework !== 'nuxt') {
+    throw new Error(`${nuxtOptionFlag[1]} requires --framework nuxt`);
+  }
+  if (opts.nuxtOffline && opts.nuxtPreferOffline) {
+    throw new Error('--nuxt-offline cannot be combined with --nuxt-prefer-offline');
   }
   if (frontendBaseRequested && opts.vite === false) {
     throw new Error('--frontend-base react/vue cannot be combined with --no-vite');
@@ -240,6 +260,8 @@ const previousPromptStep = (steps, index) => {
 const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, config }) => {
   const interactive = isInteractive(rawOpts);
   const opts = inferDependentOptions(rawOpts, { interactive });
+  const rememberedAnswers = {};
+  opts._rememberedAnswers = rememberedAnswers;
   const rl = interactive ? createPrompter() : null;
 
   try {
@@ -257,6 +279,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
 
     const frameworkRequested = opts.framework && opts.framework !== 'none';
     const frontendBaseRequested = opts.frontendBase && opts.frontendBase !== 'none';
+    const nuxtOptionFlag = findNuxtOptionFlag(opts);
     const nodeProjectRequested = Boolean(
       frameworkRequested ||
         frontendBaseRequested ||
@@ -273,7 +296,8 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
         opts.jsx ||
         opts.router ||
         opts.pinia ||
-        opts.eslint,
+        opts.eslint ||
+        Boolean(nuxtOptionFlag),
     );
 
     const buildSteps = () => {
@@ -517,7 +541,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                     { label: 'React', value: 'react' },
                     { label: 'Vue', value: 'vue' },
                   ],
-                  'react',
+                  opts._rememberedAnswers?.vue && !opts._rememberedAnswers?.react ? 'vue' : 'react',
                 );
                 return {
                   react: starter === 'react',
@@ -535,7 +559,14 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                   devPort: devServer
                     ? Number(
                         opts.devPort ??
-                          (rl ? await promptText(rl, 'Dev server port?', '3000', validatePort) : '3000'),
+                          (rl
+                            ? await promptText(
+                                rl,
+                                'Dev server port?',
+                                String(opts._rememberedAnswers?.devPort ?? '3000'),
+                                validatePort,
+                              )
+                            : '3000'),
                       )
                     : 3000,
                 };
@@ -544,13 +575,42 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
           );
         } else if (answers.framework) {
           steps.push({
-            keys: ['prettier', 'vite', 'devServer', 'devPort', 'vitest', 'react', 'vue', 'tailwind'],
-            backStop: Boolean(rl && [opts.prettier, opts.tailwind].some((value) => value == null)),
+            keys: [
+              'prettier',
+              'vite',
+              'devServer',
+              'devPort',
+              'vitest',
+              'react',
+              'vue',
+              'tailwind',
+              'nuxtOffline',
+              'nuxtPreferOffline',
+            ],
+            backStop: Boolean(
+              rl &&
+                [
+                  opts.prettier,
+                  opts.tailwind,
+                  answers.framework === 'nuxt' ? opts.nuxtOffline : false,
+                  answers.framework === 'nuxt' ? opts.nuxtPreferOffline : false,
+                ].some((value) => value == null),
+            ),
             run: async () => {
+              const nuxt = answers.framework === 'nuxt';
               const selectedFeatures = await featureSet(rl, opts, 'Select features to include:', [
                 { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
                 { key: 'tailwind', label: 'Tailwind CSS' },
+                ...(nuxt
+                  ? [
+                      { key: 'nuxtOffline', label: 'Nuxt offline', hint: 'force offline mode' },
+                      { key: 'nuxtPreferOffline', label: 'Nuxt prefer offline', hint: 'prefer cached templates' },
+                    ]
+                  : []),
               ]);
+              if (selectedFeatures.nuxtOffline && selectedFeatures.nuxtPreferOffline) {
+                throw new Error('Nuxt offline and prefer offline are mutually exclusive');
+              }
               return {
                 prettier: selectedFeatures.prettier,
                 vite: false,
@@ -560,6 +620,8 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                 react: answers.framework === 'next',
                 vue: answers.framework === 'nuxt',
                 tailwind: selectedFeatures.tailwind,
+                nuxtOffline: nuxt && Boolean(selectedFeatures.nuxtOffline),
+                nuxtPreferOffline: nuxt && Boolean(selectedFeatures.nuxtPreferOffline),
               };
             },
           });
@@ -713,7 +775,9 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
 
       try {
         stepStartLines[index] = rl?.renderedPromptLines || 0;
-        Object.assign(answers, await steps[index].run());
+        const stepAnswers = await steps[index].run();
+        Object.assign(answers, stepAnswers);
+        Object.assign(rememberedAnswers, stepAnswers);
         index += 1;
       } catch (error) {
         if (!isPromptBack(error) || !rl) {

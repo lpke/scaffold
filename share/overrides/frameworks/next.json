@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "description": "Post-create-next-app project shape.",
+  "actions": [
+    {
+      "type": "json.merge",
+      "label": "Add route-oriented TypeScript path aliases",
+      "path": "tsconfig.json",
+      "pointer": "/compilerOptions/paths",
+      "when": "typescript",
+      "create": false,
+      "value": {
+        "@/components/*": ["./src/app/_components/*"],
+        "@/hooks/*": ["./src/app/_hooks/*"],
+        "@/routes/*": ["./src/app/(routes)/*"],
+        "@/styles/*": ["./src/app/_styles/*"],
+        "@/types/*": ["./src/app/_types/*"],
+        "@/utils/*": ["./src/app/_utils/*"],
+        "@/sections/*": ["./src/app/_sections/*"],
+        "@/*": ["./src/app/*"]
+      }
+    },
+    {
+      "type": "file.write",
+      "label": "Keep route support directories in git",
+      "path": "src/app/_components/.gitkeep",
+      "when": "typescript",
+      "content": "",
+      "overwrite": false
+    },
+    {
+      "type": "file.write",
+      "label": "Keep route support directories in git",
+      "path": "src/app/_hooks/.gitkeep",
+      "when": "typescript",
+      "content": "",
+      "overwrite": false
+    },
+    {
+      "type": "file.write",
+      "label": "Keep route support directories in git",
+      "path": "src/app/(routes)/.gitkeep",
+      "when": "typescript",
+      "content": "",
+      "overwrite": false
+    },
+    {
+      "type": "file.write",
+      "label": "Keep route support directories in git",
+      "path": "src/app/_styles/.gitkeep",
+      "when": "typescript",
+      "content": "",
+      "overwrite": false
+    },
+    {
+      "type": "file.write",
+      "label": "Keep route support directories in git",
+      "path": "src/app/_types/.gitkeep",
+      "when": "typescript",
+      "content": "",
+      "overwrite": false
+    },
+    {
+      "type": "file.write",
+      "label": "Keep route support directories in git",
+      "path": "src/app/_utils/.gitkeep",
+      "when": "typescript",
+      "content": "",
+      "overwrite": false
+    },
+    {
+      "type": "file.write",
+      "label": "Keep route support directories in git",
+      "path": "src/app/_sections/.gitkeep",
+      "when": "typescript",
+      "content": "",
+      "overwrite": false
+    }
+  ]
+}

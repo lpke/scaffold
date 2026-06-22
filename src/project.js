@@ -4,7 +4,8 @@ const path = require('node:path');
 
 const { commandVersion } = require('./commands');
 const { readAsset, renderAsset } = require('./assets');
-const { fileExists, readJsonFile, readText } = require('./detect');
+const { fileExists, readText } = require('./detect');
+const { applyActionManifest } = require('./helpers/actions');
 const { parseJson } = require('./json');
 const { formatJson } = require('./json-format');
 
@@ -26,29 +27,6 @@ const STRICT_TS = {
   esModuleInterop: true,
   skipLibCheck: true,
 };
-
-const TAILWIND_CSS_IMPORT = "@import 'tailwindcss';";
-
-const NEXT_ROUTE_ALIASES = {
-  '@/components/*': ['./src/app/_components/*'],
-  '@/hooks/*': ['./src/app/_hooks/*'],
-  '@/routes/*': ['./src/app/(routes)/*'],
-  '@/styles/*': ['./src/app/_styles/*'],
-  '@/types/*': ['./src/app/_types/*'],
-  '@/utils/*': ['./src/app/_utils/*'],
-  '@/sections/*': ['./src/app/_sections/*'],
-  '@/*': ['./src/app/*'],
-};
-
-const NEXT_ROUTE_DIRS = [
-  'src/app/_components',
-  'src/app/_hooks',
-  'src/app/(routes)',
-  'src/app/_styles',
-  'src/app/_types',
-  'src/app/_utils',
-  'src/app/_sections',
-];
 
 const sanitizePackageName = (dirPath) => {
   const name = path.basename(path.resolve(dirPath));
@@ -321,61 +299,11 @@ const applyNix = async ({ workspace, answers, config }) => {
 };
 
 const applyCommon = async ({ workspace, answers }) => {
-  await workspace.copyTemplate('common/dot_editorconfig', '.editorconfig', { overwrite: false });
-  await workspace.mergeLines('.gitignore', [
-    'node_modules',
-    '.nuxt',
-    '.output',
-    '.next',
-    'dist',
-    'coverage',
-    '.vite',
-    '*.log',
-    '.env',
-    '.env.*',
-    '!.env.example',
-    '.flake.local/',
-    '.direnv',
-    'assets/',
-    '.DS_Store',
-    '*.scaffold-backup',
-  ], { existingHeader: '# generated with scaffold' });
-
-  if (answers.prettier) {
-    await workspace.mergeLines('.prettierignore', [
-      'node_modules',
-      '.nuxt',
-      '.output',
-      '.next',
-      'dist',
-      'coverage',
-      '.vite',
-      '*.log',
-      '.env',
-      '.env.*',
-      '!.env.example',
-      '.flake.local/',
-      '.direnv',
-      '.DS_Store',
-      'pnpm-lock.yaml',
-      'yarn.lock',
-      'package-lock.json',
-    ]);
-
-    if (answers.tailwind) {
-      await workspace.write(
-        'prettier.config.mjs',
-        "export default {\n  singleQuote: true,\n  plugins: ['prettier-plugin-tailwindcss'],\n};\n",
-        { overwrite: true },
-      );
-    } else {
-      await workspace.write(
-        'prettier.config.mjs',
-        'export default {\n  singleQuote: true,\n};\n',
-        { overwrite: true },
-      );
-    }
-  }
+  await applyActionManifest({
+    workspace,
+    manifestPath: 'overrides/common/defaults.json',
+    context: { answers },
+  });
 };
 
 const applyTsMode = async (workspace, mode) => {
@@ -430,27 +358,6 @@ const applyTypescriptConfig = async (workspace, answers) => {
   }
   const template = answers.vite ? 'typescript/tsconfig.vite.json' : 'typescript/tsconfig.node.json';
   await workspace.copyTemplate(template, 'tsconfig.json', { overwrite: false });
-};
-
-const applyNextTsconfig = async (workspace, answers) => {
-  if (answers.framework !== 'next' || !answers.typescript) {
-    return;
-  }
-  const tsconfigPath = workspace.targetPath('tsconfig.json');
-  if (!(await fileExists(tsconfigPath))) {
-    workspace.skipped.push('Next.js tsconfig aliases skipped; tsconfig.json not found');
-    return;
-  }
-  const tsconfig = parseJson(await readAssetFromTarget(tsconfigPath), tsconfigPath);
-  tsconfig.compilerOptions ??= {};
-  tsconfig.compilerOptions.paths = {
-    ...(tsconfig.compilerOptions.paths ?? {}),
-    ...NEXT_ROUTE_ALIASES,
-  };
-  await workspace.write('tsconfig.json', formatJson(tsconfig));
-  for (const dir of NEXT_ROUTE_DIRS) {
-    await workspace.write(path.posix.join(dir, '.gitkeep'), '', { overwrite: false });
-  }
 };
 
 const applyLocalStarter = async (workspace, answers) => {
@@ -558,72 +465,6 @@ const applyLocalStarter = async (workspace, answers) => {
   await workspace.copyTemplateDir(`starters/node-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
 };
 
-const applyGeneratedViteTailwind = async (workspace, answers) => {
-  if (!answers.tailwind || answers.framework !== 'none' || answers.frontendBase === 'none') {
-    return;
-  }
-
-  const configPath = answers.typescript ? 'vite.config.ts' : 'vite.config.js';
-  const absoluteConfigPath = workspace.targetPath(configPath);
-  if (await fileExists(absoluteConfigPath)) {
-    let config = await readText(absoluteConfigPath);
-    if (!config.includes('@tailwindcss/vite')) {
-      config = `import tailwindcss from '@tailwindcss/vite'\n${config}`;
-      if (/plugins:\s*\[([^\]]*)\]/s.test(config)) {
-        config = config.replace(/plugins:\s*\[([^\]]*)\]/s, (match, plugins) => {
-          const trimmed = plugins.trim().replace(/,+\s*$/, '');
-          return `plugins: [${trimmed ? `${trimmed}, ` : ''}tailwindcss()]`;
-        });
-      } else {
-        config = config.replace(/defineConfig\(\{\s*/s, 'defineConfig({\n  plugins: [tailwindcss()],\n  ');
-      }
-      await workspace.write(configPath, config, { overwrite: true });
-    } else {
-      workspace.skipped.push(`${configPath} already has Tailwind`);
-      workspace.mark(configPath);
-    }
-  } else {
-    workspace.skipped.push('Tailwind Vite config skipped; vite.config not found');
-  }
-
-  const cssPath = answers.react ? 'src/index.css' : 'src/style.css';
-  const absoluteCssPath = workspace.targetPath(cssPath);
-  if (await fileExists(absoluteCssPath)) {
-    const css = await readText(absoluteCssPath);
-    if (css.includes(TAILWIND_CSS_IMPORT)) {
-      workspace.skipped.push(`${cssPath} already has Tailwind`);
-      workspace.mark(cssPath);
-    } else {
-      await workspace.write(cssPath, `${TAILWIND_CSS_IMPORT}\n\n${css}`, { overwrite: true });
-    }
-  } else {
-    await workspace.copyTemplate('starters/vite/tailwind.css', cssPath, { overwrite: true });
-  }
-};
-
-const applyGeneratedReactRouter = async (workspace, answers) => {
-  if (!answers.router || answers.framework !== 'none' || answers.frontendBase !== 'react') {
-    return;
-  }
-
-  const appPath = answers.typescript ? 'src/App.tsx' : 'src/App.jsx';
-  const mainPath = answers.typescript ? 'src/main.tsx' : 'src/main.jsx';
-  const appImport = answers.typescript ? './App' : './App.jsx';
-  const rootTarget = answers.typescript
-    ? "document.querySelector('#root')!"
-    : "document.querySelector('#root')";
-  await workspace.write(
-    appPath,
-    "import { Link, Route, Routes } from 'react-router';\n\nexport function App() {\n  return (\n    <Routes>\n      <Route path=\"/\" element={<main><h1>Hello from scaffold</h1><Link to=\"/about\">About</Link></main>} />\n      <Route path=\"/about\" element={<main><h1>About</h1><Link to=\"/\">Home</Link></main>} />\n    </Routes>\n  );\n}\n",
-    { overwrite: true },
-  );
-  await workspace.write(
-    mainPath,
-    `import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport { BrowserRouter } from 'react-router';\n\nimport { App } from '${appImport}';\nimport './index.css';\n\ncreateRoot(${rootTarget}).render(\n  <StrictMode>\n    <BrowserRouter>\n      <App />\n    </BrowserRouter>\n  </StrictMode>,\n);\n`,
-    { overwrite: true },
-  );
-};
-
 const applyLicense = async ({ workspace, answers, config }) => {
   if (!answers.license) {
     return;
@@ -711,10 +552,7 @@ module.exports = {
   applyCommon,
   applyLicense,
   applyLocalStarter,
-  applyGeneratedViteTailwind,
-  applyGeneratedReactRouter,
   applyNix,
-  applyNextTsconfig,
   applyPackageJson,
   applyPnpmWorkspace,
   applyReadme,

@@ -11,7 +11,10 @@ const sourceTemplatePath = (relativePath) => {
   return installedPath;
 };
 
+const BACKUP_SUFFIX = '.scaffold-backup';
 const outputName = (name) => (name.startsWith('dot_') ? `.${name.slice(4)}` : name);
+const isBackupArtifactPath = (filePath) =>
+  path.normalize(filePath).split(path.sep).some((part) => part.endsWith(BACKUP_SUFFIX));
 
 class Workspace {
   constructor({ targetDir, dryRun, backup, force }) {
@@ -33,12 +36,20 @@ class Workspace {
   }
 
   async backupFile(filePath) {
-    if (!this.backup || this.dryRun || !(await fileExists(filePath))) {
+    if (!this.backup || this.dryRun || isBackupArtifactPath(filePath) || !(await fileExists(filePath))) {
       return;
     }
-    const backupPath = `${filePath}.scaffold-backup`;
+    const backupPath = `${filePath}${BACKUP_SUFFIX}`;
     if (!(await fileExists(backupPath))) {
-      await fsp.copyFile(filePath, backupPath);
+      const stat = await fsp.stat(filePath);
+      if (stat.isDirectory()) {
+        await fsp.cp(filePath, backupPath, {
+          recursive: true,
+          filter: (source) => !isBackupArtifactPath(source),
+        });
+      } else {
+        await fsp.copyFile(filePath, backupPath);
+      }
     }
   }
 
@@ -74,6 +85,30 @@ class Workspace {
     await fsp.writeFile(filePath, content);
     if (mode != null) {
       await fsp.chmod(filePath, mode);
+    }
+  }
+
+  async remove(relativePath, { backup = true, protectBackupArtifacts = false } = {}) {
+    if (protectBackupArtifacts && isBackupArtifactPath(relativePath)) {
+      this.skipped.push(`${relativePath} backup artifact kept`);
+      this.mark(relativePath);
+      return;
+    }
+    const filePath = this.targetPath(relativePath);
+    const exists = await fileExists(filePath);
+    if (!exists) {
+      this.skipped.push(`${relativePath} absent`);
+      this.mark(relativePath);
+      return;
+    }
+
+    if (backup) {
+      await this.backupFile(filePath);
+    }
+    this.changed.push(`deleted ${relativePath}`);
+    this.mark(relativePath);
+    if (!this.dryRun) {
+      await fsp.rm(filePath, { recursive: true, force: true });
     }
   }
 
@@ -150,5 +185,6 @@ class Workspace {
 }
 
 module.exports = {
+  isBackupArtifactPath,
   Workspace,
 };

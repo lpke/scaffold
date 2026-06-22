@@ -43,6 +43,8 @@ const resolveFrameworkVersion = async ({ rl, opts, config, framework }) => {
     : color.yellow(`Could not check recent ${framework} versions.`);
 
   while (true) {
+    const remembered = opts._rememberedAnswers?.frameworkVersion;
+    const defaultChoice = remembered === 'latest' || remembered === highest ? remembered : remembered ? 'custom' : 'latest';
     const selected = await promptChoice(
       rl,
       'Framework version?',
@@ -51,7 +53,7 @@ const resolveFrameworkVersion = async ({ rl, opts, config, framework }) => {
         { label: latest ? `${latest} (latest tag)` : 'latest tag', value: 'latest' },
         { label: 'specify version', value: 'custom' },
       ],
-      'latest',
+      defaultChoice,
     );
     if (selected !== 'custom') {
       return selected;
@@ -61,7 +63,7 @@ const resolveFrameworkVersion = async ({ rl, opts, config, framework }) => {
       return await promptText(
         rl,
         `${meta.label} version`,
-        highest || latest || 'latest',
+        remembered && remembered !== 'latest' ? remembered : highest || latest || 'latest',
         (value) => {
           if (!value) {
             return 'Framework version is required.';

@@ -15,15 +15,13 @@ const {
   stageForNix,
   stageGit,
 } = require('./git');
+const { applyTemplateOverrides } = require('./overrides');
 const {
   applyAgents,
   applyCommon,
   applyLicense,
-  applyGeneratedReactRouter,
-  applyGeneratedViteTailwind,
   applyLocalStarter,
   applyNix,
-  applyNextTsconfig,
   applyPackageJson,
   applyPnpmWorkspace,
   applyReadme,
@@ -84,7 +82,7 @@ const runPostChecks = async ({ answers, config, targetDir, workspace }) => {
     }
   }
 
-  if (answers.install && answers.framework !== 'none') {
+  if (answers.install && answers.framework === 'next') {
     workspace.skipped.push('package install handled by framework generator');
   } else if (answers.install) {
     const installCommand = config.packageManagers[answers.toolchainManager].installCommand;
@@ -133,14 +131,35 @@ const runFinalFormat = async ({ answers, config, targetDir, workspace }) => {
   }
 };
 
+const changeStyle = (descriptor) => {
+  const styles = {
+    committed: { symbol: '*', color: color.green },
+    created: { symbol: '+', color: color.green },
+    deleted: { symbol: 'x', color: color.red },
+    formatted: { symbol: '~', color: color.cyan },
+    merged: { symbol: '=', color: color.blue },
+    modified: { symbol: '~', color: color.cyan },
+    moved: { symbol: '>', color: color.yellow },
+    replaced: { symbol: '!', color: color.yellow },
+    updated: { symbol: '~', color: color.cyan },
+  };
+  return styles[descriptor] ?? { symbol: '*', color: color.cyan };
+};
+
+const formatChangeLine = (line) => {
+  const [descriptor, ...rest] = line.split(' ');
+  const style = changeStyle(descriptor);
+  return `${style.color(style.symbol)} ${style.color(descriptor.padEnd(9))} ${rest.join(' ')}`;
+};
+
 const printSummary = ({ answers, targetDir, workspace }) => {
   console.log('');
   console.log(`${color.green('◇')} ${color.bold('scaffold')} ${color.dim(targetDir)}`);
   for (const line of workspace.changed) {
-    console.log(`${color.dim('│')} ${color.green('+')} ${line}`);
+    console.log(`${color.dim('│')} ${formatChangeLine(line)}`);
   }
   for (const line of workspace.skipped) {
-    console.log(`${color.dim('│')} ${color.yellow('-')} skipped: ${line}`);
+    console.log(`${color.dim('│')} ${color.yellow('-')} ${color.yellow('skipped'.padEnd(9))} ${line}`);
   }
   if (workspace.changed.length === 0 && workspace.skipped.length === 0) {
     console.log(`${color.dim('│')} ${color.dim('no file changes')}`);
@@ -177,7 +196,7 @@ const main = async () => {
   const workspace = new Workspace({
     targetDir,
     dryRun: answers.dryRun,
-    backup: answers.backup,
+    backup: answers.backup && answers.gitMode === 'skip',
     force: answers.force,
   });
   const hadTsconfig = await fileExists(path.join(targetDir, 'tsconfig.json'));
@@ -218,8 +237,7 @@ const main = async () => {
   await applyNix({ workspace, answers, config });
   await applyTypescriptConfig(workspace, answers);
   await applyLocalStarter(workspace, answers);
-  await applyGeneratedViteTailwind(workspace, answers);
-  await applyGeneratedReactRouter(workspace, answers);
+  await applyTemplateOverrides({ workspace, answers, frameworkRun, frontendBaseRun });
   await applyPnpmWorkspace({ workspace, answers });
   await applyPackageJson({ workspace, answers, existingPackage, config });
   await applyReadme({ workspace });
@@ -229,7 +247,6 @@ const main = async () => {
   ) {
     await applyTsMode(workspace, answers.tsMode);
   }
-  await applyNextTsconfig(workspace, answers);
   await applyLicense({ workspace, answers, config });
   await applyAgents({ workspace, answers });
   await prepareGit({ answers, targetDir, workspace });

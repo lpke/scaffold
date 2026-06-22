@@ -46,6 +46,7 @@ Local defaults and editable base files live under `share`.
   - Tailwind implies Vite; local Vite starters install Tailwind CSS and wire the Vite plugin/CSS entry; with Prettier, installs and configures the Tailwind Prettier plugin in `prettier.config.mjs`
 - Framework path:
   - Feature multiselect: Prettier, Tailwind; Prettier defaults on; Next.js passes `--tailwind` or `--no-tailwind`
+  - Nuxt uses `--force --template minimal --packageManager <selected> --gitInit=false --no-modules --no-install`; optional offline/prefer-offline flags are passed through, and scaffold handles git/install afterward
 - License: `y/N`
 - License type: `AGPL-3.0-only` default
 - AGENTS.md: `y/N`
@@ -63,6 +64,8 @@ Every flag has `scaffold --flag --help` and `scaffold help --flag`.
 - `share/templates/agents`: AGENTS.md template
 - `share/templates/licenses`: license templates
 - `share/templates/starters`: source/config starter files
+- `share/overrides`: declarative post-generator action manifests
+- `share/templates/overrides`: larger file bodies used by override manifests
 
 Template rendering fails if an expected token is missing or any `{{TOKEN}}`
 remains unresolved.

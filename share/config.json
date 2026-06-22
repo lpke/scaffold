@@ -114,8 +114,15 @@
       "commandArgs": [
         "init",
         "${targetDir}",
+        "--force",
+        "--template",
+        "minimal",
         "--packageManager",
         "${packageManager}",
+        "--gitInit=false",
+        "--no-modules",
+        "${nuxtOfflineFlag}",
+        "${nuxtPreferOfflineFlag}",
         "${installFlag}"
       ]
     }

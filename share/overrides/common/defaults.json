@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "description": "Common scaffold defaults applied to every project.",
+  "actions": [
+    {
+      "type": "text.setProperties",
+      "label": "Ensure .editorconfig defaults",
+      "path": ".editorconfig",
+      "create": true,
+      "separator": " = ",
+      "insertFinalNewline": true,
+      "properties": {
+        "root": "true",
+        "indent_style": "space",
+        "indent_size": "2",
+        "tab_width": "2",
+        "end_of_line": "lf",
+        "charset": "utf-8",
+        "trim_trailing_whitespace": "true",
+        "insert_final_newline": "true"
+      }
+    },
+    {
+      "type": "text.removeLines",
+      "label": "Remove old recursive assets ignore",
+      "path": ".gitignore",
+      "lines": ["assets/"]
+    },
+    {
+      "type": "text.mergeLines",
+      "label": "Merge default .gitignore entries",
+      "path": ".gitignore",
+      "existingHeader": "# generated with scaffold",
+      "lines": [
+        "node_modules",
+        ".nuxt",
+        ".output",
+        ".next",
+        "dist",
+        "coverage",
+        ".vite",
+        "*.log",
+        ".env",
+        ".env.*",
+        "!.env.example",
+        ".flake.local/",
+        ".direnv",
+        "/assets/",
+        ".DS_Store",
+        "*.scaffold-backup",
+        "*.scaffold-backup/"
+      ]
+    },
+    {
+      "type": "text.mergeLines",
+      "label": "Merge default .prettierignore entries",
+      "path": ".prettierignore",
+      "when": "prettier",
+      "lines": [
+        "node_modules",
+        ".nuxt",
+        ".output",
+        ".next",
+        "dist",
+        "coverage",
+        ".vite",
+        "*.log",
+        ".env",
+        ".env.*",
+        "!.env.example",
+        ".flake.local/",
+        ".direnv",
+        ".DS_Store",
+        "pnpm-lock.yaml",
+        "yarn.lock",
+        "package-lock.json"
+      ]
+    },
+    {
+      "type": "file.write",
+      "label": "Write Prettier config with Tailwind plugin",
+      "path": "prettier.config.mjs",
+      "when": {
+        "all": ["prettier", "tailwind"]
+      },
+      "content": "export default {\n  singleQuote: true,\n  plugins: ['prettier-plugin-tailwindcss'],\n};\n"
+    },
+    {
+      "type": "file.write",
+      "label": "Write Prettier config",
+      "path": "prettier.config.mjs",
+      "when": {
+        "all": [
+          "prettier",
+          {
+            "not": "tailwind"
+          }
+        ]
+      },
+      "content": "export default {\n  singleQuote: true,\n};\n"
+    }
+  ]
+}
