@@ -4,7 +4,7 @@ const { detectGit, listGitRemotes } = require('./detect');
 const { sanitizePackageName } = require('./project');
 const { color, promptChoice, promptText, promptYesNo } = require('./ui');
 
-const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
+const resolveGitMode = async ({ rl, opts, targetDir }) => {
   const git = detectGit(targetDir);
   const validModes = ['auto', 'skip', 'keep', 'init', 'replace'];
   let gitMode = opts.gitMode ?? 'auto';
@@ -47,30 +47,71 @@ const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
     }
   }
 
+  return { gitMode };
+};
+
+const resolveGitRemoteConfigure = async ({ rl, opts, targetDir, gitMode }) => {
   const canRemote = gitMode !== 'skip';
-  let gitRemote = opts.gitRemote ?? null;
   const gitRemoteName = opts.gitRemoteName || 'origin';
-  const defaultRemoteUrl = `https://github.com/lpke/${sanitizePackageName(targetDir)}`;
-  if (canRemote && !gitRemote && rl) {
-    const remotes = git.inside ? listGitRemotes(targetDir) : [];
-    const configure = remoteRequested
-      ? true
-      : await promptYesNo(
-          rl,
-          remotes.length > 0
-            ? `Configure git remote? ${color.dim(`existing: ${remotes.join(', ')}`)}`
-            : 'Configure git remote?',
-          false,
-        );
-    if (configure) {
-      gitRemote = await promptText(rl, `Remote URL for ${gitRemoteName}`, defaultRemoteUrl, (value) =>
-        value ? true : 'Remote URL is required.',
-      );
-    }
+  const remoteRequested = Boolean(opts.gitRemote || opts.gitRemoteRequested);
+  if (!canRemote || opts.gitRemote || !rl) {
+    return {
+      gitConfigureRemote: canRemote && Boolean(opts.gitRemote),
+      gitRemoteName,
+    };
   }
 
+  const git = detectGit(targetDir);
+  const remotes = git.inside ? listGitRemotes(targetDir) : [];
+  const gitConfigureRemote = remoteRequested
+    ? true
+    : await promptYesNo(
+        rl,
+        remotes.length > 0
+          ? `Configure git remote? ${color.dim(`existing: ${remotes.join(', ')}`)}`
+          : 'Configure git remote?',
+        false,
+      );
+
+  return { gitConfigureRemote, gitRemoteName };
+};
+
+const resolveGitRemote = async ({ rl, opts, targetDir, gitMode, gitConfigureRemote, gitRemoteName }) => {
+  const canRemote = gitMode !== 'skip';
+  let gitRemote = opts.gitRemote ?? null;
+  if (canRemote && !gitRemote && gitConfigureRemote && rl) {
+    const defaultRemoteUrl = `https://github.com/lpke/${sanitizePackageName(targetDir)}`;
+    gitRemote = await promptText(rl, `Remote URL for ${gitRemoteName}`, defaultRemoteUrl, (value) =>
+      value ? true : 'Remote URL is required.',
+    );
+  }
+
+  return { gitRemote };
+};
+
+const resolveGitAdd = ({ opts, gitMode }) => ({
+  gitAdd: opts.gitAdd ?? gitMode !== 'skip',
+  gitRemoteName: opts.gitRemoteName || 'origin',
+});
+
+const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
+  const { gitMode } = await resolveGitMode({ rl, opts, targetDir });
+  const { gitConfigureRemote, gitRemoteName } = await resolveGitRemoteConfigure({
+    rl,
+    opts,
+    targetDir,
+    gitMode,
+  });
+  const { gitRemote } = await resolveGitRemote({
+    rl,
+    opts,
+    targetDir,
+    gitMode,
+    gitConfigureRemote,
+    gitRemoteName,
+  });
   return {
-    gitAdd: opts.gitAdd ?? canRemote,
+    ...resolveGitAdd({ opts, gitMode }),
     gitMode,
     gitRemote,
     gitRemoteName,
@@ -78,5 +119,9 @@ const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
 };
 
 module.exports = {
+  resolveGitAdd,
   resolveGitAnswers,
+  resolveGitMode,
+  resolveGitRemote,
+  resolveGitRemoteConfigure,
 };

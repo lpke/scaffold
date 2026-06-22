@@ -10,7 +10,12 @@ const {
 } = require('./detect');
 const { featureSet, resolveTypescriptAnswers } = require('./prompt-features');
 const { resolveFrameworkVersion } = require('./prompt-frameworks');
-const { resolveGitAnswers } = require('./prompt-git');
+const {
+  resolveGitAdd,
+  resolveGitMode,
+  resolveGitRemote,
+  resolveGitRemoteConfigure,
+} = require('./prompt-git');
 const { createPrompter, isPromptBack, promptChoice, promptText, promptYesNo } = require('./ui');
 const { clearRendered } = require('./ui/frame');
 
@@ -664,9 +669,34 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
           }),
         },
         {
-          keys: ['gitAdd', 'gitMode', 'gitRemote', 'gitRemoteName'],
+          keys: ['gitMode'],
           backStop: Boolean(rl),
-          run: () => resolveGitAnswers({ rl, opts, targetDir }),
+          run: () => resolveGitMode({ rl, opts, targetDir }),
+        },
+        {
+          keys: ['gitConfigureRemote', 'gitRemoteName'],
+          backStop: Boolean(rl && answers.gitMode !== 'skip' && !opts.gitRemote),
+          run: () => resolveGitRemoteConfigure({ rl, opts, targetDir, gitMode: answers.gitMode }),
+        },
+        {
+          keys: ['gitRemote'],
+          backStop: Boolean(
+            rl && answers.gitMode !== 'skip' && answers.gitConfigureRemote && !opts.gitRemote,
+          ),
+          run: () =>
+            resolveGitRemote({
+              rl,
+              opts,
+              targetDir,
+              gitMode: answers.gitMode,
+              gitConfigureRemote: answers.gitConfigureRemote,
+              gitRemoteName: answers.gitRemoteName,
+            }),
+        },
+        {
+          keys: ['gitAdd', 'gitRemoteName'],
+          backStop: false,
+          run: () => resolveGitAdd({ opts, gitMode: answers.gitMode }),
         },
       );
 
@@ -706,6 +736,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
     if (!answers.nix && opts.direnv) {
       throw new Error('--direnv requires --nix because the managed .envrc uses "use flake"');
     }
+    delete answers.gitConfigureRemote;
 
     if (answers.vue && answers.react) {
       throw new Error('React and Vue starters are mutually exclusive');
