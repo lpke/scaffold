@@ -1,10 +1,9 @@
-import { defineConfig } from 'vitest/config';
+{{VITEST_PLUGIN_IMPORT}}import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  test: {
+{{VITEST_PLUGIN_BLOCK}}  test: {
     environment: '{{VITEST_ENVIRONMENT}}',
     globals: true,
     include: ['src/**/*.test.{{TEST_EXTENSIONS}}'],
-{{SETUP_FILES}}
-  },
+{{SETUP_FILES}}  },
 });

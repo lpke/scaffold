@@ -37,7 +37,7 @@ Local defaults and editable base files live under `share`.
 - No framework path:
   - With `Frontend base: none`, feature multiselect: Prettier, Vite barebones, React barebones, Vue barebones, Tailwind, Vitest; Prettier defaults on
   - With `Frontend base: React`, scaffold first runs `npm create vite@latest <dir> -- --template react-ts --no-interactive` for TypeScript, or `react` for JavaScript; optional `--router` adds React Router on top
-  - With `Frontend base: Vue`, scaffold first runs `npm create vue@latest <dir> -- --ts/--jsx/--router/--pinia/--vitest/--eslint/--prettier` based on selected features, or `--default` when no create-vue feature flags are selected
+  - With `Frontend base: Vue`, scaffold first runs `npm create vue@latest -- --ts/--jsx/--router/--pinia/--vitest/--eslint/--prettier <dir>` based on selected features, or `--default` when no create-vue feature flags are selected
   - Command-based base scaffolds are committed first as `base scaffold from <command>`; scaffold preferences are applied after and left staged
   - React frontend base feature choices add React Router; Vue frontend base feature choices add JSX support, Vue Router, Pinia, and Linter
   - Vite includes dev server scripts by default
@@ -45,7 +45,7 @@ Local defaults and editable base files live under `share`.
   - React and Vue are mutually exclusive; selecting both asks which starter to keep
   - Tailwind implies Vite; local Vite starters install Tailwind CSS and wire the Vite plugin/CSS entry; with Prettier, installs and configures the Tailwind Prettier plugin in `prettier.config.mjs`
 - Framework path:
-  - Feature multiselect: Prettier, Tailwind; Prettier defaults on; Next.js passes `--tailwind` or `--no-tailwind`
+  - Feature multiselect: Prettier, Tailwind, Vitest; Prettier defaults on; Next.js passes `--tailwind` or `--no-tailwind`
   - Nuxt uses `--force --template minimal --packageManager <selected> --gitInit=false --no-modules --no-install`; optional offline/prefer-offline flags are passed through, and scaffold handles git/install afterward
 - License: `y/N`
 - License type: `AGPL-3.0-only` default

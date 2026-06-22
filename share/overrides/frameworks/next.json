@@ -75,6 +75,186 @@
       "when": "typescript",
       "content": "",
       "overwrite": false
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Next Tailwind CSS",
+      "path": "src/app/_styles/globals.css",
+      "when": "tailwind",
+      "template": "overrides/frameworks/next/app/_styles/globals.css"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Next CSS with baseline reset",
+      "path": "src/app/_styles/globals.css",
+      "when": {
+        "not": "tailwind"
+      },
+      "template": "starters/vite/reset.css"
+    },
+    {
+      "type": "file.delete",
+      "label": "Remove create-next-app default CSS path",
+      "paths": ["src/app/globals.css", "src/app/(routes)/.gitkeep", "src/app/_styles/.gitkeep"]
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Next TypeScript layout",
+      "path": "src/app/layout.tsx",
+      "when": {
+        "all": ["typescript", "tailwind"]
+      },
+      "template": "overrides/frameworks/next/app/layout.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Next TypeScript layout",
+      "path": "src/app/layout.tsx",
+      "when": {
+        "all": [
+          "typescript",
+          {
+            "not": "tailwind"
+          }
+        ]
+      },
+      "template": "overrides/frameworks/next/app/layout.plain.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Next JavaScript layout",
+      "path": "src/app/layout.js",
+      "when": {
+        "all": [
+          {
+            "not": "typescript"
+          },
+          "tailwind"
+        ]
+      },
+      "template": "overrides/frameworks/next/app/layout.js"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Next JavaScript layout",
+      "path": "src/app/layout.js",
+      "when": {
+        "all": [
+          {
+            "not": "typescript"
+          },
+          {
+            "not": "tailwind"
+          }
+        ]
+      },
+      "template": "overrides/frameworks/next/app/layout.plain.js"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Next TypeScript home route",
+      "path": "src/app/page.tsx",
+      "when": "typescript",
+      "template": "overrides/frameworks/next/app/page.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Next JavaScript home route",
+      "path": "src/app/page.js",
+      "when": {
+        "not": "typescript"
+      },
+      "template": "overrides/frameworks/next/app/page.js"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Next TypeScript about route",
+      "path": "src/app/(routes)/about/page.tsx",
+      "when": "typescript",
+      "template": "overrides/frameworks/next/app/(routes)/about/page.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Next JavaScript about route",
+      "path": "src/app/(routes)/about/page.js",
+      "when": {
+        "not": "typescript"
+      },
+      "template": "overrides/frameworks/next/app/(routes)/about/page.js"
+    },
+    {
+      "type": "text.replace",
+      "label": "Enable Next strict mode",
+      "path": "next.config.ts",
+      "skipIfContains": "reactStrictMode: true",
+      "regex": "const nextConfig: NextConfig = \\{\\n",
+      "replace": "const nextConfig: NextConfig = {\n  reactStrictMode: true,\n"
+    },
+    {
+      "type": "text.replace",
+      "label": "Enable Next strict mode",
+      "path": "next.config.mjs",
+      "skipIfContains": "reactStrictMode: true",
+      "regex": "const nextConfig = \\{\\n",
+      "replace": "const nextConfig = {\n  reactStrictMode: true,\n"
+    },
+    {
+      "type": "text.removeLines",
+      "label": "Remove placeholder Next config comment",
+      "path": "next.config.ts",
+      "lines": ["/* config options here */"]
+    },
+    {
+      "type": "text.removeLines",
+      "label": "Remove placeholder Next config comment",
+      "path": "next.config.mjs",
+      "lines": ["/* config options here */"]
+    },
+    {
+      "type": "file.write",
+      "label": "Add Next TypeScript Vitest config",
+      "path": "vitest.config.mts",
+      "when": {
+        "all": ["vitest", "typescript"]
+      },
+      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  test: {\n    environment: 'node',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n  },\n});\n"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Next JavaScript Vitest config",
+      "path": "vitest.config.mts",
+      "when": {
+        "all": [
+          "vitest",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  test: {\n    environment: 'node',\n    globals: true,\n    include: ['src/**/*.test.{js,jsx}'],\n  },\n});\n"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Next TypeScript sample test",
+      "path": "src/app/page.test.tsx",
+      "when": {
+        "all": ["vitest", "typescript"]
+      },
+      "template": "overrides/frameworks/next/tests/page.test.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Next JavaScript sample test",
+      "path": "src/app/page.test.jsx",
+      "when": {
+        "all": [
+          "vitest",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "template": "overrides/frameworks/next/tests/page.test.jsx"
     }
   ]
 }

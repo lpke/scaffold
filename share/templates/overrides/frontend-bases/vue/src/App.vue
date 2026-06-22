@@ -7,6 +7,7 @@ import { RouterLink, RouterView } from 'vue-router'
     <nav class="p-5 flex gap-5 bg-green-100">
       <RouterLink to="/">Home</RouterLink>
       <RouterLink to="/about">About</RouterLink>
+      <span class="ml-auto font-bold">Vue + Vite</span>
     </nav>
   </header>
 

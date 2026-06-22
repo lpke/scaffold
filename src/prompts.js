@@ -592,6 +592,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                 [
                   opts.prettier,
                   opts.tailwind,
+                  opts.vitest,
                   answers.framework === 'nuxt' ? opts.nuxtOffline : false,
                   answers.framework === 'nuxt' ? opts.nuxtPreferOffline : false,
                 ].some((value) => value == null),
@@ -601,6 +602,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
               const selectedFeatures = await featureSet(rl, opts, 'Select features to include:', [
                 { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
                 { key: 'tailwind', label: 'Tailwind CSS' },
+                { key: 'vitest', label: 'Vitest', hint: 'unit testing' },
                 ...(nuxt
                   ? [
                       { key: 'nuxtOffline', label: 'Nuxt offline', hint: 'force offline mode' },
@@ -616,7 +618,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
                 vite: false,
                 devServer: false,
                 devPort: 3000,
-                vitest: false,
+                vitest: Boolean(selectedFeatures.vitest),
                 react: answers.framework === 'next',
                 vue: answers.framework === 'nuxt',
                 tailwind: selectedFeatures.tailwind,
@@ -808,8 +810,8 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
     if (answers.frontendBase && answers.frontendBase !== 'none' && answers.framework !== 'none') {
       throw new Error('--frontend-base cannot be combined with --framework');
     }
-    if (answers.framework !== 'none' && (opts.vite || opts.vitest)) {
-      throw new Error('--vite/--vitest cannot be combined with --framework');
+    if (answers.framework !== 'none' && opts.vite) {
+      throw new Error('--vite cannot be combined with --framework');
     }
     if (opts.devPort && validatePort(opts.devPort) !== true) {
       throw new Error(`Invalid --dev-port: ${opts.devPort}`);

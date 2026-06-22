@@ -49,7 +49,7 @@ const frontendBaseCommand = ({ answers, targetDir }) => {
     };
   }
   if (answers.frontendBase === 'vue') {
-    const args = ['create', 'vue@latest', targetDir];
+    const args = ['create', 'vue@latest'];
     const featureFlags = [];
     if (answers.typescript) featureFlags.push('--ts');
     if (answers.jsx) featureFlags.push('--jsx');
@@ -61,7 +61,7 @@ const frontendBaseCommand = ({ answers, targetDir }) => {
     if (featureFlags.length === 0) featureFlags.push('--default');
     return {
       command: 'npm',
-      args: [...args, '--', ...featureFlags],
+      args: [...args, '--', ...featureFlags, targetDir],
     };
   }
   throw new Error(`Unknown frontend base: ${answers.frontendBase}`);

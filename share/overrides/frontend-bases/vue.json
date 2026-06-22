@@ -62,24 +62,31 @@
       "template": "starters/vite/tailwind.css"
     },
     {
+      "type": "file.write",
+      "label": "Put baseline reset in create-vue's imported CSS path",
+      "path": "src/assets/base.css",
+      "when": {
+        "not": "tailwind"
+      },
+      "template": "starters/vite/reset.css"
+    },
+    {
       "type": "file.delete",
-      "label": "Remove unused Tailwind sidecar CSS path",
-      "path": "src/style.css",
-      "when": "tailwind"
+      "label": "Remove unused sidecar CSS paths",
+      "paths": ["src/style.css", "src/assets/main.css"]
     },
     {
       "type": "dir.clean",
       "label": "Remove create-vue asset demo files while keeping base.css",
       "path": "src/assets",
-      "when": "tailwind",
       "keep": ["base.css"]
     },
     {
       "type": "text.replace",
-      "label": "Import the Tailwind CSS file from Vue entrypoint",
+      "label": "Import the scaffold CSS file from Vue entrypoint",
       "path": "src/main.ts",
       "when": {
-        "all": ["tailwind", "typescript"]
+        "all": ["typescript"]
       },
       "replacements": [
         {
@@ -94,11 +101,10 @@
     },
     {
       "type": "text.replace",
-      "label": "Import the Tailwind CSS file from Vue entrypoint",
+      "label": "Import the scaffold CSS file from Vue entrypoint",
       "path": "src/main.js",
       "when": {
         "all": [
-          "tailwind",
           {
             "not": "typescript"
           }
@@ -116,35 +122,83 @@
       ]
     },
     {
+      "type": "text.replace",
+      "label": "Set Vue Vite document title",
+      "path": "index.html",
+      "regex": "<title>[^<]*</title>",
+      "replace": "<title>Vue + Vite</title>"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace create-vue router app shell",
+      "path": "src/App.vue",
+      "when": {
+        "all": ["router", "tailwind"]
+      },
+      "template": "overrides/frontend-bases/vue/src/App.vue"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace create-vue router app shell",
+      "path": "src/App.vue",
+      "when": {
+        "all": [
+          "router",
+          {
+            "not": "tailwind"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/vue/src/App.plain.vue"
+    },
+    {
       "type": "file.write",
       "label": "Replace create-vue app shell",
       "path": "src/App.vue",
-      "when": "tailwind",
-      "template": "overrides/frontend-bases/vue/src/App.vue"
+      "when": {
+        "all": [
+          {
+            "not": "router"
+          },
+          "tailwind"
+        ]
+      },
+      "template": "overrides/frontend-bases/vue/src/no-router/App.vue"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace create-vue app shell",
+      "path": "src/App.vue",
+      "when": {
+        "all": [
+          {
+            "not": "router"
+          },
+          {
+            "not": "tailwind"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/vue/src/no-router/App.plain.vue"
     },
     {
       "type": "file.write",
       "label": "Replace create-vue home route",
       "path": "src/views/HomeView.vue",
-      "when": {
-        "all": ["tailwind", "router"]
-      },
+      "when": "router",
       "template": "overrides/frontend-bases/vue/src/views/HomeView.vue"
     },
     {
       "type": "file.write",
       "label": "Replace create-vue about route",
       "path": "src/views/AboutView.vue",
-      "when": {
-        "all": ["tailwind", "router"]
-      },
+      "when": "router",
       "template": "overrides/frontend-bases/vue/src/views/AboutView.vue"
     },
     {
       "type": "dir.clean",
       "label": "Remove create-vue welcome/icon demo components",
       "path": "src/components",
-      "when": "tailwind",
       "keep": ["HelloWorld.vue", "__tests__/HelloWorld.spec.ts"]
     }
   ]

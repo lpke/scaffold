@@ -239,6 +239,9 @@ const main = async () => {
   await applyLocalStarter(workspace, answers);
   await applyTemplateOverrides({ workspace, answers, frameworkRun, frontendBaseRun });
   await applyPnpmWorkspace({ workspace, answers });
+  if (!answers.dryRun) {
+    existingPackage = await readExistingPackage(targetDir);
+  }
   await applyPackageJson({ workspace, answers, existingPackage, config });
   await applyReadme({ workspace });
   if (

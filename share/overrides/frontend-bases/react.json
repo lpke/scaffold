@@ -55,12 +55,32 @@
       "replace": "plugins: [$1, tailwindcss()]"
     },
     {
-      "type": "text.prepend",
-      "label": "Add Tailwind import to React CSS",
+      "type": "file.write",
+      "label": "Replace React CSS with Tailwind import",
       "path": "src/index.css",
       "when": "tailwind",
-      "content": "@import 'tailwindcss';\n\n",
-      "skipIfContains": "@import 'tailwindcss';"
+      "template": "starters/vite/tailwind.css"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace React CSS with baseline reset",
+      "path": "src/index.css",
+      "when": {
+        "not": "tailwind"
+      },
+      "template": "starters/vite/reset.css"
+    },
+    {
+      "type": "file.delete",
+      "label": "Remove create-vite React demo files",
+      "paths": ["src/App.css", "src/assets"]
+    },
+    {
+      "type": "text.replace",
+      "label": "Set React Vite document title",
+      "path": "index.html",
+      "regex": "<title>[^<]*</title>",
+      "replace": "<title>React + Vite</title>"
     },
     {
       "type": "file.write",
@@ -73,12 +93,86 @@
     },
     {
       "type": "file.write",
+      "label": "Add React Router TypeScript layout",
+      "path": "src/components/Layout.tsx",
+      "when": {
+        "all": ["router", "typescript", "tailwind"]
+      },
+      "template": "overrides/frontend-bases/react/router/components/Layout.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React Router TypeScript layout",
+      "path": "src/components/Layout.tsx",
+      "when": {
+        "all": [
+          "router",
+          "typescript",
+          {
+            "not": "tailwind"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/react/router/components/Layout.plain.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React Router TypeScript home route",
+      "path": "src/pages/HomePage.tsx",
+      "when": {
+        "all": ["router", "typescript"]
+      },
+      "template": "overrides/frontend-bases/react/router/pages/HomePage.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React Router TypeScript about route",
+      "path": "src/pages/AboutPage.tsx",
+      "when": {
+        "all": ["router", "typescript"]
+      },
+      "template": "overrides/frontend-bases/react/router/pages/AboutPage.tsx"
+    },
+    {
+      "type": "file.write",
       "label": "Wrap TypeScript app in BrowserRouter",
       "path": "src/main.tsx",
       "when": {
         "all": ["router", "typescript"]
       },
       "template": "overrides/frontend-bases/react/router/main.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add plain TypeScript React app shell",
+      "path": "src/App.tsx",
+      "when": {
+        "all": [
+          "typescript",
+          {
+            "not": "router"
+          },
+          "tailwind"
+        ]
+      },
+      "template": "overrides/frontend-bases/react/plain/App.tailwind.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add plain TypeScript React app shell",
+      "path": "src/App.tsx",
+      "when": {
+        "all": [
+          "typescript",
+          {
+            "not": "router"
+          },
+          {
+            "not": "tailwind"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/react/plain/App.tsx"
     },
     {
       "type": "file.write",
@@ -96,6 +190,66 @@
     },
     {
       "type": "file.write",
+      "label": "Add React Router JavaScript layout",
+      "path": "src/components/Layout.jsx",
+      "when": {
+        "all": [
+          "router",
+          {
+            "not": "typescript"
+          },
+          "tailwind"
+        ]
+      },
+      "template": "overrides/frontend-bases/react/router/components/Layout.jsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React Router JavaScript layout",
+      "path": "src/components/Layout.jsx",
+      "when": {
+        "all": [
+          "router",
+          {
+            "not": "typescript"
+          },
+          {
+            "not": "tailwind"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/react/router/components/Layout.plain.jsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React Router JavaScript home route",
+      "path": "src/pages/HomePage.jsx",
+      "when": {
+        "all": [
+          "router",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/react/router/pages/HomePage.jsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React Router JavaScript about route",
+      "path": "src/pages/AboutPage.jsx",
+      "when": {
+        "all": [
+          "router",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/react/router/pages/AboutPage.jsx"
+    },
+    {
+      "type": "file.write",
       "label": "Wrap JavaScript app in BrowserRouter",
       "path": "src/main.jsx",
       "when": {
@@ -107,6 +261,144 @@
         ]
       },
       "template": "overrides/frontend-bases/react/router/main.jsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add plain JavaScript React app shell",
+      "path": "src/App.jsx",
+      "when": {
+        "all": [
+          {
+            "not": "typescript"
+          },
+          {
+            "not": "router"
+          },
+          "tailwind"
+        ]
+      },
+      "template": "overrides/frontend-bases/react/plain/App.tailwind.jsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add plain JavaScript React app shell",
+      "path": "src/App.jsx",
+      "when": {
+        "all": [
+          {
+            "not": "typescript"
+          },
+          {
+            "not": "router"
+          },
+          {
+            "not": "tailwind"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/react/plain/App.jsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React TypeScript Vitest config",
+      "path": "vitest.config.mts",
+      "when": {
+        "all": ["vitest", "typescript"]
+      },
+      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n    setupFiles: ['src/setupTests.ts'],\n  },\n});\n"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React JavaScript Vitest config",
+      "path": "vitest.config.mts",
+      "when": {
+        "all": [
+          "vitest",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{js,jsx}'],\n    setupFiles: ['src/setupTests.js'],\n  },\n});\n"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React TypeScript test setup",
+      "path": "src/setupTests.ts",
+      "when": {
+        "all": ["vitest", "typescript"]
+      },
+      "template": "overrides/frontend-bases/react/tests/setupTests.ts"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React JavaScript test setup",
+      "path": "src/setupTests.js",
+      "when": {
+        "all": [
+          "vitest",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/react/tests/setupTests.js"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React Router TypeScript sample test",
+      "path": "src/App.test.tsx",
+      "when": {
+        "all": ["vitest", "router", "typescript"]
+      },
+      "template": "overrides/frontend-bases/react/tests/App.router.test.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React Router JavaScript sample test",
+      "path": "src/App.test.jsx",
+      "when": {
+        "all": [
+          "vitest",
+          "router",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/react/tests/App.router.test.jsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React TypeScript sample test",
+      "path": "src/App.test.tsx",
+      "when": {
+        "all": [
+          "vitest",
+          "typescript",
+          {
+            "not": "router"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/react/tests/App.test.tsx"
+    },
+    {
+      "type": "file.write",
+      "label": "Add React JavaScript sample test",
+      "path": "src/App.test.jsx",
+      "when": {
+        "all": [
+          "vitest",
+          {
+            "not": "typescript"
+          },
+          {
+            "not": "router"
+          }
+        ]
+      },
+      "template": "overrides/frontend-bases/react/tests/App.test.jsx"
     }
   ]
 }

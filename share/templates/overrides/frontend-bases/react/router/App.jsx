@@ -1,26 +1,15 @@
-import { Link, Route, Routes } from 'react-router';
+import { Route, Routes } from 'react-router';
+import Layout from './components/Layout';
+import HomePage from './pages/HomePage';
+import AboutPage from './pages/AboutPage';
 
 export function App() {
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <main>
-            <h1>Hello from scaffold</h1>
-            <Link to="/about">About</Link>
-          </main>
-        }
-      />
-      <Route
-        path="/about"
-        element={
-          <main>
-            <h1>About</h1>
-            <Link to="/">Home</Link>
-          </main>
-        }
-      />
-    </Routes>
+    <Layout>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
+      </Routes>
+    </Layout>
   );
 }

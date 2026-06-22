@@ -88,6 +88,20 @@ const dependencySet = (answers, config) => {
   }
 
   if (answers.framework !== 'none') {
+    if (answers.framework === 'nuxt' && answers.tailwind) {
+      addDev('@tailwindcss/vite');
+      addDev('tailwindcss');
+    }
+    if (answers.vitest) {
+      addDev('vitest');
+      if (answers.framework === 'next') {
+        addDev('@vitejs/plugin-react');
+      }
+      if (answers.framework === 'nuxt') {
+        addDev('@vitejs/plugin-vue');
+        addDev('jsdom');
+      }
+    }
     if (answers.typescript) {
       addDev('typescript');
       addDev('@types/node');
@@ -136,12 +150,16 @@ const dependencySet = (answers, config) => {
 
   if (answers.vitest) {
     addDev('vitest');
-    if (answers.react || answers.vue) {
+    if (answers.vite || answers.react || answers.vue) {
       addDev('jsdom');
       if (answers.react) {
+        addDev('@vitejs/plugin-react');
         addDev('@testing-library/jest-dom');
         addDev('@testing-library/react');
         addDev('@testing-library/user-event');
+      }
+      if (answers.vue) {
+        addDev('@vitejs/plugin-vue');
       }
     }
   }
@@ -164,6 +182,10 @@ const scriptSet = (answers) => {
   if (answers.framework !== 'none') {
     if (answers.typescript) {
       scripts.typecheck = 'tsc --noEmit';
+    }
+    if (answers.vitest) {
+      scripts.test = 'vitest run';
+      scripts['test:watch'] = 'vitest';
     }
     return scripts;
   }
@@ -190,6 +212,28 @@ const scriptSet = (answers) => {
   }
 
   return scripts;
+};
+
+const viteProjectTitle = (answers) => {
+  if (answers.react) return 'React + Vite';
+  if (answers.vue) return 'Vue + Vite';
+  return 'Vite';
+};
+
+const vitestPluginConfig = (answers) => {
+  if (answers.react) {
+    return {
+      import: "import react from '@vitejs/plugin-react';\n",
+      block: '  plugins: [react()],\n',
+    };
+  }
+  if (answers.vue) {
+    return {
+      import: "import vue from '@vitejs/plugin-vue';\n",
+      block: '  plugins: [vue()],\n',
+    };
+  }
+  return { import: '', block: '' };
 };
 
 const applyPackageJson = async ({ workspace, answers, existingPackage, config }) => {
@@ -370,21 +414,27 @@ const applyLocalStarter = async (workspace, answers) => {
     await workspace.write(
       'index.html',
       await renderAsset('templates/starters/vite/index.html.tmpl', {
-        PROJECT_TITLE: sanitizePackageName(workspace.targetDir),
+        PROJECT_TITLE: viteProjectTitle(answers),
         ROOT_ID: rootId,
         ENTRY_FILE: `main.${entryExt}`,
-        STYLE_LINK: answers.tailwind ? '    <link href="/src/style.css" rel="stylesheet" />\n' : '',
+        STYLE_LINK: '    <link href="/src/style.css" rel="stylesheet" />\n',
       }),
       { overwrite: workspace.force },
     );
 
     if (answers.react) {
-      await workspace.copyTemplateDir(`starters/react-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
+      await workspace.copyTemplateDir(
+        `starters/react-${answers.typescript ? 'ts' : 'js'}${answers.tailwind ? '-tailwind' : ''}/src`,
+        'src',
+      );
     } else if (answers.vue) {
-      await workspace.copyTemplateDir(`starters/vue-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
+      await workspace.copyTemplateDir(
+        `starters/vue-${answers.typescript ? 'ts' : 'js'}${answers.tailwind ? '-tailwind' : ''}/src`,
+        'src',
+      );
     } else {
       await workspace.copyTemplate(
-        `starters/vite/vanilla-main.${answers.typescript ? 'ts' : 'js'}`,
+        `starters/vite/vanilla-main${answers.tailwind ? '-tailwind' : ''}.${answers.typescript ? 'ts' : 'js'}`,
         `src/main.${answers.typescript ? 'ts' : 'js'}`,
       );
     }
@@ -408,18 +458,21 @@ const applyLocalStarter = async (workspace, answers) => {
       overwrite: workspace.force,
     });
 
-    if (answers.tailwind) {
-      await workspace.copyTemplate('starters/vite/tailwind.css', 'src/style.css');
-    }
+    await workspace.copyTemplate(
+      answers.tailwind ? 'starters/vite/tailwind.css' : 'starters/vite/reset.css',
+      'src/style.css',
+    );
 
     if (answers.vitest) {
+      const setupExt = answers.typescript ? 'ts' : 'js';
       const setupFiles = answers.react
-        ? "    setupFiles: ['src/setupTests.ts'],"
+        ? `    setupFiles: ['src/setupTests.${setupExt}'],\n`
         : '';
+      const pluginConfig = vitestPluginConfig(answers);
       await workspace.write(
         'vitest.config.mts',
         await renderAsset('templates/starters/vite/vitest.config.mts.tmpl', {
-          VITEST_ENVIRONMENT: answers.react || answers.vue ? 'jsdom' : 'node',
+          VITEST_ENVIRONMENT: 'jsdom',
           TEST_EXTENSIONS: answers.typescript
             ? answers.react
               ? '{ts,tsx}'
@@ -428,16 +481,37 @@ const applyLocalStarter = async (workspace, answers) => {
               ? '{js,jsx}'
               : 'js',
           SETUP_FILES: setupFiles,
+          VITEST_PLUGIN_IMPORT: pluginConfig.import,
+          VITEST_PLUGIN_BLOCK: pluginConfig.block,
         }),
       );
       if (answers.react) {
-        await workspace.copyTemplate('starters/vite/setupTests.ts', 'src/setupTests.ts');
+        await workspace.copyTemplate(`starters/vite/setupTests.${setupExt}`, `src/setupTests.${setupExt}`);
+        await workspace.copyTemplate(
+          `starters/tests/react/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
+          `src/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
+        );
+      } else if (answers.vue) {
+        await workspace.copyTemplate(
+          `starters/tests/vue/App.test.${answers.typescript ? 'ts' : 'js'}`,
+          `src/App.test.${answers.typescript ? 'ts' : 'js'}`,
+        );
+      } else {
+        await workspace.copyTemplate(
+          `starters/tests/vanilla/main.test.${answers.typescript ? 'ts' : 'js'}`,
+          `src/main.test.${answers.typescript ? 'ts' : 'js'}`,
+        );
       }
     }
     return;
   }
 
   if (answers.vitest) {
+    const setupExt = answers.typescript ? 'ts' : 'js';
+    const setupFiles = answers.react
+      ? `    setupFiles: ['src/setupTests.${setupExt}'],\n`
+      : '';
+    const pluginConfig = vitestPluginConfig(answers);
     await workspace.write(
       'vitest.config.mts',
       await renderAsset('templates/starters/vite/vitest.config.mts.tmpl', {
@@ -449,20 +523,42 @@ const applyLocalStarter = async (workspace, answers) => {
           : answers.react
             ? '{js,jsx}'
             : 'js',
-        SETUP_FILES: '',
+        SETUP_FILES: setupFiles,
+        VITEST_PLUGIN_IMPORT: pluginConfig.import,
+        VITEST_PLUGIN_BLOCK: pluginConfig.block,
       }),
     );
   }
 
   if (answers.react) {
     await workspace.copyTemplateDir(`starters/react-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
+    if (answers.vitest) {
+      const setupExt = answers.typescript ? 'ts' : 'js';
+      await workspace.copyTemplate(`starters/vite/setupTests.${setupExt}`, `src/setupTests.${setupExt}`);
+      await workspace.copyTemplate(
+        `starters/tests/react/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
+        `src/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
+      );
+    }
     return;
   }
   if (answers.vue) {
     await workspace.copyTemplateDir(`starters/vue-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
+    if (answers.vitest) {
+      await workspace.copyTemplate(
+        `starters/tests/vue/App.test.${answers.typescript ? 'ts' : 'js'}`,
+        `src/App.test.${answers.typescript ? 'ts' : 'js'}`,
+      );
+    }
     return;
   }
   await workspace.copyTemplateDir(`starters/node-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
+  if (answers.vitest) {
+    await workspace.copyTemplate(
+      `starters/tests/node/index.test.${answers.typescript ? 'ts' : 'js'}`,
+      `src/index.test.${answers.typescript ? 'ts' : 'js'}`,
+    );
+  }
 };
 
 const applyLicense = async ({ workspace, answers, config }) => {

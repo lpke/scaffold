@@ -1,5 +1,112 @@
 {
   "version": 1,
-  "description": "Post-nuxt-init project shape. Empty for now.",
-  "actions": []
+  "description": "Post-nuxt-init project shape.",
+  "actions": [
+    {
+      "type": "file.write",
+      "label": "Replace Nuxt app shell",
+      "path": "app/app.vue",
+      "when": "tailwind",
+      "template": "overrides/frameworks/nuxt/app/app.vue"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Nuxt app shell",
+      "path": "app/app.vue",
+      "when": {
+        "not": "tailwind"
+      },
+      "template": "overrides/frameworks/nuxt/app/app.plain.vue"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt home route",
+      "path": "app/pages/index.vue",
+      "template": "overrides/frameworks/nuxt/app/pages/index.vue"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt about route",
+      "path": "app/pages/about.vue",
+      "template": "overrides/frameworks/nuxt/app/pages/about.vue"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt Tailwind CSS",
+      "path": "app/assets/css/main.css",
+      "when": "tailwind",
+      "template": "overrides/frameworks/nuxt/app/assets/css/main.css"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt baseline reset",
+      "path": "app/assets/css/main.css",
+      "when": {
+        "not": "tailwind"
+      },
+      "template": "starters/vite/reset.css"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Nuxt config",
+      "path": "nuxt.config.ts",
+      "when": "tailwind",
+      "template": "overrides/frameworks/nuxt/nuxt.config.ts"
+    },
+    {
+      "type": "file.write",
+      "label": "Replace Nuxt config",
+      "path": "nuxt.config.ts",
+      "when": {
+        "not": "tailwind"
+      },
+      "template": "overrides/frameworks/nuxt/nuxt.plain.config.ts"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt TypeScript Vitest config",
+      "path": "vitest.config.mts",
+      "when": {
+        "all": ["vitest", "typescript"]
+      },
+      "content": "import vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [vue()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['app/**/*.test.ts'],\n  },\n});\n"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt JavaScript Vitest config",
+      "path": "vitest.config.mts",
+      "when": {
+        "all": [
+          "vitest",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "content": "import vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [vue()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['app/**/*.test.js'],\n  },\n});\n"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt TypeScript sample test",
+      "path": "app/pages/index.test.ts",
+      "when": {
+        "all": ["vitest", "typescript"]
+      },
+      "template": "overrides/frameworks/nuxt/tests/index.test.ts"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt JavaScript sample test",
+      "path": "app/pages/index.test.js",
+      "when": {
+        "all": [
+          "vitest",
+          {
+            "not": "typescript"
+          }
+        ]
+      },
+      "template": "overrides/frameworks/nuxt/tests/index.test.js"
+    }
+  ]
 }

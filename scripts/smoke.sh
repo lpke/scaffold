@@ -150,6 +150,8 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   for (const arg of ['--ts', '--jsx', '--router', '--pinia', '--vitest', '--eslint', '--prettier']) {
     assert(command.args.includes(arg), `missing ${arg}`);
   }
+  assert.equal(command.args[2], '--');
+  assert.equal(command.args[command.args.length - 1], '/tmp/scaffold-vue');
 
   assert.equal(parseArgs(['--no-libraries']).libraries, false);
   assert.equal(parseArgs(['--frontend-base', 'react']).frontendBase, 'react');

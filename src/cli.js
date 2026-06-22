@@ -189,7 +189,7 @@ Set Vite dev/preview port. Implies --vite and --dev-server. Default: 3000.`,
     help: `Usage: scaffold [dir] --vitest
        scaffold [dir] --no-vitest
 
-Add Vitest scripts, dependency, and config for local projects.`,
+Add Vitest scripts, dependency, config, and a sample test where supported.`,
   },
   {
     topic: '--react',
