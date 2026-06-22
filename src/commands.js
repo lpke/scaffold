@@ -13,11 +13,16 @@ const shellQuote = (part) => {
 
 const displayCommand = (command, args) => [command, ...args].map(shellQuote).join(' ');
 
+const stripAnsi = (value) => String(value).replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, '');
+
+const commandLine = (line) => `${color.dim('│')} ${color.dim(stripAnsi(line))}\n`;
+
 const printCommand = (display, { dryRun = false, label = 'command' } = {}) => {
   const resolvedLabel = dryRun ? `dry-run ${label}` : label;
-  console.log(color.dim(`${resolvedLabel}:`));
-  console.log(`${color.green('$')} ${color.bold(display)}`);
-  console.log('');
+  if (resolvedLabel !== 'command') {
+    console.log(`${color.dim('│')} ${color.dim(`${resolvedLabel}:`)}`);
+  }
+  console.log(`${color.dim('│')} ${color.green('$')} ${color.bold(display)}`);
 };
 
 const commandExists = (command) => {
@@ -36,27 +41,61 @@ const commandVersion = (command, fallback) => {
   return version || fallback;
 };
 
-const runCommand = (command, args, cwd, dryRun, options = {}) => {
+const writeCommandOutput = (stream, state, chunk) => {
+  state.raw += chunk;
+  state.buffer += chunk.replace(/\r/g, '\n');
+  const lines = state.buffer.split('\n');
+  state.buffer = lines.pop() ?? '';
+  for (const line of lines) {
+    stream.write(commandLine(line));
+  }
+};
+
+const flushCommandOutput = (stream, state) => {
+  if (!state.buffer) {
+    return;
+  }
+  stream.write(commandLine(state.buffer));
+  state.buffer = '';
+};
+
+const runCommandProcess = (command, args, cwd) =>
+  new Promise((resolve, reject) => {
+    const stdout = { raw: '', buffer: '' };
+    const stderr = { raw: '', buffer: '' };
+    const child = cp.spawn(command, args, { cwd, stdio: ['inherit', 'pipe', 'pipe'] });
+
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => writeCommandOutput(process.stdout, stdout, chunk));
+    child.stderr.on('data', (chunk) => writeCommandOutput(process.stderr, stderr, chunk));
+    child.on('error', reject);
+    child.on('close', (status) => {
+      flushCommandOutput(process.stdout, stdout);
+      flushCommandOutput(process.stderr, stderr);
+      resolve({ stdout: stdout.raw, stderr: stderr.raw, status });
+    });
+  });
+
+const runCommand = async (command, args, cwd, dryRun, options = {}) => {
   const display = displayCommand(command, args);
   printCommand(options.display || display, { ...options, dryRun });
   if (dryRun) {
     return;
   }
-  const result = cp.spawnSync(command, args, { cwd, stdio: 'inherit' });
+  const result = await runCommandProcess(command, args, cwd);
   if (result.status !== 0) {
     throw new Error(`Command failed (${result.status}): ${display}`);
   }
 };
 
-const runCommandCaptured = (command, args, cwd, dryRun, options = {}) => {
+const runCommandCaptured = async (command, args, cwd, dryRun, options = {}) => {
   const display = displayCommand(command, args);
   printCommand(options.display || display, { ...options, dryRun });
   if (dryRun) {
     return { stdout: '', stderr: '', status: 0 };
   }
-  const result = cp.spawnSync(command, args, { cwd, encoding: 'utf8', maxBuffer: 1024 * 1024 * 50 });
-  if (result.stdout) process.stdout.write(result.stdout);
-  if (result.stderr) process.stderr.write(result.stderr);
+  const result = await runCommandProcess(command, args, cwd);
   if (result.status !== 0) {
     const error = new Error(`Command failed (${result.status}): ${display}`);
     error.status = result.status;

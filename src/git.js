@@ -6,9 +6,9 @@ const path = require('node:path');
 const { commandExists, commandOutput, printCommand, runCommand } = require('./commands');
 const { detectGit, fileExists } = require('./detect');
 
-const initGit = (targetDir, dryRun) => {
-  runCommand('git', ['-C', targetDir, 'init'], targetDir, dryRun);
-  runCommand('git', ['-C', targetDir, 'branch', '-M', 'main'], targetDir, dryRun);
+const initGit = async (targetDir, dryRun) => {
+  await runCommand('git', ['-C', targetDir, 'init'], targetDir, dryRun);
+  await runCommand('git', ['-C', targetDir, 'branch', '-M', 'main'], targetDir, dryRun);
 };
 
 const replaceGit = async (targetDir, dryRun) => {
@@ -21,32 +21,32 @@ const replaceGit = async (targetDir, dryRun) => {
   } else {
     await fsp.rm(gitPath, { force: true, recursive: true });
   }
-  initGit(targetDir, dryRun);
+  await initGit(targetDir, dryRun);
 };
 
-const configureRemote = (targetDir, name, url, dryRun) => {
+const configureRemote = async (targetDir, name, url, dryRun) => {
   if (!url) {
     return;
   }
   const existing = commandOutput('git', ['-C', targetDir, 'remote', 'get-url', name]);
   if (existing) {
-    runCommand('git', ['-C', targetDir, 'remote', 'set-url', name, url], targetDir, dryRun);
+    await runCommand('git', ['-C', targetDir, 'remote', 'set-url', name, url], targetDir, dryRun);
   } else {
-    runCommand('git', ['-C', targetDir, 'remote', 'add', name, url], targetDir, dryRun);
+    await runCommand('git', ['-C', targetDir, 'remote', 'add', name, url], targetDir, dryRun);
   }
 };
 
-const configureMainTracking = (targetDir, name, dryRun) => {
-  runCommand('git', ['-C', targetDir, 'config', 'branch.main.remote', name], targetDir, dryRun);
-  runCommand('git', ['-C', targetDir, 'config', 'branch.main.merge', 'refs/heads/main'], targetDir, dryRun);
+const configureMainTracking = async (targetDir, name, dryRun) => {
+  await runCommand('git', ['-C', targetDir, 'config', 'branch.main.remote', name], targetDir, dryRun);
+  await runCommand('git', ['-C', targetDir, 'config', 'branch.main.merge', 'refs/heads/main'], targetDir, dryRun);
 };
 
-const gitAddAll = (targetDir, dryRun) => {
-  runCommand('git', ['-C', targetDir, 'add', '--all', '--', '.'], targetDir, dryRun);
+const gitAddAll = async (targetDir, dryRun) => {
+  await runCommand('git', ['-C', targetDir, 'add', '--all', '--', '.'], targetDir, dryRun);
 };
 
-const gitCommitPath = (targetDir, message, dryRun) => {
-  runCommand(
+const gitCommitPath = async (targetDir, message, dryRun) => {
+  await runCommand(
     'git',
     [
       '-C',
@@ -67,8 +67,8 @@ const gitCommitPath = (targetDir, message, dryRun) => {
   );
 };
 
-const commitInitial = (targetDir, dryRun) => {
-  runCommand(
+const commitInitial = async (targetDir, dryRun) => {
+  await runCommand(
     'git',
     [
       '-C',
@@ -97,8 +97,8 @@ const replaceGitWithInitialCommit = async ({ answers, targetDir, workspace }) =>
   }
 
   await replaceGit(targetDir, answers.dryRun);
-  gitAddAll(targetDir, answers.dryRun);
-  commitInitial(targetDir, answers.dryRun);
+  await gitAddAll(targetDir, answers.dryRun);
+  await commitInitial(targetDir, answers.dryRun);
   answers.gitMode = 'keep';
   workspace.changed.push('replaced git repo and committed initial state');
 };
@@ -118,10 +118,10 @@ const commitSeedOutput = async ({ answers, commandDisplay, targetDir, workspace 
 
   const before = detectGit(targetDir);
   if (!before.inside) {
-    initGit(targetDir, answers.dryRun);
+    await initGit(targetDir, answers.dryRun);
   }
-  gitAddAll(targetDir, answers.dryRun);
-  gitCommitPath(targetDir, `seed output from ${commandDisplay}`, answers.dryRun);
+  await gitAddAll(targetDir, answers.dryRun);
+  await gitCommitPath(targetDir, `seed output from ${commandDisplay}`, answers.dryRun);
   answers.gitAdd = true;
   if (answers.gitMode === 'init') {
     answers.gitMode = 'keep';
@@ -146,7 +146,7 @@ const prepareGit = async ({ answers, targetDir, workspace }) => {
     if (before.hasOwnGit) {
       workspace.skipped.push('git already initialized');
     } else {
-      initGit(targetDir, answers.dryRun);
+      await initGit(targetDir, answers.dryRun);
     }
   } else if (answers.gitMode === 'keep' && !before.inside && !answers.gitRemote) {
     workspace.skipped.push('no git repo to keep');
@@ -159,8 +159,8 @@ const prepareGit = async ({ answers, targetDir, workspace }) => {
   }
 
   if (answers.gitRemote) {
-    configureRemote(targetDir, answers.gitRemoteName, answers.gitRemote, answers.dryRun);
-    configureMainTracking(targetDir, answers.gitRemoteName, answers.dryRun);
+    await configureRemote(targetDir, answers.gitRemoteName, answers.gitRemote, answers.dryRun);
+    await configureMainTracking(targetDir, answers.gitRemoteName, answers.dryRun);
   }
 };
 
@@ -177,7 +177,7 @@ const stageGit = async ({ answers, targetDir, workspace }) => {
     return;
   }
   if (answers.gitAdd) {
-    gitAddAll(targetDir, answers.dryRun);
+    await gitAddAll(targetDir, answers.dryRun);
   }
 };
 
@@ -190,7 +190,7 @@ const stageForNix = async ({ answers, targetDir, workspace }) => {
     workspace.skipped.push('no git repo for nix staging');
     return;
   }
-  gitAddAll(targetDir, answers.dryRun);
+  await gitAddAll(targetDir, answers.dryRun);
 };
 
 module.exports = {

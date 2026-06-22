@@ -136,12 +136,12 @@ const shortCommandDisplay = (command, args, targetDir) => {
 const shouldHandlePnpmSeedInstall = ({ answers, result }) =>
   answers.toolchainManager === 'pnpm' && answers.install && hasPnpmIgnoredBuilds(result);
 
-const recoverPnpmSeedInstall = ({ config, targetDir, dryRun, workspace }) => {
+const recoverPnpmSeedInstall = async ({ config, targetDir, dryRun, workspace }) => {
   const installCommand = config.packageManagers.pnpm.installCommand;
-  runCommand('pnpm', ['approve-builds', '--all'], targetDir, dryRun, {
+  await runCommand('pnpm', ['approve-builds', '--all'], targetDir, dryRun, {
     label: 'pnpm approval command',
   });
-  runCommand(installCommand[0], installCommand.slice(1), targetDir, dryRun, {
+  await runCommand(installCommand[0], installCommand.slice(1), targetDir, dryRun, {
     label: 'pnpm install retry command',
   });
   logPnpmBuildsApproved(workspace);
@@ -169,7 +169,7 @@ const shouldApprovePnpmBuilds = async ({ answers, interactive, packages }) => {
 const handlePnpmSeedInstall = async ({ answers, config, targetDir, dryRun, workspace, interactive, result }) => {
   const packages = pnpmIgnoredBuildPackages(result);
   if (await shouldApprovePnpmBuilds({ answers, interactive, packages })) {
-    recoverPnpmSeedInstall({ config, targetDir, dryRun, workspace });
+    await recoverPnpmSeedInstall({ config, targetDir, dryRun, workspace });
     return true;
   }
   logPnpmBuildsNotApproved(workspace, packages);
@@ -190,7 +190,7 @@ const runSeedCommand = async ({
 }) => {
   let result;
   try {
-    result = runCommandCaptured(command, args, cwd, dryRun, {
+    result = await runCommandCaptured(command, args, cwd, dryRun, {
       display: commandDisplay,
       label: 'seed command',
     });
@@ -198,10 +198,10 @@ const runSeedCommand = async ({
     if (!shouldHandlePnpmSeedInstall({ answers, result: error })) {
       throw error;
     }
-    return handlePnpmSeedInstall({ answers, config, targetDir, dryRun, workspace, interactive, result: error });
+    return await handlePnpmSeedInstall({ answers, config, targetDir, dryRun, workspace, interactive, result: error });
   }
   if (shouldHandlePnpmSeedInstall({ answers, result })) {
-    return handlePnpmSeedInstall({ answers, config, targetDir, dryRun, workspace, interactive, result });
+    return await handlePnpmSeedInstall({ answers, config, targetDir, dryRun, workspace, interactive, result });
   }
   return false;
 };

@@ -284,7 +284,7 @@ const previousPromptStep = (steps, index) => {
   return -1;
 };
 
-const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, config }) => {
+const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage, config }) => {
   const interactive = isInteractive(rawOpts);
   const opts = inferDependentOptions(rawOpts, { interactive });
   const rememberedAnswers = {};
@@ -730,7 +730,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
         {
           keys: ['gitMode'],
           backStop: Boolean(rl),
-          run: () => resolveGitMode({ rl, opts, targetDir }),
+          run: () => resolveGitMode({ rl, opts, targetDir, mode }),
         },
         {
           keys: ['gitConfigureRemote', 'gitRemoteName'],

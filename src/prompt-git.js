@@ -6,7 +6,7 @@ const { color, promptChoice, promptText, promptYesNo } = require('./ui');
 
 const remembered = (opts, key) => opts._rememberedAnswers?.[key];
 
-const resolveGitMode = async ({ rl, opts, targetDir }) => {
+const resolveGitMode = async ({ rl, opts, targetDir, mode }) => {
   const git = detectGit(targetDir);
   const validModes = ['auto', 'skip', 'keep', 'init', 'replace'];
   let gitMode = opts.gitMode ?? 'auto';
@@ -21,7 +21,7 @@ const resolveGitMode = async ({ rl, opts, targetDir }) => {
     if (gitRequested) {
       gitMode = git.inside ? 'keep' : 'init';
     } else if (!rl) {
-      gitMode = git.inside ? 'keep' : 'skip';
+      gitMode = git.inside ? 'keep' : mode === 'fresh' ? 'init' : 'skip';
     } else if (git.hasOwnGit) {
       const defaultMode = ['keep', 'replace', 'skip'].includes(remembered(opts, 'gitMode'))
         ? remembered(opts, 'gitMode')
@@ -103,8 +103,8 @@ const resolveGitAdd = ({ opts, gitMode }) => ({
   gitRemoteName: opts.gitRemoteName || 'origin',
 });
 
-const resolveGitAnswers = async ({ rl, opts, targetDir }) => {
-  const { gitMode } = await resolveGitMode({ rl, opts, targetDir });
+const resolveGitAnswers = async ({ rl, opts, targetDir, mode }) => {
+  const { gitMode } = await resolveGitMode({ rl, opts, targetDir, mode });
   const { gitConfigureRemote, gitRemoteName } = await resolveGitRemoteConfigure({
     rl,
     opts,

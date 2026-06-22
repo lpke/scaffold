@@ -111,10 +111,10 @@ const runPnpmInstallWithApproval = async ({
       logPnpmBuildsNotApproved(workspace, packages);
       return true;
     }
-    runCommand(approveCommand, approveArgs, targetDir, answers.dryRun, {
+    await runCommand(approveCommand, approveArgs, targetDir, answers.dryRun, {
       label: 'pnpm approval command',
     });
-    runCommandCaptured(command, args, targetDir, answers.dryRun, {
+    await runCommandCaptured(command, args, targetDir, answers.dryRun, {
       label: 'pnpm install retry command',
     });
     logPnpmBuildsApproved(workspace);
@@ -123,7 +123,7 @@ const runPnpmInstallWithApproval = async ({
 
   let result;
   try {
-    result = runInstallCommand({ command, args, targetDir, dryRun: answers.dryRun });
+    result = await runInstallCommand({ command, args, targetDir, dryRun: answers.dryRun });
   } catch (error) {
     if (answers.toolchainManager !== 'pnpm' || !hasPnpmIgnoredBuilds(error)) {
       throw error;
@@ -139,7 +139,7 @@ const runPnpmInstallWithApproval = async ({
 const runPostChecks = async ({ answers, config, targetDir, workspace, interactive }) => {
   if (answers.direnv) {
     if (commandExists('direnv')) {
-      runCommand('direnv', ['allow'], targetDir, answers.dryRun);
+      await runCommand('direnv', ['allow'], targetDir, answers.dryRun);
     } else {
       workspace.skipped.push('direnv not found');
     }
@@ -147,7 +147,7 @@ const runPostChecks = async ({ answers, config, targetDir, workspace, interactiv
 
   if (answers.flakeLock) {
     if (commandExists('nix')) {
-      runCommand('nix', ['flake', 'lock'], targetDir, answers.dryRun);
+      await runCommand('nix', ['flake', 'lock'], targetDir, answers.dryRun);
       workspace.mark('flake.lock');
       await stageForNix({ answers, targetDir, workspace });
     } else {
@@ -200,12 +200,12 @@ const runFinalFormat = async ({ answers, config, targetDir, workspace }) => {
     !answers.tailwind ||
     (await fileExists(path.join(targetDir, 'node_modules', 'prettier-plugin-tailwindcss')));
   if (hasPrettier && hasTailwindPlugin) {
-    runCommand('npx', ['--no-install', 'prettier', '--write', '.'], targetDir, answers.dryRun);
+    await runCommand('npx', ['--no-install', 'prettier', '--write', '.'], targetDir, answers.dryRun);
   } else {
     if (answers.tailwind) {
       workspace.skipped.push('Tailwind Prettier plugin not installed; formatting without project config');
     }
-    runCommand(
+    await runCommand(
       'npx',
       [
         '--yes',
@@ -304,7 +304,7 @@ const main = async () => {
 
   const mode = await resolveTargetMode(targetDir);
   let existingPackage = await readExistingPackage(targetDir);
-  const answers = await resolveAnswers({ opts, targetDir, existingPackage, config });
+  const answers = await resolveAnswers({ opts, targetDir, mode, existingPackage, config });
 
   const workspace = new Workspace({
     targetDir,
