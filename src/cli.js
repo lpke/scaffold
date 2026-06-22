@@ -283,6 +283,15 @@ Run or skip nix flake lock after writing files. --flake-lock implies --nix.`,
 Run or skip package manager install after writing files.`,
   },
   {
+    topic: '--pnpm-approve-builds',
+    names: ['--pnpm-approve-builds', '--no-pnpm-approve-builds'],
+    summary: 'Auto-approve pnpm blocked build scripts',
+    help: `Usage: scaffold [target] --install --pnpm-approve-builds
+       scaffold [target] --install --no-pnpm-approve-builds
+
+When pnpm install fails with ERR_PNPM_IGNORED_BUILDS, run pnpm approve-builds --all and retry install.`,
+  },
+  {
     topic: '--git',
     names: ['--git'],
     summary: 'Set git handling',
@@ -573,6 +582,12 @@ const parseArgs = (argv) => {
         break;
       case '--no-install':
         setBool('install', false);
+        break;
+      case '--pnpm-approve-builds':
+        setBool('pnpmApproveBuilds', true);
+        break;
+      case '--no-pnpm-approve-builds':
+        setBool('pnpmApproveBuilds', false);
         break;
       case '--git-add':
         setBool('gitAdd', true);

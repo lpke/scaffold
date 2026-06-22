@@ -2,6 +2,8 @@
 
 const cp = require('node:child_process');
 
+const { color } = require('./ui/color');
+
 const shellQuote = (part) => {
   if (/^[A-Za-z0-9_./:=@+-]+$/.test(part)) {
     return part;
@@ -10,6 +12,13 @@ const shellQuote = (part) => {
 };
 
 const displayCommand = (command, args) => [command, ...args].map(shellQuote).join(' ');
+
+const printCommand = (display, { dryRun = false, label = 'command' } = {}) => {
+  const resolvedLabel = dryRun ? `dry-run ${label}` : label;
+  console.log(color.dim(`${resolvedLabel}:`));
+  console.log(`${color.green('$')} ${color.bold(display)}`);
+  console.log('');
+};
 
 const commandExists = (command) => {
   const result = cp.spawnSync('sh', ['-c', `command -v ${shellQuote(command)}`], {
@@ -27,16 +36,36 @@ const commandVersion = (command, fallback) => {
   return version || fallback;
 };
 
-const runCommand = (command, args, cwd, dryRun) => {
+const runCommand = (command, args, cwd, dryRun, options = {}) => {
   const display = displayCommand(command, args);
+  printCommand(options.display || display, { ...options, dryRun });
   if (dryRun) {
-    console.log(`dry-run command: ${display}`);
     return;
   }
   const result = cp.spawnSync(command, args, { cwd, stdio: 'inherit' });
   if (result.status !== 0) {
     throw new Error(`Command failed (${result.status}): ${display}`);
   }
+};
+
+const runCommandCaptured = (command, args, cwd, dryRun, options = {}) => {
+  const display = displayCommand(command, args);
+  printCommand(options.display || display, { ...options, dryRun });
+  if (dryRun) {
+    return { stdout: '', stderr: '', status: 0 };
+  }
+  const result = cp.spawnSync(command, args, { cwd, encoding: 'utf8', maxBuffer: 1024 * 1024 * 50 });
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  if (result.status !== 0) {
+    const error = new Error(`Command failed (${result.status}): ${display}`);
+    error.status = result.status;
+    error.stdout = result.stdout || '';
+    error.stderr = result.stderr || '';
+    error.display = display;
+    throw error;
+  }
+  return { stdout: result.stdout || '', stderr: result.stderr || '', status: result.status };
 };
 
 const commandOutput = (command, args, cwd) => {
@@ -56,5 +85,7 @@ module.exports = {
   commandOutput,
   commandVersion,
   displayCommand,
+  printCommand,
   runCommand,
+  runCommandCaptured,
 };

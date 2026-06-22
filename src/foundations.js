@@ -2,9 +2,17 @@
 
 const path = require('node:path');
 
-const { displayCommand, runCommand } = require('./commands');
+const { displayCommand, runCommand, runCommandCaptured } = require('./commands');
 const { isDirEmpty } = require('./detect');
-const { color } = require('./ui');
+const {
+  hasPnpmIgnoredBuilds,
+  logPnpmBuildsApproved,
+  logPnpmBuildsNotApproved,
+  logPnpmBuildsNotNeeded,
+  pnpmIgnoredBuildPackages,
+  pnpmIgnoredBuildsLabel,
+} = require('./pnpm-builds');
+const { createPrompter, promptYesNo } = require('./ui');
 
 const OWNED_FOUNDATION = 'owned';
 const FOUNDATION_CHOICES = [
@@ -125,7 +133,80 @@ const shortCommandDisplay = (command, args, targetDir) => {
   );
 };
 
-const runSeedPass = async ({ answers, config, targetDir, dryRun, force }) => {
+const shouldHandlePnpmSeedInstall = ({ answers, result }) =>
+  answers.toolchainManager === 'pnpm' && answers.install && hasPnpmIgnoredBuilds(result);
+
+const recoverPnpmSeedInstall = ({ config, targetDir, dryRun, workspace }) => {
+  const installCommand = config.packageManagers.pnpm.installCommand;
+  runCommand('pnpm', ['approve-builds', '--all'], targetDir, dryRun, {
+    label: 'pnpm approval command',
+  });
+  runCommand(installCommand[0], installCommand.slice(1), targetDir, dryRun, {
+    label: 'pnpm install retry command',
+  });
+  logPnpmBuildsApproved(workspace);
+};
+
+const shouldApprovePnpmBuilds = async ({ answers, interactive, packages }) => {
+  if (answers.pnpmApproveBuilds) {
+    return true;
+  }
+  if (!interactive) {
+    return false;
+  }
+  const rl = createPrompter();
+  try {
+    return await promptYesNo(
+      rl,
+      `Approve pnpm build scripts now (${pnpmIgnoredBuildsLabel(packages)})?`,
+      true,
+    );
+  } finally {
+    rl.close();
+  }
+};
+
+const handlePnpmSeedInstall = async ({ answers, config, targetDir, dryRun, workspace, interactive, result }) => {
+  const packages = pnpmIgnoredBuildPackages(result);
+  if (await shouldApprovePnpmBuilds({ answers, interactive, packages })) {
+    recoverPnpmSeedInstall({ config, targetDir, dryRun, workspace });
+    return true;
+  }
+  logPnpmBuildsNotApproved(workspace, packages);
+  return true;
+};
+
+const runSeedCommand = async ({
+  answers,
+  config,
+  command,
+  args,
+  commandDisplay,
+  cwd,
+  targetDir,
+  dryRun,
+  workspace,
+  interactive,
+}) => {
+  let result;
+  try {
+    result = runCommandCaptured(command, args, cwd, dryRun, {
+      display: commandDisplay,
+      label: 'seed command',
+    });
+  } catch (error) {
+    if (!shouldHandlePnpmSeedInstall({ answers, result: error })) {
+      throw error;
+    }
+    return handlePnpmSeedInstall({ answers, config, targetDir, dryRun, workspace, interactive, result: error });
+  }
+  if (shouldHandlePnpmSeedInstall({ answers, result })) {
+    return handlePnpmSeedInstall({ answers, config, targetDir, dryRun, workspace, interactive, result });
+  }
+  return false;
+};
+
+const runSeedPass = async ({ answers, config, targetDir, dryRun, force, workspace, interactive }) => {
   if (!isSeededFoundation(answers.foundation)) {
     return null;
   }
@@ -139,8 +220,21 @@ const runSeedPass = async ({ answers, config, targetDir, dryRun, force }) => {
   const commandTarget = isViteSeed(answers.foundation) ? path.basename(resolvedTarget) : resolvedTarget;
   const { command, args } = buildSeedCommand({ answers, config, targetDir: commandTarget });
   const commandDisplay = shortCommandDisplay(command, args, targetDir);
-  console.log(color.dim(`seed command: ${commandDisplay}`));
-  runCommand(command, args, path.dirname(resolvedTarget), dryRun);
+  const handledPnpmIgnoredBuilds = await runSeedCommand({
+    answers,
+    config,
+    command,
+    args,
+    commandDisplay,
+    cwd: path.dirname(resolvedTarget),
+    targetDir: resolvedTarget,
+    dryRun,
+    workspace,
+    interactive,
+  });
+  if (answers.toolchainManager === 'pnpm' && answers.install && !handledPnpmIgnoredBuilds) {
+    logPnpmBuildsNotNeeded(workspace);
+  }
   return { commandDisplay, foundation: answers.foundation };
 };
 

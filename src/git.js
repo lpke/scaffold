@@ -3,7 +3,7 @@
 const fsp = require('node:fs').promises;
 const path = require('node:path');
 
-const { commandExists, commandOutput, runCommand } = require('./commands');
+const { commandExists, commandOutput, printCommand, runCommand } = require('./commands');
 const { detectGit, fileExists } = require('./detect');
 
 const initGit = (targetDir, dryRun) => {
@@ -17,7 +17,7 @@ const replaceGit = async (targetDir, dryRun) => {
     throw new Error('Cannot replace git because target directory has no own .git directory');
   }
   if (dryRun) {
-    console.log(`dry-run command: rm -rf ${gitPath}`);
+    printCommand(`rm -rf ${gitPath}`, { dryRun });
   } else {
     await fsp.rm(gitPath, { force: true, recursive: true });
   }

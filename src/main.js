@@ -4,7 +4,7 @@ const fsp = require('node:fs').promises;
 const path = require('node:path');
 
 const { parseArgs, printRequestedHelp } = require('./cli');
-const { commandExists, runCommand } = require('./commands');
+const { commandExists, runCommand, runCommandCaptured } = require('./commands');
 const { loadConfig } = require('./config');
 const { fileExists, isDirEmpty, readJsonFile, statOrNull } = require('./detect');
 const { foundationLabel, isNextFoundation, isSeededFoundation, runSeedPass } = require('./foundations');
@@ -28,6 +28,14 @@ const {
   applyTsMode,
   applyTypescriptConfig,
 } = require('./project');
+const {
+  hasPnpmIgnoredBuilds,
+  logPnpmBuildsApproved,
+  logPnpmBuildsNotApproved,
+  logPnpmBuildsNotNeeded,
+  pnpmIgnoredBuildPackages,
+  pnpmIgnoredBuildsLabel,
+} = require('./pnpm-builds');
 const { isInteractive, resolveAnswers } = require('./prompts');
 const { color, createPrompter, intro, promptYesNo } = require('./ui');
 const { Workspace } = require('./workspace');
@@ -65,7 +73,70 @@ const readExistingPackage = async (targetDir) => {
 
 const resolveTargetMode = async (targetDir) => ((await isDirEmpty(targetDir)) ? 'fresh' : 'overlay');
 
-const runPostChecks = async ({ answers, config, targetDir, workspace }) => {
+const runInstallCommand = ({ command, args, targetDir, dryRun }) =>
+  runCommandCaptured(command, args, targetDir, dryRun);
+
+const shouldApprovePnpmBuilds = async ({ answers, interactive, packages }) => {
+  if (answers.pnpmApproveBuilds) {
+    return true;
+  }
+  if (!interactive) {
+    return false;
+  }
+  const rl = createPrompter();
+  try {
+    return await promptYesNo(
+      rl,
+      `Approve pnpm build scripts now (${pnpmIgnoredBuildsLabel(packages)})?`,
+      true,
+    );
+  } finally {
+    rl.close();
+  }
+};
+
+const runPnpmInstallWithApproval = async ({
+  answers,
+  command,
+  args,
+  approveCommand,
+  approveArgs,
+  targetDir,
+  workspace,
+  interactive,
+}) => {
+  const recover = async (result) => {
+    const packages = pnpmIgnoredBuildPackages(result);
+    if (!(await shouldApprovePnpmBuilds({ answers, interactive, packages }))) {
+      logPnpmBuildsNotApproved(workspace, packages);
+      return true;
+    }
+    runCommand(approveCommand, approveArgs, targetDir, answers.dryRun, {
+      label: 'pnpm approval command',
+    });
+    runCommandCaptured(command, args, targetDir, answers.dryRun, {
+      label: 'pnpm install retry command',
+    });
+    logPnpmBuildsApproved(workspace);
+    return true;
+  };
+
+  let result;
+  try {
+    result = runInstallCommand({ command, args, targetDir, dryRun: answers.dryRun });
+  } catch (error) {
+    if (answers.toolchainManager !== 'pnpm' || !hasPnpmIgnoredBuilds(error)) {
+      throw error;
+    }
+    return recover(error);
+  }
+  if (answers.toolchainManager === 'pnpm' && hasPnpmIgnoredBuilds(result)) {
+    return recover(result);
+  }
+  return false;
+};
+
+const runPostChecks = async ({ answers, config, targetDir, workspace, interactive }) => {
   if (answers.direnv) {
     if (commandExists('direnv')) {
       runCommand('direnv', ['allow'], targetDir, answers.dryRun);
@@ -89,9 +160,33 @@ const runPostChecks = async ({ answers, config, targetDir, workspace }) => {
   } else if (answers.install) {
     const installCommand = config.packageManagers[answers.toolchainManager].installCommand;
     if (answers.nix && commandExists('nix') && (await fileExists(path.join(targetDir, 'flake.nix')))) {
-      runCommand('nix', ['develop', '--command', ...installCommand], targetDir, answers.dryRun);
+      const handledPnpmIgnoredBuilds = await runPnpmInstallWithApproval({
+        answers,
+        command: 'nix',
+        args: ['develop', '--command', ...installCommand],
+        approveCommand: 'nix',
+        approveArgs: ['develop', '--command', 'pnpm', 'approve-builds', '--all'],
+        targetDir,
+        workspace,
+        interactive,
+      });
+      if (answers.toolchainManager === 'pnpm' && !handledPnpmIgnoredBuilds) {
+        logPnpmBuildsNotNeeded(workspace);
+      }
     } else {
-      runCommand(installCommand[0], installCommand.slice(1), targetDir, answers.dryRun);
+      const handledPnpmIgnoredBuilds = await runPnpmInstallWithApproval({
+        answers,
+        command: installCommand[0],
+        args: installCommand.slice(1),
+        approveCommand: 'pnpm',
+        approveArgs: ['approve-builds', '--all'],
+        targetDir,
+        workspace,
+        interactive,
+      });
+      if (answers.toolchainManager === 'pnpm' && !handledPnpmIgnoredBuilds) {
+        logPnpmBuildsNotNeeded(workspace);
+      }
     }
   }
 };
@@ -154,6 +249,20 @@ const formatChangeLine = (line) => {
   return `${style.color(style.symbol)} ${style.color(descriptor.padEnd(9))} ${rest.join(' ')}`;
 };
 
+const formatSkippedLine = (line) => {
+  if (line && typeof line === 'object' && line.level === 'error') {
+    const firstLine = [
+      color.red('-'),
+      color.red('skipped'.padEnd(9)),
+      color.red(line.textBefore || ''),
+    ].join(' ');
+    const indent = '  '.repeat(1) + ' '.repeat(10);
+    const secondLine = `${indent}${color.red('run')} ${color.bold(line.command)} ${color.red(line.textAfter || '')}`;
+    return `${firstLine}\n${color.dim('│')} ${secondLine}`;
+  }
+  return `${color.yellow('-')} ${color.yellow('skipped'.padEnd(9))} ${line}`;
+};
+
 const printSummary = ({ answers, config, mode, targetDir, workspace }) => {
   console.log('');
   console.log(`${color.green('◇')} ${color.bold('scaffold')} ${color.dim(targetDir)}`);
@@ -161,7 +270,7 @@ const printSummary = ({ answers, config, mode, targetDir, workspace }) => {
     console.log(`${color.dim('│')} ${formatChangeLine(line)}`);
   }
   for (const line of workspace.skipped) {
-    console.log(`${color.dim('│')} ${color.yellow('-')} ${color.yellow('skipped'.padEnd(9))} ${line}`);
+    console.log(`${color.dim('│')} ${formatSkippedLine(line)}`);
   }
   if (workspace.changed.length === 0 && workspace.skipped.length === 0) {
     console.log(`${color.dim('│')} ${color.dim('no file changes')}`);
@@ -213,6 +322,8 @@ const main = async () => {
     targetDir,
     dryRun: answers.dryRun,
     force: answers.force,
+    workspace,
+    interactive,
   });
   await commitSeedOutput({
     answers,
@@ -246,7 +357,7 @@ const main = async () => {
   await applyAgents({ workspace, answers, config });
   await prepareGit({ answers, targetDir, workspace });
   await stageForNix({ answers, targetDir, workspace });
-  await runPostChecks({ answers, config, targetDir, workspace });
+  await runPostChecks({ answers, config, targetDir, workspace, interactive });
   await runFinalFormat({ answers, config, targetDir, workspace });
   await stageGit({ answers, targetDir, workspace });
 

@@ -159,6 +159,7 @@ const inferDependentOptions = (opts, { interactive }) => {
     [opts.pinia === true, '--pinia'],
     [opts.eslint === true, '--eslint'],
     [opts.install === true, '--install'],
+    [opts.pnpmApproveBuilds === true, '--pnpm-approve-builds'],
   ];
   const nodeRequest = nodeRequests.find(([enabled]) => enabled);
   if (nodeRequest) {
@@ -321,6 +322,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
         opts.router ||
         opts.pinia ||
         opts.eslint ||
+        opts.pnpmApproveBuilds ||
         Boolean(nuxtOptionFlag),
     );
 
@@ -705,6 +707,27 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
           }),
         },
         {
+          keys: ['pnpmApproveBuilds'],
+          backStop: Boolean(
+            rl &&
+              answers.install &&
+              answers.toolchainManager === 'pnpm' &&
+              opts.pnpmApproveBuilds == null,
+          ),
+          run: async () => ({
+            pnpmApproveBuilds:
+              answers.install && answers.toolchainManager === 'pnpm'
+                ? await boolChoice(
+                    rl,
+                    opts,
+                    'pnpmApproveBuilds',
+                    'Auto-approve pnpm ignored builds if install is blocked?',
+                    true,
+                  )
+                : false,
+          }),
+        },
+        {
           keys: ['gitMode'],
           backStop: Boolean(rl),
           run: () => resolveGitMode({ rl, opts, targetDir }),
@@ -773,6 +796,12 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, existingPackage, confi
 
     if (!answers.nix && opts.direnv) {
       throw new Error('--direnv requires --nix because the managed .envrc uses "use flake"');
+    }
+    if (opts.pnpmApproveBuilds === true && !answers.install) {
+      throw new Error('--pnpm-approve-builds requires --install');
+    }
+    if (opts.pnpmApproveBuilds === true && answers.toolchainManager !== 'pnpm') {
+      throw new Error('--pnpm-approve-builds requires --package-manager pnpm or detected pnpm');
     }
     delete answers.gitConfigureRemote;
 
