@@ -12,6 +12,7 @@ const {
   isNuxtFoundation,
   isOwnedFoundation,
   isSeededFoundation,
+  isViteSeed,
 } = require('./foundations');
 const { applyActionManifest } = require('./helpers/actions');
 const { parseJson } = require('./json');
@@ -280,7 +281,11 @@ const applyPackageJson = async ({ workspace, answers, existingPackage, config })
   pkg.scripts ??= {};
   const scripts = scriptSet(answers);
   mergeObjectDefaults(pkg.scripts, scripts);
-  if (isOwnedFoundation(answers.foundation) && answers.vite && answers.devServer) {
+  if (
+    (isOwnedFoundation(answers.foundation) || isViteSeed(answers.foundation)) &&
+    answers.vite &&
+    answers.devServer
+  ) {
     for (const name of ['dev', 'dev:nohost', 'preview', 'preview:nohost']) {
       pkg.scripts[name] = scripts[name];
     }

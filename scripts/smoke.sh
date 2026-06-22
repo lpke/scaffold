@@ -46,6 +46,7 @@ const { loadConfig } = require('./src/config');
 const { parseArgs } = require('./src/cli');
 const { buildSeedCommand } = require('./src/foundations');
 const { resolveTypescriptAnswers } = require('./src/prompt-features');
+const { applyPackageJson } = require('./src/project');
 const { Workspace } = require('./src/workspace');
 const { applyActionManifest, applyActions } = require('./src/helpers/actions');
 
@@ -84,6 +85,55 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   });
   assert.deepEqual(command.args.slice(-4), ['--', '--template', 'react-ts', '--no-interactive']);
   assert.equal(parseArgs(['--foundation', 'react-vite', '--router']).router, true);
+
+  const assertViteSeedPortScripts = async ({ foundation, react, vue }) => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-${foundation}-`));
+    const workspace = new Workspace({
+      targetDir: tmp,
+      dryRun: false,
+      backup: false,
+      force: false,
+    });
+    const pkg = {
+      name: `seeded-${foundation}`,
+      version: '0.0.0',
+      type: 'module',
+      scripts: {
+        dev: 'vite',
+        build: 'vite build',
+      },
+      dependencies: {},
+      devDependencies: {},
+    };
+    await applyPackageJson({
+      workspace,
+      config,
+      existingPackage: pkg,
+      answers: {
+        nodeProject: true,
+        foundation,
+        packageManager: 'keep',
+        toolchainManager: 'npm',
+        nodeMajor: '22',
+        vite: true,
+        devServer: true,
+        devPort: 5177,
+        typescript: true,
+        vitest: false,
+        prettier: false,
+        tailwind: false,
+        react,
+        vue,
+        router: false,
+        license: false,
+      },
+    });
+    const written = JSON.parse(fs.readFileSync(path.join(tmp, 'package.json'), 'utf8'));
+    assert.equal(written.scripts.dev, 'vite --host 0.0.0.0 --port 5177');
+    assert.equal(written.scripts['dev:nohost'], 'vite --port 5177');
+  };
+
+  await assertViteSeedPortScripts({ foundation: 'react-vite', react: true, vue: false });
 
   command = buildSeedCommand({
     answers: {
@@ -159,6 +209,8 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   }
   assert.equal(command.args[2], '--');
   assert.equal(command.args[command.args.length - 1], '/tmp/scaffold-vue');
+
+  await assertViteSeedPortScripts({ foundation: 'vue-vite', react: false, vue: true });
 
   assert.equal(parseArgs(['--no-feature-prompts']).featurePrompts, false);
   assert.equal(parseArgs(['--foundation', 'react-vite']).foundation, 'react-vite');
