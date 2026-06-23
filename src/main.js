@@ -7,7 +7,13 @@ const { parseArgs, printRequestedHelp } = require('./cli');
 const { commandExists, runCommand, runCommandCaptured } = require('./commands');
 const { loadConfig } = require('./config');
 const { fileExists, isDirEmpty, readJsonFile, statOrNull } = require('./detect');
-const { foundationLabel, isNextFoundation, isSeededFoundation, runSeedPass } = require('./foundations');
+const {
+  foundationLabel,
+  isNextFoundation,
+  isSeededFoundation,
+  runSeedPass,
+  shouldDeferAppSeedInstall,
+} = require('./foundations');
 const {
   commitSeedOutput,
   prepareGit,
@@ -155,7 +161,7 @@ const runPostChecks = async ({ answers, config, targetDir, workspace, interactiv
     }
   }
 
-  if (answers.install && isNextFoundation(answers.foundation)) {
+  if (answers.install && isNextFoundation(answers.foundation) && !shouldDeferAppSeedInstall(answers)) {
     workspace.skipped.push('package install handled by seed command');
   } else if (answers.install) {
     const installCommand = config.packageManagers[answers.toolchainManager].installCommand;

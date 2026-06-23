@@ -176,6 +176,25 @@ const dependencySet = (answers, config) => {
   return { deps, devDeps };
 };
 
+const applySeedFrameworkVersion = (pkg, answers, config) => {
+  const seedVersion = answers.seedVersion;
+  if (!isAppSeed(answers.foundation) || !seedVersion || seedVersion === 'latest') {
+    return;
+  }
+
+  const frameworkPackage = config.seedCommands[answers.foundation]?.frameworkPackage;
+  if (!frameworkPackage) {
+    return;
+  }
+
+  pkg.dependencies ??= {};
+  pkg.dependencies[frameworkPackage] = seedVersion;
+
+  if (pkg.devDependencies?.[frameworkPackage] != null) {
+    delete pkg.devDependencies[frameworkPackage];
+  }
+};
+
 const scriptSet = (answers) => {
   const scripts = {};
 
@@ -300,6 +319,7 @@ const applyPackageJson = async ({ workspace, answers, existingPackage, config })
     pkg.devDependencies ??= {};
     mergeObjectDefaults(pkg.devDependencies, devDeps);
   }
+  applySeedFrameworkVersion(pkg, answers, config);
 
   await workspace.write('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
 };

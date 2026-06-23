@@ -80,6 +80,20 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   assert(!command.args.includes('--javascript'));
 
   command = buildSeedCommand({
+    answers: { ...baseAnswers, seedVersion: '15.0.0', install: true, tailwind: false, typescript: true },
+    config,
+    targetDir: '/tmp/scaffold-next',
+  });
+  assert(command.args.includes('--skip-install'));
+
+  command = buildSeedCommand({
+    answers: { ...baseAnswers, seedVersion: 'latest', install: true, tailwind: false, typescript: true },
+    config,
+    targetDir: '/tmp/scaffold-next',
+  });
+  assert(!command.args.includes('--skip-install'));
+
+  command = buildSeedCommand({
     answers: { foundation: 'react-vite', seedVersion: 'latest', typescript: true, router: true },
     config,
     targetDir: '/tmp/scaffold-react',
@@ -135,6 +149,109 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   };
 
   await assertViteSeedPortScripts({ foundation: 'react-vite', react: true, vue: false });
+
+  const assertAppSeedFrameworkVersion = async ({ foundation, frameworkPackage, seedVersion }) => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-${foundation}-version-`));
+    const workspace = new Workspace({
+      targetDir: tmp,
+      dryRun: false,
+      backup: false,
+      force: false,
+    });
+    await applyPackageJson({
+      workspace,
+      config,
+      existingPackage: {
+        name: `seeded-${foundation}`,
+        version: '0.0.0',
+        type: 'module',
+        scripts: {},
+        dependencies: {
+          [frameworkPackage]: '^999.0.0',
+        },
+        devDependencies: {
+          [frameworkPackage]: '^999.0.0',
+        },
+      },
+      answers: {
+        nodeProject: true,
+        foundation,
+        seedVersion,
+        packageManager: 'keep',
+        toolchainManager: 'npm',
+        nodeMajor: '22',
+        vite: false,
+        devServer: false,
+        typescript: true,
+        vitest: false,
+        prettier: false,
+        tailwind: false,
+        license: false,
+      },
+    });
+    const written = JSON.parse(fs.readFileSync(path.join(tmp, 'package.json'), 'utf8'));
+    assert.equal(written.dependencies[frameworkPackage], seedVersion);
+    assert.equal(written.devDependencies?.[frameworkPackage], undefined);
+  };
+
+  await assertAppSeedFrameworkVersion({
+    foundation: 'next',
+    frameworkPackage: 'next',
+    seedVersion: '15.0.0',
+  });
+  await assertAppSeedFrameworkVersion({
+    foundation: 'nuxt',
+    frameworkPackage: 'nuxt',
+    seedVersion: '3.21.8',
+  });
+
+  const assertNuxtStructure = async ({ seedVersion, flat }) => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-nuxt-structure-`));
+    fs.mkdirSync(path.join(tmp, 'app'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'pages'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'app.vue'), '<template />\n');
+    fs.writeFileSync(path.join(tmp, 'app', 'app.vue'), '<template />\n');
+    fs.writeFileSync(path.join(tmp, 'tsconfig.json'), JSON.stringify({
+      files: [],
+      references: [
+        { path: './.nuxt/tsconfig.app.json' },
+        { path: './.nuxt/tsconfig.server.json' },
+      ],
+    }, null, 2));
+    const workspace = new Workspace({
+      targetDir: tmp,
+      dryRun: false,
+      backup: false,
+      force: false,
+    });
+    await applySeededFoundationOverrides({
+      workspace,
+      seedRun: { foundation: 'nuxt' },
+      answers: {
+        foundation: 'nuxt',
+        seedVersion,
+        typescript: true,
+        tailwind: false,
+        vitest: true,
+      },
+    });
+    assert.equal(fs.existsSync(path.join(tmp, 'app.vue')), flat);
+    assert.equal(fs.existsSync(path.join(tmp, 'pages', 'index.vue')), flat);
+    assert.equal(fs.existsSync(path.join(tmp, 'assets', 'css', 'main.css')), flat);
+    assert.equal(fs.existsSync(path.join(tmp, 'app', 'app.vue')), !flat);
+    assert.equal(fs.existsSync(path.join(tmp, 'app', 'pages', 'index.vue')), !flat);
+    const vitestConfig = fs.readFileSync(path.join(tmp, 'vitest.config.mts'), 'utf8');
+    assert(vitestConfig.includes(flat ? "include: ['pages/**/*.test.ts']" : "include: ['app/**/*.test.ts']"));
+    const tsconfig = JSON.parse(fs.readFileSync(path.join(tmp, 'tsconfig.json'), 'utf8'));
+    assert.equal(tsconfig.extends, './.nuxt/tsconfig.json');
+    assert.deepEqual(tsconfig.compilerOptions.types, ['node', 'vitest/globals']);
+    assert.equal('files' in tsconfig, false);
+    assert.equal('references' in tsconfig, false);
+  };
+
+  await assertNuxtStructure({ seedVersion: '3.21.8', flat: true });
+  await assertNuxtStructure({ seedVersion: '4.4.8', flat: false });
 
   command = buildSeedCommand({
     answers: {

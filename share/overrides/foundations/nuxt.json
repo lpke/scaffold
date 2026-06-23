@@ -3,48 +3,122 @@
   "description": "Post-nuxt-init project shape.",
   "actions": [
     {
-      "type": "file.write",
-      "label": "Replace Nuxt app shell",
-      "path": "app/app.vue",
-      "when": "tailwind",
-      "template": "seeded/nuxt/app/app.vue"
-    },
-    {
-      "type": "file.write",
-      "label": "Replace Nuxt app shell",
-      "path": "app/app.vue",
+      "type": "group",
+      "label": "Apply Nuxt 3 flat project shape",
       "when": {
-        "not": "tailwind"
+        "value": "NUXT_FLAT"
       },
-      "template": "seeded/nuxt/app/app.plain.vue"
+      "actions": [
+        {
+          "type": "dir.delete",
+          "label": "Remove Nuxt app directory",
+          "path": "app"
+        },
+        {
+          "type": "file.write",
+          "label": "Replace Nuxt app shell",
+          "path": "app.vue",
+          "when": "tailwind",
+          "template": "seeded/nuxt/flat/app.vue"
+        },
+        {
+          "type": "file.write",
+          "label": "Replace Nuxt app shell",
+          "path": "app.vue",
+          "when": {
+            "not": "tailwind"
+          },
+          "template": "seeded/nuxt/flat/app.plain.vue"
+        },
+        {
+          "type": "file.write",
+          "label": "Add Nuxt home route",
+          "path": "pages/index.vue",
+          "template": "seeded/nuxt/flat/pages/index.vue"
+        },
+        {
+          "type": "file.write",
+          "label": "Add Nuxt about route",
+          "path": "pages/about.vue",
+          "template": "seeded/nuxt/flat/pages/about.vue"
+        },
+        {
+          "type": "file.write",
+          "label": "Add Nuxt Tailwind CSS",
+          "path": "assets/css/main.css",
+          "when": "tailwind",
+          "template": "seeded/nuxt/flat/assets/css/main.css"
+        },
+        {
+          "type": "file.write",
+          "label": "Add Nuxt baseline reset",
+          "path": "assets/css/main.css",
+          "when": {
+            "not": "tailwind"
+          },
+          "template": "owned/vite/reset.css"
+        }
+      ]
     },
     {
-      "type": "file.write",
-      "label": "Add Nuxt home route",
-      "path": "app/pages/index.vue",
-      "template": "seeded/nuxt/app/pages/index.vue"
-    },
-    {
-      "type": "file.write",
-      "label": "Add Nuxt about route",
-      "path": "app/pages/about.vue",
-      "template": "seeded/nuxt/app/pages/about.vue"
-    },
-    {
-      "type": "file.write",
-      "label": "Add Nuxt Tailwind CSS",
-      "path": "app/assets/css/main.css",
-      "when": "tailwind",
-      "template": "seeded/nuxt/app/assets/css/main.css"
-    },
-    {
-      "type": "file.write",
-      "label": "Add Nuxt baseline reset",
-      "path": "app/assets/css/main.css",
       "when": {
-        "not": "tailwind"
+        "not": {
+          "value": "NUXT_FLAT"
+        }
       },
-      "template": "owned/vite/reset.css"
+      "type": "group",
+      "label": "Apply Nuxt app-directory project shape",
+      "actions": [
+        {
+          "type": "file.delete",
+          "label": "Remove Nuxt flat files",
+          "paths": ["app.vue", "pages", "assets"]
+        },
+        {
+          "type": "file.write",
+          "label": "Replace Nuxt app shell",
+          "path": "app/app.vue",
+          "when": "tailwind",
+          "template": "seeded/nuxt/app/app.vue"
+        },
+        {
+          "type": "file.write",
+          "label": "Replace Nuxt app shell",
+          "path": "app/app.vue",
+          "when": {
+            "not": "tailwind"
+          },
+          "template": "seeded/nuxt/app/app.plain.vue"
+        },
+        {
+          "type": "file.write",
+          "label": "Add Nuxt home route",
+          "path": "app/pages/index.vue",
+          "template": "seeded/nuxt/app/pages/index.vue"
+        },
+        {
+          "type": "file.write",
+          "label": "Add Nuxt about route",
+          "path": "app/pages/about.vue",
+          "template": "seeded/nuxt/app/pages/about.vue"
+        },
+        {
+          "type": "file.write",
+          "label": "Add Nuxt Tailwind CSS",
+          "path": "app/assets/css/main.css",
+          "when": "tailwind",
+          "template": "seeded/nuxt/app/assets/css/main.css"
+        },
+        {
+          "type": "file.write",
+          "label": "Add Nuxt baseline reset",
+          "path": "app/assets/css/main.css",
+          "when": {
+            "not": "tailwind"
+          },
+          "template": "owned/vite/reset.css"
+        }
+      ]
     },
     {
       "type": "file.write",
@@ -63,13 +137,64 @@
       "template": "seeded/nuxt/nuxt.plain.config.ts"
     },
     {
+      "type": "json.patch",
+      "label": "Set Nuxt Vitest TypeScript project config",
+      "path": "tsconfig.json",
+      "when": {
+        "all": ["vitest", "typescript"]
+      },
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/files"
+        },
+        {
+          "op": "remove",
+          "path": "/references"
+        },
+        {
+          "op": "add",
+          "path": "/extends",
+          "value": "./.nuxt/tsconfig.json"
+        },
+        {
+          "op": "add",
+          "path": "/compilerOptions/types",
+          "value": ["node", "vitest/globals"]
+        }
+      ]
+    },
+    {
       "type": "file.write",
       "label": "Add Nuxt TypeScript Vitest config",
       "path": "vitest.config.mts",
       "when": {
-        "all": ["vitest", "typescript"]
+        "all": [
+          "vitest",
+          "typescript",
+          {
+            "not": {
+              "value": "NUXT_FLAT"
+            }
+          }
+        ]
       },
       "content": "import vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [vue()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['app/**/*.test.ts'],\n  },\n});\n"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt TypeScript Vitest config",
+      "path": "vitest.config.mts",
+      "when": {
+        "all": [
+          "vitest",
+          "typescript",
+          {
+            "value": "NUXT_FLAT"
+          }
+        ]
+      },
+      "content": "import vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [vue()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['pages/**/*.test.ts'],\n  },\n});\n"
     },
     {
       "type": "file.write",
@@ -80,6 +205,11 @@
           "vitest",
           {
             "not": "typescript"
+          },
+          {
+            "not": {
+              "value": "NUXT_FLAT"
+            }
           }
         ]
       },
@@ -87,10 +217,50 @@
     },
     {
       "type": "file.write",
+      "label": "Add Nuxt JavaScript Vitest config",
+      "path": "vitest.config.mts",
+      "when": {
+        "all": [
+          "vitest",
+          {
+            "not": "typescript"
+          },
+          {
+            "value": "NUXT_FLAT"
+          }
+        ]
+      },
+      "content": "import vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [vue()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['pages/**/*.test.js'],\n  },\n});\n"
+    },
+    {
+      "type": "file.write",
       "label": "Add Nuxt TypeScript sample test",
       "path": "app/pages/index.test.ts",
       "when": {
-        "all": ["vitest", "typescript"]
+        "all": [
+          "vitest",
+          "typescript",
+          {
+            "not": {
+              "value": "NUXT_FLAT"
+            }
+          }
+        ]
+      },
+      "template": "seeded/nuxt/tests/index.test.ts"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt TypeScript sample test",
+      "path": "pages/index.test.ts",
+      "when": {
+        "all": [
+          "vitest",
+          "typescript",
+          {
+            "value": "NUXT_FLAT"
+          }
+        ]
       },
       "template": "seeded/nuxt/tests/index.test.ts"
     },
@@ -103,6 +273,28 @@
           "vitest",
           {
             "not": "typescript"
+          },
+          {
+            "not": {
+              "value": "NUXT_FLAT"
+            }
+          }
+        ]
+      },
+      "template": "seeded/nuxt/tests/index.test.js"
+    },
+    {
+      "type": "file.write",
+      "label": "Add Nuxt JavaScript sample test",
+      "path": "pages/index.test.js",
+      "when": {
+        "all": [
+          "vitest",
+          {
+            "not": "typescript"
+          },
+          {
+            "value": "NUXT_FLAT"
           }
         ]
       },

@@ -101,6 +101,7 @@
     "next": {
       "label": "Next.js",
       "versionPackage": "create-next-app",
+      "frameworkPackage": "next",
       "commandPackage": "create-next-app",
       "commandArgs": [
         "${targetDir}",
@@ -121,6 +122,7 @@
     "nuxt": {
       "label": "Nuxt",
       "versionPackage": "nuxt",
+      "frameworkPackage": "nuxt",
       "commandPackage": "nuxt",
       "commandArgs": [
         "init",

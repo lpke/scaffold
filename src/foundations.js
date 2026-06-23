@@ -35,6 +35,8 @@ const isReactFoundation = (foundation) => foundation === 'next' || foundation ==
 const isVueFoundation = (foundation) => foundation === 'nuxt' || foundation === 'vue-vite';
 const isNuxtFoundation = (foundation) => foundation === 'nuxt';
 const isNextFoundation = (foundation) => foundation === 'next';
+const hasExactSeedVersion = (answers) => Boolean(answers.seedVersion && answers.seedVersion !== 'latest');
+const shouldDeferAppSeedInstall = (answers) => isNextFoundation(answers.foundation) && hasExactSeedVersion(answers);
 
 const foundationLabel = (foundation, config) => {
   if (foundation === OWNED_FOUNDATION) {
@@ -62,7 +64,7 @@ const buildAppSeedCommand = ({ answers, config, targetDir }) => {
   const values = {
     installFlag: isNuxtFoundation(answers.foundation)
       ? '--no-install'
-      : answers.install
+      : answers.install && !shouldDeferAppSeedInstall(answers)
         ? ''
         : '--skip-install',
     nuxtOfflineFlag: isNuxtFoundation(answers.foundation) && answers.nuxtOffline ? '--offline' : '',
@@ -249,6 +251,7 @@ module.exports = {
   isOwnedFoundation,
   isReactFoundation,
   isSeededFoundation,
+  shouldDeferAppSeedInstall,
   isViteSeed,
   isVueFoundation,
   runSeedPass,

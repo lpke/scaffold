@@ -57,6 +57,9 @@ const loadConfig = async () => {
     requireString(seed.label, `seedCommands.${name}.label`);
     requireString(seed.versionPackage, `seedCommands.${name}.versionPackage`);
     requireString(seed.commandPackage, `seedCommands.${name}.commandPackage`);
+    if (seed.frameworkPackage !== undefined) {
+      requireString(seed.frameworkPackage, `seedCommands.${name}.frameworkPackage`);
+    }
     if (seed.commandArgs !== undefined && !Array.isArray(seed.commandArgs)) {
       throw new Error(`Expected seedCommands.${name}.commandArgs to be an array`);
     }
