@@ -532,7 +532,7 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   assert(editorconfig.includes('root = true'));
   assert(editorconfig.includes('indent_size = 2'));
   assert(editorconfig.includes('custom = keep'));
-  assert(fs.readFileSync(path.join(commonTmp, '.gitignore'), 'utf8').includes('/assets/'));
+  assert(!fs.readFileSync(path.join(commonTmp, '.gitignore'), 'utf8').includes('/assets/'));
   assert(fs.readFileSync(path.join(commonTmp, 'prettier.config.mjs'), 'utf8').includes('prettier-plugin-tailwindcss'));
 })().catch((error) => {
   console.error(error);

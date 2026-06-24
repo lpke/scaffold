@@ -36,9 +36,9 @@
     },
     {
       "type": "text.removeLines",
-      "label": "Remove old recursive assets ignore",
+      "label": "Remove old assets ignores",
       "path": ".gitignore",
-      "lines": ["assets/"]
+      "lines": ["assets/", "/assets/"]
     },
     {
       "type": "text.mergeLines",
@@ -59,7 +59,6 @@
         "!.env.example",
         ".flake.local/",
         ".direnv",
-        "/assets/",
         ".DS_Store",
         "*.scaffold-backup",
         "*.scaffold-backup/"
