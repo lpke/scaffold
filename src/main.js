@@ -25,6 +25,7 @@ const { applySeededFoundationOverrides } = require('./override-pass');
 const {
   applyAgents,
   applyCommon,
+  applyJsonplaceholderTypes,
   applyLicense,
   applyOwnedFoundationTemplates,
   applyNix,
@@ -347,6 +348,7 @@ const main = async () => {
   await applyTypescriptConfig(workspace, answers);
   await applyOwnedFoundationTemplates(workspace, answers);
   await applySeededFoundationOverrides({ workspace, answers, seedRun });
+  await applyJsonplaceholderTypes(workspace, answers);
   await applyPnpmWorkspace({ workspace, answers });
   if (!answers.dryRun) {
     existingPackage = await readExistingPackage(targetDir);

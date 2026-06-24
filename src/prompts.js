@@ -212,6 +212,12 @@ const inferDependentOptions = (opts, { interactive }) => {
     }
     inferred.typescript = true;
   }
+  if (opts.jsonplaceholderTypes === true) {
+    if (opts.typescript === false) {
+      throw new Error('--jsonplaceholder-types requires --typescript');
+    }
+    inferred.typescript = true;
+  }
 
   if (opts.devServer === true || opts.devPort != null) {
     if (opts.vite === false) {
@@ -229,6 +235,7 @@ const inferDependentOptions = (opts, { interactive }) => {
       [opts.tailwind === true, '--tailwind'],
       [opts.vite === true, '--vite'],
       [opts.vue === true, '--vue'],
+      [opts.jsonplaceholderTypes === true, '--jsonplaceholder-types'],
       [seededFoundationRequested, '--foundation'],
       [opts.jsx === true, '--jsx'],
       [opts.router === true, '--router'],
@@ -315,6 +322,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
         opts.prettier ||
         opts.react ||
         opts.typescript ||
+        opts.jsonplaceholderTypes ||
         opts.vite ||
         opts.vitest ||
         opts.vue ||
@@ -449,7 +457,19 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
         if (isOwnedFoundation(answers.foundation) || isViteSeed(answers.foundation)) {
           steps.push(
             {
-              keys: ['prettier', 'vite', 'react', 'vue', 'tailwind', 'vitest', 'jsx', 'router', 'pinia', 'eslint'],
+              keys: [
+                'prettier',
+                'vite',
+                'react',
+                'vue',
+                'tailwind',
+                'vitest',
+                'jsonplaceholderTypes',
+                'jsx',
+                'router',
+                'pinia',
+                'eslint',
+              ],
               backStop: Boolean(
                 rl &&
                   [
@@ -459,6 +479,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
                     opts.vue,
                     opts.tailwind,
                     opts.vitest,
+                    opts.jsonplaceholderTypes,
                     opts.jsx,
                     opts.router,
                     opts.pinia,
@@ -502,6 +523,9 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
                     ...featureChoices,
                     ...reactSeedChoices,
                     ...vueSeedChoices,
+                    ...(answers.typescript
+                      ? [{ key: 'jsonplaceholderTypes', label: 'JSONPlaceholder types', hint: 'data.ts' }]
+                      : []),
                     { key: 'vitest', label: 'Vitest', hint: 'unit testing' },
                   ],
                   {
@@ -518,6 +542,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
                   vue: seededVue || Boolean(selectedFeatures.vue),
                   tailwind,
                   vitest: Boolean(selectedFeatures.vitest),
+                  jsonplaceholderTypes: answers.typescript && Boolean(selectedFeatures.jsonplaceholderTypes),
                   jsx: seededVue && Boolean(selectedFeatures.jsx),
                   router: (seededReact || seededVue) && Boolean(selectedFeatures.router),
                   pinia: seededVue && Boolean(selectedFeatures.pinia),
@@ -557,6 +582,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
               'devServer',
               'devPort',
               'vitest',
+              'jsonplaceholderTypes',
               'react',
               'vue',
               'tailwind',
@@ -569,6 +595,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
                   opts.prettier,
                   opts.tailwind,
                   opts.vitest,
+                  opts.jsonplaceholderTypes,
                   isNuxtFoundation(answers.foundation) ? opts.nuxtOffline : false,
                   isNuxtFoundation(answers.foundation) ? opts.nuxtPreferOffline : false,
                 ].some((value) => value == null),
@@ -578,6 +605,9 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
               const selectedFeatures = await featureSet(rl, opts, 'Select features to include:', [
                 { key: 'prettier', label: 'Prettier', hint: 'code formatting', defaultValue: true },
                 { key: 'tailwind', label: 'Tailwind CSS' },
+                ...(answers.typescript
+                  ? [{ key: 'jsonplaceholderTypes', label: 'JSONPlaceholder types', hint: 'data.ts' }]
+                  : []),
                 { key: 'vitest', label: 'Vitest', hint: 'unit testing' },
                 ...(nuxt
                   ? [
@@ -595,6 +625,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
                 devServer: false,
                 devPort: 3000,
                 vitest: Boolean(selectedFeatures.vitest),
+                jsonplaceholderTypes: answers.typescript && Boolean(selectedFeatures.jsonplaceholderTypes),
                 react: isNextFoundation(answers.foundation),
                 vue: isNuxtFoundation(answers.foundation),
                 tailwind: selectedFeatures.tailwind,
@@ -612,6 +643,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
             'foundation',
             'seedVersion',
             'jsx',
+            'jsonplaceholderTypes',
             'router',
             'pinia',
             'eslint',
@@ -634,6 +666,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
             foundation: OWNED_FOUNDATION,
             seedVersion: null,
             jsx: false,
+            jsonplaceholderTypes: false,
             router: false,
             pinia: false,
             eslint: false,
@@ -701,7 +734,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
                   opts,
                   'install',
                   `Run ${answers.toolchainManager} install after writing files?`,
-                  false,
+                  true,
                 )
               : false,
           }),

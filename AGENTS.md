@@ -53,6 +53,14 @@ The usual order is:
 
 **Answers, templates, common defaults, features, and overrides stack. They are not mutually exclusive.**
 
+## Seeded Project Paths
+
+For seeded foundations, inspect the generated root layout before choosing paths for feature files or overrides. Prefer existing root-level `src/` or `app/` directories instead of assuming a top-level path; in dry-run paths, use the seed foundation's expected default layout.
+
+- Next.js uses `_types` directories: `src/app/_types` when `src/app/` exists, otherwise `src/_types` when only `src/` exists.
+- Nuxt app-directory projects put shared types under `app/types`.
+- React/Vue Vite seeds usually put shared types under `src/types` when `src/` exists.
+
 ## Config Locations
 
 - `share/config.json`: package versions, Node/Nix targets, package managers, foundation seed commands, and license choices.

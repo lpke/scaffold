@@ -78,7 +78,7 @@ Use `--dry-run` first when you want to inspect planned file changes and commands
 - Node version and package manager
 - TypeScript mode: none, non-strict, strict, or preserve existing tsconfig
 - Foundation and seed version
-- Features such as Prettier, Tailwind, Vitest, React, Vue, router, Pinia, and ESLint
+- Features such as Prettier, Tailwind, Vitest, JSONPlaceholder types, React, Vue, router, Pinia, and ESLint
 - License and AGENTS.md generation
 - Install, format, flake lock, and git handling
 
@@ -101,7 +101,7 @@ scaffold help --seed-version
 : File bodies used by seeded-foundation override manifests.
 
 `share/templates/shared`
-: Reusable project pieces such as common dotfiles, Nix files, AGENTS.md, licenses, and TypeScript configs.
+: Reusable project pieces such as common dotfiles, Nix files, AGENTS.md, licenses, and TypeScript templates.
 
 `share/overrides/common/defaults.json`
 : Common defaults applied across projects.

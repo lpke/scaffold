@@ -4,7 +4,7 @@ const path = require('node:path');
 
 const { commandVersion } = require('./commands');
 const { readAsset, renderAsset } = require('./assets');
-const { fileExists, readText } = require('./detect');
+const { fileExists, readText, statOrNull } = require('./detect');
 const {
   foundationLabel,
   isAppSeed,
@@ -437,6 +437,72 @@ const applyTypescriptConfig = async (workspace, answers) => {
   await workspace.copyTemplate(template, 'tsconfig.json', { overwrite: false });
 };
 
+const dirExists = async (workspace, dir) => {
+  const stat = await statOrNull(workspace.targetPath(dir));
+  return Boolean(stat?.isDirectory());
+};
+
+const existingRootDir = async (workspace, dirs) => {
+  for (const dir of dirs) {
+    if (await dirExists(workspace, dir)) {
+      return dir;
+    }
+  }
+  return null;
+};
+
+const nuxtUsesAppDirectoryByDefault = (answers) => {
+  const match = String(answers.seedVersion || '').match(/^(\d+)\./);
+  return match ? Number(match[1]) >= 4 : true;
+};
+
+const jsonplaceholderTypesPath = async (workspace, answers) => {
+  if (!isSeededFoundation(answers.foundation)) {
+    return 'types/data.ts';
+  }
+
+  if (isNextFoundation(answers.foundation)) {
+    const rootDir = await existingRootDir(workspace, ['src', 'app']);
+    if (rootDir === 'src') {
+      return (await dirExists(workspace, 'src/app'))
+        ? 'src/app/_types/data.ts'
+        : 'src/_types/data.ts';
+    }
+    if (rootDir === 'app') {
+      return 'app/_types/data.ts';
+    }
+    return 'src/app/_types/data.ts';
+  }
+
+  if (isNuxtFoundation(answers.foundation)) {
+    const rootDir = await existingRootDir(workspace, ['app', 'src']);
+    if (rootDir) {
+      return `${rootDir}/types/data.ts`;
+    }
+    return nuxtUsesAppDirectoryByDefault(answers) ? 'app/types/data.ts' : 'types/data.ts';
+  }
+
+  const rootDir = await existingRootDir(workspace, ['src', 'app']);
+  if (rootDir) {
+    return `${rootDir}/types/data.ts`;
+  }
+  if (isViteSeed(answers.foundation)) {
+    return 'src/types/data.ts';
+  }
+
+  return 'types/data.ts';
+};
+
+const applyJsonplaceholderTypes = async (workspace, answers) => {
+  if (!answers.typescript || !answers.jsonplaceholderTypes) {
+    return;
+  }
+  const outputPath = await jsonplaceholderTypesPath(workspace, answers);
+  await workspace.copyTemplate('shared/typescript/jsonplaceholder-data.ts', outputPath, {
+    overwrite: false,
+  });
+};
+
 const applyOwnedFoundationTemplates = async (workspace, answers) => {
   if (!answers.nodeProject || !isOwnedFoundation(answers.foundation)) {
     return;
@@ -680,6 +746,7 @@ module.exports = {
   applyAgents,
   applyCommon,
   applyLicense,
+  applyJsonplaceholderTypes,
   applyOwnedFoundationTemplates,
   applyNix,
   applyPackageJson,

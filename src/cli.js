@@ -184,6 +184,15 @@ Set Vite dev/preview port. Implies --vite and --dev-server for the owned foundat
 Add Vitest scripts, dependency, config, and a sample test where supported.`,
   },
   {
+    topic: '--jsonplaceholder-types',
+    names: ['--jsonplaceholder-types', '--no-jsonplaceholder-types'],
+    summary: 'Create or skip JSONPlaceholder TypeScript types',
+    help: `Usage: scaffold [target] --jsonplaceholder-types
+       scaffold [target] --no-jsonplaceholder-types
+
+Add JSONPlaceholder resource types and endpoint JSDoc at the convention-aware TypeScript types path. Implies --typescript unless --no-typescript is passed, which is invalid.`,
+  },
+  {
     topic: '--react',
     names: ['--react', '--no-react'],
     summary: 'Use or skip React feature',
@@ -520,6 +529,12 @@ const parseArgs = (argv) => {
         break;
       case '--no-vitest':
         setBool('vitest', false);
+        break;
+      case '--jsonplaceholder-types':
+        setBool('jsonplaceholderTypes', true);
+        break;
+      case '--no-jsonplaceholder-types':
+        setBool('jsonplaceholderTypes', false);
         break;
       case '--react':
         setBool('react', true);

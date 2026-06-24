@@ -25,7 +25,8 @@ for flag in \
   --prettier --no-prettier --tailwind --no-tailwind --typescript --no-typescript --strict \
   --nuxt-offline --nuxt-prefer-offline \
   --non-strict --preserve-ts --vite --no-vite --no-feature-prompts --dev-server \
-  --no-dev-server --dev-port --vitest --no-vitest --react \
+  --no-dev-server --dev-port --vitest --no-vitest \
+  --jsonplaceholder-types --no-jsonplaceholder-types --react \
   --no-react --vue --no-vue --jsx --no-jsx --router --no-router \
   --pinia --no-pinia --eslint --no-eslint --linter --no-linter \
   --license --no-license --license-type \
@@ -47,7 +48,7 @@ const { parseArgs } = require('./src/cli');
 const { buildSeedCommand } = require('./src/foundations');
 const { applySeededFoundationOverrides } = require('./src/override-pass');
 const { resolveTypescriptAnswers } = require('./src/prompt-features');
-const { applyPackageJson } = require('./src/project');
+const { applyJsonplaceholderTypes, applyPackageJson } = require('./src/project');
 const { Workspace } = require('./src/workspace');
 const { applyActionManifest, applyActions } = require('./src/helpers/actions');
 
@@ -100,6 +101,41 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   });
   assert.deepEqual(command.args.slice(-4), ['--', '--template', 'react-ts', '--no-interactive']);
   assert.equal(parseArgs(['--foundation', 'react-vite', '--router']).router, true);
+  assert.equal(parseArgs(['--jsonplaceholder-types']).jsonplaceholderTypes, true);
+  assert.equal(parseArgs(['--no-jsonplaceholder-types']).jsonplaceholderTypes, false);
+
+  const assertJsonplaceholderTypesPath = async ({ foundation, seedVersion = null, dirs = [], expected }) => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-jsonplaceholder-types-${foundation}-`));
+    for (const dir of dirs) {
+      fs.mkdirSync(path.join(tmp, dir), { recursive: true });
+    }
+    const workspace = new Workspace({
+      targetDir: tmp,
+      dryRun: false,
+      backup: false,
+      force: false,
+    });
+    await applyJsonplaceholderTypes(workspace, {
+      foundation,
+      seedVersion,
+      typescript: true,
+      jsonplaceholderTypes: true,
+    });
+    const dataTypes = fs.readFileSync(path.join(tmp, expected), 'utf8');
+    assert(dataTypes.includes('JSONPlaceholder guide'));
+    assert(dataTypes.includes('export type User'));
+  };
+
+  await assertJsonplaceholderTypesPath({ foundation: 'owned', expected: 'types/data.ts' });
+  await assertJsonplaceholderTypesPath({ foundation: 'react-vite', expected: 'src/types/data.ts' });
+  await assertJsonplaceholderTypesPath({ foundation: 'react-vite', dirs: ['src'], expected: 'src/types/data.ts' });
+  await assertJsonplaceholderTypesPath({ foundation: 'vue-vite', dirs: ['src'], expected: 'src/types/data.ts' });
+  await assertJsonplaceholderTypesPath({ foundation: 'next', expected: 'src/app/_types/data.ts' });
+  await assertJsonplaceholderTypesPath({ foundation: 'next', dirs: ['src/app'], expected: 'src/app/_types/data.ts' });
+  await assertJsonplaceholderTypesPath({ foundation: 'next', dirs: ['src'], expected: 'src/_types/data.ts' });
+  await assertJsonplaceholderTypesPath({ foundation: 'nuxt', seedVersion: 'latest', expected: 'app/types/data.ts' });
+  await assertJsonplaceholderTypesPath({ foundation: 'nuxt', seedVersion: '3.21.8', expected: 'types/data.ts' });
+  await assertJsonplaceholderTypesPath({ foundation: 'nuxt', dirs: ['app'], expected: 'app/types/data.ts' });
 
   const assertViteSeedPortScripts = async ({ foundation, react, vue }) => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-${foundation}-`));
