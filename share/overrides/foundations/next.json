@@ -3,6 +3,12 @@
   "description": "Post-create-next-app project shape.",
   "actions": [
     {
+      "type": "file.write",
+      "label": "Replace seeded README with scaffold summary",
+      "path": "README.md",
+      "template": "seeded/README.md.tmpl"
+    },
+    {
       "type": "json.merge",
       "label": "Add route-oriented TypeScript path aliases",
       "path": "tsconfig.json",

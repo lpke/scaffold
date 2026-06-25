@@ -3,6 +3,12 @@
   "description": "Post-nuxt-init project shape.",
   "actions": [
     {
+      "type": "file.write",
+      "label": "Replace seeded README with scaffold summary",
+      "path": "README.md",
+      "template": "seeded/README.md.tmpl"
+    },
+    {
       "type": "group",
       "label": "Apply Nuxt 3 flat project shape",
       "when": {

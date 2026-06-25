@@ -3,6 +3,12 @@
   "description": "Post-create-vite React project shape.",
   "actions": [
     {
+      "type": "file.write",
+      "label": "Replace seeded README with scaffold summary",
+      "path": "README.md",
+      "template": "seeded/README.md.tmpl"
+    },
+    {
       "type": "text.prepend",
       "label": "Import Tailwind Vite plugin in TypeScript Vite config",
       "path": "vite.config.ts",

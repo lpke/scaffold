@@ -3,6 +3,12 @@
   "description": "Post-create-vue seeded foundation shape. Keeps useful Vue seed output and replaces the demo shell with a small Tailwind-ready app.",
   "actions": [
     {
+      "type": "file.write",
+      "label": "Replace seeded README with scaffold summary",
+      "path": "README.md",
+      "template": "seeded/README.md.tmpl"
+    },
+    {
       "type": "text.prepend",
       "label": "Import Tailwind Vite plugin in TypeScript Vite config",
       "path": "vite.config.ts",

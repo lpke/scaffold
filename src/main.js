@@ -347,7 +347,7 @@ const main = async () => {
   await applyNix({ workspace, answers, config });
   await applyTypescriptConfig(workspace, answers);
   await applyOwnedFoundationTemplates(workspace, answers);
-  await applySeededFoundationOverrides({ workspace, answers, seedRun });
+  await applySeededFoundationOverrides({ workspace, answers, config, seedRun });
   await applyJsonplaceholderTypes(workspace, answers);
   await applyPnpmWorkspace({ workspace, answers });
   if (!answers.dryRun) {

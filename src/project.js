@@ -6,7 +6,6 @@ const { commandVersion } = require('./commands');
 const { readAsset, renderAsset } = require('./assets');
 const { fileExists, readText, statOrNull } = require('./detect');
 const {
-  foundationLabel,
   isAppSeed,
   isNextFoundation,
   isNuxtFoundation,
@@ -17,6 +16,7 @@ const {
 const { applyActionManifest } = require('./helpers/actions');
 const { parseJson } = require('./json');
 const { formatJson } = require('./json-format');
+const { projectTechLines } = require('./project-tech');
 
 const NON_STRICT_TS = {
   strict: false,
@@ -699,17 +699,6 @@ const applyAgents = async ({ workspace, answers, config }) => {
   if (!answers.agents) {
     return;
   }
-  const tech = [];
-  if (answers.nix) tech.push('- Nix flake dev shell');
-  if (answers.direnv) tech.push('- direnv loads the flake shell');
-  if (answers.nodeProject) tech.push(`- Node ${answers.nodeMajor} with ${answers.toolchainManager}`);
-  if (answers.nodeProject) tech.push(`- ${foundationLabel(answers.foundation, config)} foundation`);
-  if (answers.vite) tech.push(`- Vite${answers.react ? ' + React' : answers.vue ? ' + Vue' : ''}`);
-  if (answers.typescript) tech.push('- TypeScript');
-  if (answers.vitest) tech.push('- Vitest');
-  if (answers.prettier) tech.push('- Prettier');
-  if (answers.tailwind) tech.push('- Tailwind');
-
   const rules = [];
   if (answers.prettier) {
     rules.push(
@@ -729,7 +718,7 @@ const applyAgents = async ({ workspace, answers, config }) => {
   await workspace.write(
     'AGENTS.md',
     await renderAsset('templates/shared/agents/AGENTS.md.tmpl', {
-      TECH: tech.length ? tech.join('\n') : '- No runtime stack selected',
+      TECH: projectTechLines(answers, config),
       RULES: rules.join('\n'),
     }),
     { overwrite: false },

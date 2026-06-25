@@ -1,6 +1,9 @@
 'use strict';
 
+const path = require('node:path');
+
 const { applyActionManifest } = require('./helpers/actions');
+const { projectTechLines } = require('./project-tech');
 
 const seededFoundationOverridePaths = ({ answers, seedRun }) =>
   seedRun ? [`overrides/foundations/${answers.foundation}.json`] : [];
@@ -13,18 +16,20 @@ const nuxtUsesFlatStructure = (answers) => {
   return match ? Number(match[1]) <= 3 : false;
 };
 
-const seededFoundationOverrideValues = (answers) => ({
+const seededFoundationOverrideValues = (answers, config, workspace) => ({
   NUXT_FLAT: nuxtUsesFlatStructure(answers),
+  PROJECT_NAME: path.basename(path.resolve(workspace.targetDir)),
+  README_TECH: projectTechLines(answers, config),
   SCRIPT_LANG: answers.typescript ? 'ts' : 'js',
 });
 
-const applySeededFoundationOverrides = async ({ workspace, answers, seedRun, values = {} }) => {
+const applySeededFoundationOverrides = async ({ workspace, answers, config, seedRun, values = {} }) => {
   for (const manifestPath of seededFoundationOverridePaths({ answers, seedRun })) {
     await applyActionManifest({
       workspace,
       manifestPath,
       optional: true,
-      context: { answers, values: { ...seededFoundationOverrideValues(answers), ...values } },
+      context: { answers, values: { ...seededFoundationOverrideValues(answers, config, workspace), ...values } },
     });
   }
 };
