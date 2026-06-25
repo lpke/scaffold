@@ -15,8 +15,6 @@ const displayCommand = (command, args) => [command, ...args].map(shellQuote).joi
 
 const stripAnsi = (value) => String(value).replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, '');
 
-const commandLine = (line) => `${color.dim('│')} ${color.dim(stripAnsi(line))}\n`;
-
 const printCommand = (display, { dryRun = false, label = 'command' } = {}) => {
   const resolvedLabel = dryRun ? `dry-run ${label}` : label;
   if (resolvedLabel !== 'command') {
@@ -43,26 +41,33 @@ const commandVersion = (command, fallback) => {
 
 const writeCommandOutput = (stream, state, chunk) => {
   state.raw += chunk;
-  state.buffer += chunk.replace(/\r/g, '\n');
-  const lines = state.buffer.split('\n');
-  state.buffer = lines.pop() ?? '';
-  for (const line of lines) {
-    stream.write(commandLine(line));
+  const text = stripAnsi(chunk).replace(/\r/g, '\n');
+  for (const part of text.split(/(\n)/)) {
+    if (!part) {
+      continue;
+    }
+    if (state.lineStart) {
+      stream.write(`${color.dim('│')} `);
+      state.lineStart = false;
+    }
+    stream.write(color.dim(part));
+    if (part === '\n') {
+      state.lineStart = true;
+    }
   }
 };
 
 const flushCommandOutput = (stream, state) => {
-  if (!state.buffer) {
-    return;
+  if (!state.lineStart) {
+    stream.write('\n');
+    state.lineStart = true;
   }
-  stream.write(commandLine(state.buffer));
-  state.buffer = '';
 };
 
 const runCommandProcess = (command, args, cwd) =>
   new Promise((resolve, reject) => {
-    const stdout = { raw: '', buffer: '' };
-    const stderr = { raw: '', buffer: '' };
+    const stdout = { raw: '', lineStart: true };
+    const stderr = { raw: '', lineStart: true };
     const child = cp.spawn(command, args, { cwd, stdio: ['inherit', 'pipe', 'pipe'] });
 
     child.stdout.setEncoding('utf8');

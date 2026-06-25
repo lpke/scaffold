@@ -89,7 +89,7 @@ const buildReactViteSeedCommand = ({ answers, targetDir }) => {
   const version = answers.seedVersion || 'latest';
   return {
     command: 'npm',
-    args: ['create', `vite@${version}`, targetDir, '--', '--template', template, '--no-interactive'],
+    args: ['create', '--yes', `vite@${version}`, targetDir, '--', '--template', template, '--no-interactive'],
   };
 };
 
@@ -106,7 +106,7 @@ const buildVueViteSeedCommand = ({ answers, targetDir }) => {
   if (featureFlags.length === 0) featureFlags.push('--default');
   return {
     command: 'npm',
-    args: ['create', `vue@${version}`, '--', ...featureFlags, targetDir],
+    args: ['create', '--yes', `vue@${version}`, '--', ...featureFlags, targetDir],
   };
 };
 
