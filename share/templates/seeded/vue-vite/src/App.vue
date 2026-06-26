@@ -4,14 +4,14 @@ import { RouterLink, RouterView } from 'vue-router'
 
 <template>
   <header>
-    <nav class="p-5 flex gap-5 bg-green-100">
+    <nav class="flex gap-page bg-header p-page">
       <RouterLink to="/">Home</RouterLink>
       <RouterLink to="/about">About</RouterLink>
       <span class="ml-auto font-bold">Vue + Vite</span>
     </nav>
   </header>
 
-  <main class="p-5">
+  <main class="p-page">
     <RouterView />
   </main>
 </template>

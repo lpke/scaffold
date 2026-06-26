@@ -65,7 +65,7 @@
       "label": "Replace React CSS with Tailwind import",
       "path": "src/index.css",
       "when": "tailwind",
-      "template": "owned/vite/tailwind.css"
+      "template": "owned/vite/tailwind-react.css"
     },
     {
       "type": "file.write",

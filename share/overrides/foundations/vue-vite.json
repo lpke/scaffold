@@ -65,7 +65,7 @@
       "label": "Put Tailwind import in create-vue's imported CSS path",
       "path": "src/assets/base.css",
       "when": "tailwind",
-      "template": "owned/vite/tailwind.css"
+      "template": "owned/vite/tailwind-vue.css"
     },
     {
       "type": "file.write",

@@ -557,8 +557,13 @@ const applyOwnedFoundationTemplates = async (workspace, answers) => {
       overwrite: workspace.force,
     });
 
+    const tailwindCssTemplate = answers.react
+      ? 'owned/vite/tailwind-react.css'
+      : answers.vue
+        ? 'owned/vite/tailwind-vue.css'
+        : 'owned/vite/tailwind.css';
     await workspace.copyTemplate(
-      answers.tailwind ? 'owned/vite/tailwind.css' : 'owned/vite/reset.css',
+      answers.tailwind ? tailwindCssTemplate : 'owned/vite/reset.css',
       'src/style.css',
     );
 

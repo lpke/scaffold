@@ -4,13 +4,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <header>
-        <nav className="flex gap-5 bg-blue-100 p-5">
+        <nav className="flex gap-page bg-header p-page">
           <Link to="/">Home</Link>
           <Link to="/about">About</Link>
           <span className="ml-auto font-bold">React + Vite</span>
         </nav>
       </header>
-      <main className="p-5">{children}</main>
+      <main className="p-page">{children}</main>
     </>
   );
 }

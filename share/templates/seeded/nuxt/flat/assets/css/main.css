@@ -1,1 +1,10 @@
 @import 'tailwindcss';
+
+@theme {
+  --color-header: #a7f3d0;
+  --spacing-page: 1.25rem;
+}
+
+h1 {
+  @apply text-3xl;
+}

@@ -1,12 +1,12 @@
 <template>
   <header>
-    <nav class="flex gap-5 bg-green-100 p-5">
+    <nav class="flex gap-page bg-header p-page">
       <a href="/">Home</a>
       <span class="ml-auto font-bold">Vue + Vite</span>
     </nav>
   </header>
 
-  <main class="p-5">
+  <main class="p-page">
     <h1>Home</h1>
   </main>
 </template>

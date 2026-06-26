@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-header: #a7f3d0;
+  --color-header: #dcfce7;
   --spacing-page: 1.25rem;
 }
 
