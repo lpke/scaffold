@@ -5,6 +5,10 @@
   --spacing-page: 1.25rem;
 }
 
+button {
+  cursor: pointer;
+}
+
 h1 {
   @apply text-3xl;
 }
