@@ -19,12 +19,13 @@
       "skipIfContains": "@tailwindcss/vite"
     },
     {
-      "type": "text.prepend",
-      "label": "Import tsconfig path resolver in TypeScript Vite config",
+      "type": "text.insertAfter",
+      "label": "Enable native tsconfig path resolution in TypeScript Vite config",
       "path": "vite.config.ts",
       "when": "typescript",
-      "content": "import tsconfigPaths from 'vite-tsconfig-paths'\n",
-      "skipIfContains": "vite-tsconfig-paths"
+      "match": "resolve: {\n",
+      "content": "    tsconfigPaths: true,\n",
+      "skipIfContains": "tsconfigPaths: true"
     },
     {
       "type": "text.insertAfter",
@@ -36,15 +37,6 @@
       "skipIfContains": "tailwindcss()",
       "match": "plugins: [",
       "content": "\n    tailwindcss(),"
-    },
-    {
-      "type": "text.insertAfter",
-      "label": "Register tsconfig path resolver in TypeScript Vite config",
-      "path": "vite.config.ts",
-      "when": "typescript",
-      "skipIfContains": "tsconfigPaths()",
-      "match": "plugins: [",
-      "content": "\n    tsconfigPaths(),"
     },
     {
       "type": "text.prepend",
@@ -124,6 +116,34 @@
     },
     {
       "type": "text.replace",
+      "label": "Use aliases in TypeScript Vue entrypoint imports",
+      "path": "src/main.ts",
+      "when": "typescript",
+      "replacements": [
+        {
+          "match": "import './assets/base.css'",
+          "replace": "import '@/assets/base.css'"
+        },
+        {
+          "match": "import './assets/main.css'",
+          "replace": "import '@/assets/base.css'"
+        },
+        {
+          "match": "import './style.css'",
+          "replace": "import '@/assets/base.css'"
+        },
+        {
+          "match": "import App from './App.vue'",
+          "replace": "import App from '@/App.vue'"
+        },
+        {
+          "match": "import router from './router'",
+          "replace": "import router from '@/router'"
+        }
+      ]
+    },
+    {
+      "type": "text.replace",
       "label": "Import the scaffold CSS file from Vue entrypoint",
       "path": "src/main.js",
       "when": {
@@ -141,6 +161,38 @@
         {
           "match": "import './style.css'",
           "replace": "import './assets/base.css'"
+        }
+      ]
+    },
+    {
+      "type": "text.replace",
+      "label": "Use aliases in Vue Router imports",
+      "path": "src/router/index.ts",
+      "when": {
+        "all": ["router", "typescript"]
+      },
+      "replacements": [
+        {
+          "match": "import HomeView from '../views/HomeView.vue'",
+          "replace": "import HomeView from '@/views/HomeView.vue'"
+        },
+        {
+          "match": "import('../views/AboutView.vue')",
+          "replace": "import('@/views/AboutView.vue')"
+        }
+      ]
+    },
+    {
+      "type": "text.replace",
+      "label": "Use aliases in Vue component test imports",
+      "path": "src/components/__tests__/HelloWorld.spec.ts",
+      "when": {
+        "all": ["vitest", "typescript"]
+      },
+      "replacements": [
+        {
+          "match": "import HelloWorld from '../HelloWorld.vue'",
+          "replace": "import HelloWorld from '@/components/HelloWorld.vue'"
         }
       ]
     },

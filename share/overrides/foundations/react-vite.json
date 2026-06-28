@@ -19,12 +19,13 @@
       "skipIfContains": "@tailwindcss/vite"
     },
     {
-      "type": "text.prepend",
-      "label": "Import tsconfig path resolver in TypeScript Vite config",
+      "type": "text.insertAfter",
+      "label": "Enable native tsconfig path resolution in TypeScript Vite config",
       "path": "vite.config.ts",
       "when": "typescript",
-      "content": "import tsconfigPaths from 'vite-tsconfig-paths'\n",
-      "skipIfContains": "vite-tsconfig-paths"
+      "match": "export default defineConfig({\n",
+      "content": "  resolve: { tsconfigPaths: true },\n",
+      "skipIfContains": "tsconfigPaths: true"
     },
     {
       "type": "text.replace",
@@ -36,15 +37,6 @@
       "skipIfContains": "tailwindcss()",
       "regex": "plugins:\\s*\\[([^\\]]*)\\]",
       "replace": "plugins: [$1, tailwindcss()]"
-    },
-    {
-      "type": "text.replace",
-      "label": "Register tsconfig path resolver in TypeScript Vite config",
-      "path": "vite.config.ts",
-      "when": "typescript",
-      "skipIfContains": "tsconfigPaths()",
-      "regex": "plugins:\\s*\\[([^\\]]*)\\]",
-      "replace": "plugins: [$1, tsconfigPaths()]"
     },
     {
       "type": "text.prepend",
@@ -141,20 +133,20 @@
     {
       "type": "file.write",
       "label": "Add React Router TypeScript home route",
-      "path": "src/pages/HomePage.tsx",
+      "path": "src/routes/HomePage.tsx",
       "when": {
         "all": ["router", "typescript"]
       },
-      "template": "seeded/react-vite/router/pages/HomePage.tsx"
+      "template": "seeded/react-vite/router/routes/HomePage.tsx"
     },
     {
       "type": "file.write",
       "label": "Add React Router TypeScript about route",
-      "path": "src/pages/AboutPage.tsx",
+      "path": "src/routes/AboutPage.tsx",
       "when": {
         "all": ["router", "typescript"]
       },
-      "template": "seeded/react-vite/router/pages/AboutPage.tsx"
+      "template": "seeded/react-vite/router/routes/AboutPage.tsx"
     },
     {
       "type": "file.write",
@@ -196,6 +188,26 @@
         ]
       },
       "template": "seeded/react-vite/plain/App.tsx"
+    },
+    {
+      "type": "text.replace",
+      "label": "Use aliases in TypeScript React entrypoint imports",
+      "path": "src/main.tsx",
+      "when": "typescript",
+      "replacements": [
+        {
+          "match": "import App from './App.tsx'",
+          "replace": "import App from '@/App'"
+        },
+        {
+          "match": "import { App } from './App'",
+          "replace": "import { App } from '@/App'"
+        },
+        {
+          "match": "import './index.css'",
+          "replace": "import '@/index.css'"
+        }
+      ]
     },
     {
       "type": "file.write",
@@ -246,7 +258,7 @@
     {
       "type": "file.write",
       "label": "Add React Router JavaScript home route",
-      "path": "src/pages/HomePage.jsx",
+      "path": "src/routes/HomePage.jsx",
       "when": {
         "all": [
           "router",
@@ -255,12 +267,12 @@
           }
         ]
       },
-      "template": "seeded/react-vite/router/pages/HomePage.jsx"
+      "template": "seeded/react-vite/router/routes/HomePage.jsx"
     },
     {
       "type": "file.write",
       "label": "Add React Router JavaScript about route",
-      "path": "src/pages/AboutPage.jsx",
+      "path": "src/routes/AboutPage.jsx",
       "when": {
         "all": [
           "router",
@@ -269,7 +281,7 @@
           }
         ]
       },
-      "template": "seeded/react-vite/router/pages/AboutPage.jsx"
+      "template": "seeded/react-vite/router/routes/AboutPage.jsx"
     },
     {
       "type": "file.write",
@@ -328,7 +340,7 @@
       "when": {
         "all": ["vitest", "typescript"]
       },
-      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\nimport tsconfigPaths from 'vite-tsconfig-paths';\n\nexport default defineConfig({\n  plugins: [react(), tsconfigPaths()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n    setupFiles: ['src/setupTests.ts'],\n  },\n});\n"
+      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  resolve: { tsconfigPaths: true },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n    setupFiles: ['src/setupTests.ts'],\n  },\n});\n"
     },
     {
       "type": "file.write",

@@ -1,7 +1,7 @@
 import { Route, Routes } from 'react-router';
-import Layout from './components/Layout';
-import HomePage from './pages/HomePage';
-import AboutPage from './pages/AboutPage';
+import Layout from '@/components/Layout';
+import AboutPage from '@/routes/AboutPage';
+import HomePage from '@/routes/HomePage';
 
 export function App() {
   return (

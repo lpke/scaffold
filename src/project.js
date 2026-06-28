@@ -145,9 +145,6 @@ const dependencySet = (answers, config) => {
       addDev('vitest');
       if (isNextFoundation(answers.foundation)) {
         addDev('@vitejs/plugin-react');
-        if (answers.typescript) {
-          addDev('vite-tsconfig-paths');
-        }
       }
       if (isNuxtFoundation(answers.foundation)) {
         addDev('@vitejs/plugin-vue');
@@ -159,10 +156,6 @@ const dependencySet = (answers, config) => {
       addDev('@types/node');
     }
     return { deps, devDeps };
-  }
-
-  if (isViteSeed(answers.foundation) && answers.typescript) {
-    addDev('vite-tsconfig-paths');
   }
 
   if (answers.typescript) {

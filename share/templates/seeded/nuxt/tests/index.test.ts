@@ -1,6 +1,6 @@
 import { createApp } from 'vue';
 import { describe, expect, it } from 'vitest';
-import HomePage from './index.vue';
+import HomePage from 'pages/index.vue';
 
 describe('Home page', () => {
   it('renders the home page', () => {
