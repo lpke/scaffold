@@ -24,7 +24,9 @@ const { featureSet, resolveTypescriptAnswers } = require('./prompt-features');
 const { resolveSeedVersion } = require('./prompt-foundations');
 const {
   resolveGitAdd,
+  resolveCommitOverrides,
   resolveGitMode,
+  resolveGitPush,
   resolveGitRemote,
   resolveGitRemoteConfigure,
 } = require('./prompt-git');
@@ -269,6 +271,18 @@ const inferDependentOptions = (opts, { interactive }) => {
   }
   if (opts.gitAdd === true && opts.gitMode === 'skip') {
     throw new Error('--git-add cannot be used with --git skip');
+  }
+  if (opts.commitOverrides === true && opts.gitMode === 'skip') {
+    throw new Error('--commit-overrides cannot be used with --git skip');
+  }
+  if (opts.gitPush === true) {
+    if (opts.gitMode === 'skip') {
+      throw new Error('--git-push cannot be used with --git skip');
+    }
+    if (!opts.gitRemote && !interactive) {
+      throw new Error('--git-push requires --git-remote when prompts are disabled');
+    }
+    inferred.gitRemoteRequested = true;
   }
 
   return inferred;
@@ -766,6 +780,11 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
           run: () => resolveGitMode({ rl, opts, targetDir, mode }),
         },
         {
+          keys: ['commitOverrides'],
+          backStop: Boolean(rl && answers.gitMode !== 'skip'),
+          run: () => resolveCommitOverrides({ rl, opts, gitMode: answers.gitMode }),
+        },
+        {
           keys: ['gitConfigureRemote', 'gitRemoteName'],
           backStop: Boolean(rl && answers.gitMode !== 'skip' && !opts.gitRemote),
           run: () => resolveGitRemoteConfigure({ rl, opts, targetDir, gitMode: answers.gitMode }),
@@ -783,6 +802,17 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
               gitMode: answers.gitMode,
               gitConfigureRemote: answers.gitConfigureRemote,
               gitRemoteName: answers.gitRemoteName,
+            }),
+        },
+        {
+          keys: ['gitPush'],
+          backStop: Boolean(rl && answers.gitMode !== 'skip' && answers.gitRemote),
+          run: () =>
+            resolveGitPush({
+              rl,
+              opts,
+              gitMode: answers.gitMode,
+              gitRemote: answers.gitRemote,
             }),
         },
         {

@@ -313,6 +313,15 @@ init: initialize a new repo when none exists.
 replace: remove target .git, initialize a new repo, commit current files as "initial commit", then stage scaffold changes.`,
   },
   {
+    topic: '--commit-overrides',
+    names: ['--commit-overrides', '--no-commit-overrides'],
+    summary: 'Commit scaffold overrides',
+    help: `Usage: scaffold [target] --commit-overrides
+       scaffold [target] --no-commit-overrides
+
+Commit scaffold defaults, features, and overrides after writing and formatting files. Requires git handling to be enabled.`,
+  },
+  {
     topic: '--git-remote',
     names: ['--git-remote'],
     summary: 'Set git remote URL',
@@ -327,6 +336,15 @@ Add or update a git remote after git setup. Also configures main to track <remot
     help: `Usage: scaffold [target] --git-remote-name <name>
 
 Remote name used with --git-remote. With prompts enabled, omitting --git-remote asks for the URL. Default: origin.`,
+  },
+  {
+    topic: '--git-push',
+    names: ['--git-push', '--no-git-push'],
+    summary: 'Push main to the git remote',
+    help: `Usage: scaffold [target] --git-push
+       scaffold [target] --no-git-push
+
+Run git push -u origin main after git setup when a git remote is configured. Default: no.`,
   },
   {
     topic: '--git-add',
@@ -609,6 +627,18 @@ const parseArgs = (argv) => {
         break;
       case '--no-git-add':
         setBool('gitAdd', false);
+        break;
+      case '--git-push':
+        setBool('gitPush', true);
+        break;
+      case '--no-git-push':
+        setBool('gitPush', false);
+        break;
+      case '--commit-overrides':
+        setBool('commitOverrides', true);
+        break;
+      case '--no-commit-overrides':
+        setBool('commitOverrides', false);
         break;
       case '--force':
         opts.force = true;

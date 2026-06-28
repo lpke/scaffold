@@ -98,6 +98,23 @@ const resolveGitRemote = async ({ rl, opts, targetDir, gitMode, gitConfigureRemo
   return { gitRemote };
 };
 
+const resolveGitPush = async ({ rl, opts, gitMode, gitRemote }) => ({
+  gitPush:
+    gitMode !== 'skip' &&
+    Boolean(gitRemote) &&
+    (opts.gitPush != null ? opts.gitPush : rl ? await promptYesNo(rl, 'Push to git remote?', false) : false),
+});
+
+const resolveCommitOverrides = async ({ rl, opts, gitMode }) => ({
+  commitOverrides:
+    gitMode !== 'skip' &&
+    (opts.commitOverrides != null
+      ? opts.commitOverrides
+      : rl
+        ? await promptYesNo(rl, 'Commit overrides?', true)
+        : true),
+});
+
 const resolveGitAdd = ({ opts, gitMode }) => ({
   gitAdd: opts.gitAdd ?? gitMode !== 'skip',
   gitRemoteName: opts.gitRemoteName || 'origin',
@@ -105,6 +122,7 @@ const resolveGitAdd = ({ opts, gitMode }) => ({
 
 const resolveGitAnswers = async ({ rl, opts, targetDir, mode }) => {
   const { gitMode } = await resolveGitMode({ rl, opts, targetDir, mode });
+  const { commitOverrides } = await resolveCommitOverrides({ rl, opts, gitMode });
   const { gitConfigureRemote, gitRemoteName } = await resolveGitRemoteConfigure({
     rl,
     opts,
@@ -119,18 +137,23 @@ const resolveGitAnswers = async ({ rl, opts, targetDir, mode }) => {
     gitConfigureRemote,
     gitRemoteName,
   });
+  const { gitPush } = await resolveGitPush({ rl, opts, gitMode, gitRemote });
   return {
     ...resolveGitAdd({ opts, gitMode }),
+    commitOverrides,
     gitMode,
+    gitPush,
     gitRemote,
     gitRemoteName,
   };
 };
 
 module.exports = {
+  resolveCommitOverrides,
   resolveGitAdd,
   resolveGitAnswers,
   resolveGitMode,
+  resolveGitPush,
   resolveGitRemote,
   resolveGitRemoteConfigure,
 };

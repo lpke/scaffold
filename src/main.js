@@ -15,8 +15,10 @@ const {
   shouldDeferAppSeedInstall,
 } = require('./foundations');
 const {
+  commitScaffoldOverrides,
   commitSeedOutput,
   prepareGit,
+  pushGit,
   replaceGitWithInitialCommit,
   stageForNix,
   stageGit,
@@ -369,7 +371,9 @@ const main = async () => {
   await stageForNix({ answers, targetDir, workspace });
   await runPostChecks({ answers, config, targetDir, workspace, interactive });
   await runFinalFormat({ answers, config, targetDir, workspace });
+  await commitScaffoldOverrides({ answers, targetDir, workspace });
   await stageGit({ answers, targetDir, workspace });
+  await pushGit({ answers, targetDir, workspace });
 
   printSummary({ answers, config, mode, targetDir, workspace });
 };

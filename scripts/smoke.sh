@@ -32,7 +32,8 @@ for flag in \
   --license --no-license --license-type \
   --agents --no-agents --flake-lock --no-flake-lock --install \
   --no-install --git --git-remote --git-remote-name --git-add \
-  --no-git-add --force --backup --no-backup
+  --no-git-add --git-push --no-git-push --commit-overrides \
+  --no-commit-overrides --force --backup --no-backup
 do
   bin/scaffold "$flag" --help >/dev/null
   bin/scaffold help "$flag" >/dev/null

@@ -41,6 +41,10 @@ const configureMainTracking = async (targetDir, name, dryRun) => {
   await runCommand('git', ['-C', targetDir, 'config', 'branch.main.merge', 'refs/heads/main'], targetDir, dryRun);
 };
 
+const pushMain = async (targetDir, name, dryRun) => {
+  await runCommand('git', ['-C', targetDir, 'push', '-u', name, 'main'], targetDir, dryRun);
+};
+
 const gitAddAll = async (targetDir, dryRun) => {
   await runCommand('git', ['-C', targetDir, 'add', '--all', '--', '.'], targetDir, dryRun);
 };
@@ -129,6 +133,26 @@ const commitSeedOutput = async ({ answers, commandDisplay, targetDir, workspace 
   workspace.changed.push('committed seed output');
 };
 
+const commitScaffoldOverrides = async ({ answers, targetDir, workspace }) => {
+  if (!answers.commitOverrides || answers.gitMode === 'skip') {
+    return;
+  }
+  if (!commandExists('git')) {
+    workspace.skipped.push('git not found');
+    return;
+  }
+
+  const git = detectGit(targetDir);
+  if (!git.inside && !answers.dryRun) {
+    workspace.skipped.push('no git repo for overrides commit');
+    return;
+  }
+
+  await gitAddAll(targetDir, answers.dryRun);
+  await gitCommitPath(targetDir, 'scaffold overrides', answers.dryRun);
+  workspace.changed.push('committed scaffold overrides');
+};
+
 const prepareGit = async ({ answers, targetDir, workspace }) => {
   if (answers.gitMode === 'skip') {
     workspace.skipped.push('git skipped');
@@ -181,6 +205,23 @@ const stageGit = async ({ answers, targetDir, workspace }) => {
   }
 };
 
+const pushGit = async ({ answers, targetDir, workspace }) => {
+  if (answers.gitMode === 'skip' || !answers.gitPush || !answers.gitRemote) {
+    return;
+  }
+  if (!commandExists('git')) {
+    workspace.skipped.push('git not found');
+    return;
+  }
+  const git = detectGit(targetDir);
+  if (!git.inside && !answers.dryRun) {
+    workspace.skipped.push('no git repo for push');
+    return;
+  }
+  await pushMain(targetDir, answers.gitRemoteName, answers.dryRun);
+  workspace.changed.push(`pushed main to ${answers.gitRemoteName}`);
+};
+
 const stageForNix = async ({ answers, targetDir, workspace }) => {
   if (!answers.nix || !commandExists('git')) {
     return;
@@ -194,8 +235,10 @@ const stageForNix = async ({ answers, targetDir, workspace }) => {
 };
 
 module.exports = {
+  commitScaffoldOverrides,
   commitSeedOutput,
   prepareGit,
+  pushGit,
   replaceGitWithInitialCommit,
   stageForNix,
   stageGit,
