@@ -53,6 +53,33 @@ The usual order is:
 
 **Answers, templates, common defaults, features, and overrides stack. They are not mutually exclusive.**
 
+## Scaffold Change Philosophy
+
+When a request affects generated project structure, do not apply the user's snippet literally to every path. Treat snippets as intent examples, then map that intent onto each scaffold shape.
+
+For every cross-project change, consider and validate each distinct path:
+
+- owned foundations vs seeded foundations
+- fresh mode vs overlay mode when relevant
+- Next.js, Nuxt, React Vite, Vue Vite, vanilla Vite, React/Vue without Vite, and Node-only shapes
+- TypeScript vs JavaScript output
+- Tailwind vs no Tailwind
+- Vitest/router/feature combinations that change files, dirs, configs, or imports
+
+Seeded foundations should stay close to the seed output unless the request explicitly asks to replace or delete seed structure. Prefer small, deterministic overrides that adapt after inspecting the seed layout. If a framework has its own convention or generated config path, use that convention instead of forcing a shared shape. Examples: preserve existing Next alias preferences, use Nuxt `nuxt.config.ts` conventions for Nuxt aliases when appropriate, and prefer `tsconfig.app.json` over `tsconfig.json` in Vite seeds when that is the generated TypeScript app config.
+
+For path, alias, config, styles, or directory changes:
+
+- inspect relevant templates, seeded override manifests, common defaults, and feature code before editing
+- choose paths from actual generated layout; for dry-run or pre-seed reasoning, use the seed's expected default layout
+- create referenced directories only when they belong to that scaffold shape
+- avoid adding React-specific structure to Vue/Nuxt/vanilla/Node outputs, and avoid adding app-specific structure to bare-bones templates unless requested
+- preserve existing aliases or framework defaults unless the request explicitly says to replace them
+- if deleting/replacing seed folders, replace them with the requested structure intentionally and keep the result clean
+- validate by simulating representative scaffold commands in a temporary directory, including at least one negative/control case where the change should not appear
+
+Always visualize the final generated tree before finishing. The result should evolve scaffold's conventions without making unrelated seed output feel heavily rewritten.
+
 ## Seeded Project Paths
 
 For seeded foundations, inspect the generated root layout before choosing paths for feature files or overrides. Prefer existing root-level `src/` or `app/` directories instead of assuming a top-level path; in dry-run paths, use the seed foundation's expected default layout.

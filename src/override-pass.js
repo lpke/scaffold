@@ -12,12 +12,13 @@ const nuxtUsesFlatStructure = (answers) => {
   if (answers.foundation !== 'nuxt') {
     return false;
   }
-  const match = String(answers.seedVersion || '').match(/^(\d+)\./);
+  const match = String(answers.seedVersion || '').match(/^(\d+)(?:\.|$)/);
   return match ? Number(match[1]) <= 3 : false;
 };
 
 const seededFoundationOverrideValues = (answers, config, workspace) => ({
   NUXT_FLAT: nuxtUsesFlatStructure(answers),
+  NUXT_ALIAS_ROOT: nuxtUsesFlatStructure(answers) ? '' : 'app/',
   PROJECT_NAME: path.basename(path.resolve(workspace.targetDir)),
   README_TECH: projectTechLines(answers, config),
   SCRIPT_LANG: answers.typescript ? 'ts' : 'js',

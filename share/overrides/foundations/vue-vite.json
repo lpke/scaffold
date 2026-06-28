@@ -19,15 +19,32 @@
       "skipIfContains": "@tailwindcss/vite"
     },
     {
-      "type": "text.replace",
+      "type": "text.prepend",
+      "label": "Import tsconfig path resolver in TypeScript Vite config",
+      "path": "vite.config.ts",
+      "when": "typescript",
+      "content": "import tsconfigPaths from 'vite-tsconfig-paths'\n",
+      "skipIfContains": "vite-tsconfig-paths"
+    },
+    {
+      "type": "text.insertAfter",
       "label": "Register Tailwind Vite plugin in TypeScript Vite config",
       "path": "vite.config.ts",
       "when": {
         "all": ["tailwind", "typescript"]
       },
       "skipIfContains": "tailwindcss()",
-      "regex": "plugins:\\s*\\[([^\\]]*)\\]",
-      "replace": "plugins: [$1, tailwindcss()]"
+      "match": "plugins: [",
+      "content": "\n    tailwindcss(),"
+    },
+    {
+      "type": "text.insertAfter",
+      "label": "Register tsconfig path resolver in TypeScript Vite config",
+      "path": "vite.config.ts",
+      "when": "typescript",
+      "skipIfContains": "tsconfigPaths()",
+      "match": "plugins: [",
+      "content": "\n    tsconfigPaths(),"
     },
     {
       "type": "text.prepend",
@@ -45,7 +62,7 @@
       "skipIfContains": "@tailwindcss/vite"
     },
     {
-      "type": "text.replace",
+      "type": "text.insertAfter",
       "label": "Register Tailwind Vite plugin in JavaScript Vite config",
       "path": "vite.config.js",
       "when": {
@@ -57,8 +74,8 @@
         ]
       },
       "skipIfContains": "tailwindcss()",
-      "regex": "plugins:\\s*\\[([^\\]]*)\\]",
-      "replace": "plugins: [$1, tailwindcss()]"
+      "match": "plugins: [",
+      "content": "\n    tailwindcss(),"
     },
     {
       "type": "file.write",

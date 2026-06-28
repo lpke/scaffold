@@ -37,6 +37,46 @@ const STRICT_TS = {
   skipLibCheck: true,
 };
 
+const SEEDED_REACT_VITE_ALIAS_PATHS = {
+  '@/routes/*': ['./src/routes/*'],
+  '@/components/*': ['./src/components/*'],
+  '@/hooks/*': ['./src/hooks/*'],
+  '@/helpers/*': ['./src/helpers/*'],
+  '@/data/*': ['./src/data/*'],
+  '@/types/*': ['./src/types/*'],
+  '@/*': ['./src/*'],
+};
+
+const SEEDED_REACT_VITE_ALIAS_DIRS = [
+  'src/routes',
+  'src/components',
+  'src/hooks',
+  'src/helpers',
+  'src/data',
+  'src/types',
+];
+
+const SEEDED_VUE_VITE_ALIAS_PATHS = {
+  '@/views/*': ['./src/views/*'],
+  '@/components/*': ['./src/components/*'],
+  '@/composables/*': ['./src/composables/*'],
+  '@/stores/*': ['./src/stores/*'],
+  '@/helpers/*': ['./src/helpers/*'],
+  '@/data/*': ['./src/data/*'],
+  '@/types/*': ['./src/types/*'],
+  '@/*': ['./src/*'],
+};
+
+const SEEDED_VUE_VITE_ALIAS_DIRS = [
+  'src/views',
+  'src/components',
+  'src/composables',
+  'src/stores',
+  'src/helpers',
+  'src/data',
+  'src/types',
+];
+
 const sanitizePackageName = (dirPath) => {
   const name = path.basename(path.resolve(dirPath));
   return (
@@ -105,6 +145,9 @@ const dependencySet = (answers, config) => {
       addDev('vitest');
       if (isNextFoundation(answers.foundation)) {
         addDev('@vitejs/plugin-react');
+        if (answers.typescript) {
+          addDev('vite-tsconfig-paths');
+        }
       }
       if (isNuxtFoundation(answers.foundation)) {
         addDev('@vitejs/plugin-vue');
@@ -116,6 +159,10 @@ const dependencySet = (answers, config) => {
       addDev('@types/node');
     }
     return { deps, devDeps };
+  }
+
+  if (isViteSeed(answers.foundation) && answers.typescript) {
+    addDev('vite-tsconfig-paths');
   }
 
   if (answers.typescript) {
@@ -400,6 +447,55 @@ const applyTsMode = async (workspace, mode) => {
   await workspace.write('tsconfig.json', formatJson(tsconfig));
 };
 
+const seededTsconfigAliasPath = async (workspace) => {
+  for (const relativePath of ['tsconfig.app.json', 'tsconfig.json']) {
+    if (await fileExists(workspace.targetPath(relativePath))) {
+      return relativePath;
+    }
+  }
+  return null;
+};
+
+const seededAliasConfig = (answers) => {
+  if (answers.foundation === 'react-vite') {
+    return {
+      dirs: SEEDED_REACT_VITE_ALIAS_DIRS,
+      paths: SEEDED_REACT_VITE_ALIAS_PATHS,
+    };
+  }
+  if (answers.foundation === 'vue-vite') {
+    return {
+      dirs: SEEDED_VUE_VITE_ALIAS_DIRS,
+      paths: SEEDED_VUE_VITE_ALIAS_PATHS,
+    };
+  }
+  return null;
+};
+
+const applySeededTsconfigPathAliases = async (workspace, answers) => {
+  const aliasConfig = answers.typescript ? seededAliasConfig(answers) : null;
+  if (!aliasConfig) {
+    return;
+  }
+
+  const relativePath = await seededTsconfigAliasPath(workspace);
+  if (!relativePath) {
+    return;
+  }
+
+  const configPath = workspace.targetPath(relativePath);
+  const tsconfig = parseJson(await readAssetFromTarget(configPath), configPath);
+  tsconfig.compilerOptions ??= {};
+  tsconfig.compilerOptions.paths ??= {};
+  mergeObjectDefaults(tsconfig.compilerOptions.paths, aliasConfig.paths);
+
+  await workspace.write(relativePath, formatJson(tsconfig));
+
+  for (const dir of aliasConfig.dirs) {
+    await workspace.ensureDir(dir);
+  }
+};
+
 const readAssetFromTarget = async (filePath) => {
   const fs = require('node:fs/promises');
   return fs.readFile(filePath, 'utf8');
@@ -452,7 +548,7 @@ const existingRootDir = async (workspace, dirs) => {
 };
 
 const nuxtUsesAppDirectoryByDefault = (answers) => {
-  const match = String(answers.seedVersion || '').match(/^(\d+)\./);
+  const match = String(answers.seedVersion || '').match(/^(\d+)(?:\.|$)/);
   return match ? Number(match[1]) >= 4 : true;
 };
 
@@ -745,6 +841,7 @@ module.exports = {
   applyNix,
   applyPackageJson,
   applyPnpmWorkspace,
+  applySeededTsconfigPathAliases,
   applyReadme,
   applyTsMode,
   applyTypescriptConfig,

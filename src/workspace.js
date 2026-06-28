@@ -87,6 +87,22 @@ class Workspace {
     }
   }
 
+  async ensureDir(relativePath) {
+    const dirPath = this.targetPath(relativePath);
+    const exists = await fileExists(dirPath);
+    if (exists) {
+      this.skipped.push(`${relativePath} exists`);
+      this.mark(relativePath);
+      return;
+    }
+
+    this.changed.push(`created ${relativePath}/`);
+    this.mark(relativePath);
+    if (!this.dryRun) {
+      await fsp.mkdir(dirPath, { recursive: true });
+    }
+  }
+
   async remove(relativePath, { backup = true, protectBackupArtifacts = false } = {}) {
     if (protectBackupArtifacts && isBackupArtifactPath(relativePath)) {
       this.skipped.push(`${relativePath} backup artifact kept`);

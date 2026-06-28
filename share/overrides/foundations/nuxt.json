@@ -49,6 +49,31 @@
           "template": "seeded/nuxt/flat/pages/about.vue"
         },
         {
+          "type": "dir.ensure",
+          "label": "Create Nuxt flat components directory",
+          "path": "components"
+        },
+        {
+          "type": "dir.ensure",
+          "label": "Create Nuxt flat composables directory",
+          "path": "composables"
+        },
+        {
+          "type": "dir.ensure",
+          "label": "Create Nuxt flat utils directory",
+          "path": "utils"
+        },
+        {
+          "type": "dir.ensure",
+          "label": "Create Nuxt flat data directory",
+          "path": "data"
+        },
+        {
+          "type": "dir.ensure",
+          "label": "Create Nuxt flat types directory",
+          "path": "types"
+        },
+        {
           "type": "file.write",
           "label": "Add Nuxt Tailwind CSS",
           "path": "assets/css/main.css",
@@ -107,6 +132,31 @@
           "label": "Add Nuxt about route",
           "path": "app/pages/about.vue",
           "template": "seeded/nuxt/app/pages/about.vue"
+        },
+        {
+          "type": "dir.ensure",
+          "label": "Create Nuxt app components directory",
+          "path": "app/components"
+        },
+        {
+          "type": "dir.ensure",
+          "label": "Create Nuxt app composables directory",
+          "path": "app/composables"
+        },
+        {
+          "type": "dir.ensure",
+          "label": "Create Nuxt app utils directory",
+          "path": "app/utils"
+        },
+        {
+          "type": "dir.ensure",
+          "label": "Create Nuxt app data directory",
+          "path": "app/data"
+        },
+        {
+          "type": "dir.ensure",
+          "label": "Create Nuxt app types directory",
+          "path": "app/types"
         },
         {
           "type": "file.write",
@@ -185,7 +235,7 @@
           }
         ]
       },
-      "content": "import vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [vue()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['app/**/*.test.ts'],\n  },\n});\n"
+      "content": "import { fileURLToPath } from 'node:url';\nimport vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nconst alias = {\n  components: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}components', import.meta.url)),\n  composables: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}composables', import.meta.url)),\n  data: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}data', import.meta.url)),\n  pages: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}pages', import.meta.url)),\n  types: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}types', import.meta.url)),\n  utils: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}utils', import.meta.url)),\n};\n\nexport default defineConfig({\n  plugins: [vue()],\n  resolve: { alias },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['app/**/*.test.ts'],\n  },\n});\n"
     },
     {
       "type": "file.write",
@@ -200,7 +250,7 @@
           }
         ]
       },
-      "content": "import vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [vue()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['pages/**/*.test.ts'],\n  },\n});\n"
+      "content": "import { fileURLToPath } from 'node:url';\nimport vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nconst alias = {\n  components: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}components', import.meta.url)),\n  composables: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}composables', import.meta.url)),\n  data: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}data', import.meta.url)),\n  pages: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}pages', import.meta.url)),\n  types: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}types', import.meta.url)),\n  utils: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}utils', import.meta.url)),\n};\n\nexport default defineConfig({\n  plugins: [vue()],\n  resolve: { alias },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['pages/**/*.test.ts'],\n  },\n});\n"
     },
     {
       "type": "file.write",
@@ -219,7 +269,7 @@
           }
         ]
       },
-      "content": "import vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [vue()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['app/**/*.test.js'],\n  },\n});\n"
+      "content": "import { fileURLToPath } from 'node:url';\nimport vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nconst alias = {\n  components: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}components', import.meta.url)),\n  composables: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}composables', import.meta.url)),\n  data: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}data', import.meta.url)),\n  pages: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}pages', import.meta.url)),\n  types: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}types', import.meta.url)),\n  utils: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}utils', import.meta.url)),\n};\n\nexport default defineConfig({\n  plugins: [vue()],\n  resolve: { alias },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['app/**/*.test.js'],\n  },\n});\n"
     },
     {
       "type": "file.write",
@@ -236,7 +286,7 @@
           }
         ]
       },
-      "content": "import vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [vue()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['pages/**/*.test.js'],\n  },\n});\n"
+      "content": "import { fileURLToPath } from 'node:url';\nimport vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nconst alias = {\n  components: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}components', import.meta.url)),\n  composables: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}composables', import.meta.url)),\n  data: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}data', import.meta.url)),\n  pages: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}pages', import.meta.url)),\n  types: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}types', import.meta.url)),\n  utils: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}utils', import.meta.url)),\n};\n\nexport default defineConfig({\n  plugins: [vue()],\n  resolve: { alias },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['pages/**/*.test.js'],\n  },\n});\n"
     },
     {
       "type": "file.write",

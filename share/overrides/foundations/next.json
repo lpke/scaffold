@@ -223,7 +223,7 @@
       "when": {
         "all": ["vitest", "typescript"]
       },
-      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  test: {\n    environment: 'node',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n  },\n});\n"
+      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\nimport tsconfigPaths from 'vite-tsconfig-paths';\n\nexport default defineConfig({\n  plugins: [react(), tsconfigPaths()],\n  test: {\n    environment: 'node',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n  },\n});\n"
     },
     {
       "type": "file.write",

@@ -32,6 +32,7 @@ const {
   applyPackageJson,
   applyPnpmWorkspace,
   applyReadme,
+  applySeededTsconfigPathAliases,
   applyTsMode,
   applyTypescriptConfig,
 } = require('./project');
@@ -349,6 +350,7 @@ const main = async () => {
   await applyOwnedFoundationTemplates(workspace, answers);
   await applySeededFoundationOverrides({ workspace, answers, config, seedRun });
   await applyJsonplaceholderTypes(workspace, answers);
+  await applySeededTsconfigPathAliases(workspace, answers);
   await applyPnpmWorkspace({ workspace, answers });
   if (!answers.dryRun) {
     existingPackage = await readExistingPackage(targetDir);

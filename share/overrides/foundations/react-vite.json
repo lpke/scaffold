@@ -19,6 +19,14 @@
       "skipIfContains": "@tailwindcss/vite"
     },
     {
+      "type": "text.prepend",
+      "label": "Import tsconfig path resolver in TypeScript Vite config",
+      "path": "vite.config.ts",
+      "when": "typescript",
+      "content": "import tsconfigPaths from 'vite-tsconfig-paths'\n",
+      "skipIfContains": "vite-tsconfig-paths"
+    },
+    {
       "type": "text.replace",
       "label": "Register Tailwind Vite plugin in TypeScript Vite config",
       "path": "vite.config.ts",
@@ -28,6 +36,15 @@
       "skipIfContains": "tailwindcss()",
       "regex": "plugins:\\s*\\[([^\\]]*)\\]",
       "replace": "plugins: [$1, tailwindcss()]"
+    },
+    {
+      "type": "text.replace",
+      "label": "Register tsconfig path resolver in TypeScript Vite config",
+      "path": "vite.config.ts",
+      "when": "typescript",
+      "skipIfContains": "tsconfigPaths()",
+      "regex": "plugins:\\s*\\[([^\\]]*)\\]",
+      "replace": "plugins: [$1, tsconfigPaths()]"
     },
     {
       "type": "text.prepend",
@@ -311,7 +328,7 @@
       "when": {
         "all": ["vitest", "typescript"]
       },
-      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n    setupFiles: ['src/setupTests.ts'],\n  },\n});\n"
+      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\nimport tsconfigPaths from 'vite-tsconfig-paths';\n\nexport default defineConfig({\n  plugins: [react(), tsconfigPaths()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n    setupFiles: ['src/setupTests.ts'],\n  },\n});\n"
     },
     {
       "type": "file.write",
