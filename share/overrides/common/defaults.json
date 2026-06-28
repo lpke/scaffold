@@ -98,6 +98,87 @@
       ]
     },
     {
+      "type": "group",
+      "label": "Enable React Compiler in existing React Vite configs",
+      "when": {
+        "all": ["react", "vite"]
+      },
+      "actions": [
+        {
+          "type": "text.replace",
+          "label": "Import React Compiler preset in TypeScript Vite config",
+          "path": "vite.config.ts",
+          "skipIfContains": "reactCompilerPreset",
+          "regex": "import react from ['\"]@vitejs/plugin-react['\"];?",
+          "replace": "import react, { reactCompilerPreset } from '@vitejs/plugin-react'"
+        },
+        {
+          "type": "text.prepend",
+          "label": "Import Babel plugin bridge in TypeScript Vite config",
+          "path": "vite.config.ts",
+          "create": false,
+          "content": "import babel from '@rolldown/plugin-babel'\n",
+          "skipIfContains": "@rolldown/plugin-babel"
+        },
+        {
+          "type": "text.replace",
+          "label": "Register React Compiler in TypeScript Vite config",
+          "path": "vite.config.ts",
+          "skipIfContains": "babel({ presets: [reactCompilerPreset()] })",
+          "regex": "plugins:\\s*\\[react\\(\\)(.*)\\]",
+          "replace": "plugins: [react(), babel({ presets: [reactCompilerPreset()] })$1]"
+        },
+        {
+          "type": "text.replace",
+          "label": "Import React Compiler preset in JavaScript Vite config",
+          "path": "vite.config.js",
+          "skipIfContains": "reactCompilerPreset",
+          "regex": "import react from ['\"]@vitejs/plugin-react['\"];?",
+          "replace": "import react, { reactCompilerPreset } from '@vitejs/plugin-react'"
+        },
+        {
+          "type": "text.prepend",
+          "label": "Import Babel plugin bridge in JavaScript Vite config",
+          "path": "vite.config.js",
+          "create": false,
+          "content": "import babel from '@rolldown/plugin-babel'\n",
+          "skipIfContains": "@rolldown/plugin-babel"
+        },
+        {
+          "type": "text.replace",
+          "label": "Register React Compiler in JavaScript Vite config",
+          "path": "vite.config.js",
+          "skipIfContains": "babel({ presets: [reactCompilerPreset()] })",
+          "regex": "plugins:\\s*\\[react\\(\\)(.*)\\]",
+          "replace": "plugins: [react(), babel({ presets: [reactCompilerPreset()] })$1]"
+        },
+        {
+          "type": "text.replace",
+          "label": "Import React Compiler preset in Vitest config",
+          "path": "vitest.config.mts",
+          "skipIfContains": "reactCompilerPreset",
+          "regex": "import react from ['\"]@vitejs/plugin-react['\"];?",
+          "replace": "import react, { reactCompilerPreset } from '@vitejs/plugin-react'"
+        },
+        {
+          "type": "text.prepend",
+          "label": "Import Babel plugin bridge in Vitest config",
+          "path": "vitest.config.mts",
+          "create": false,
+          "content": "import babel from '@rolldown/plugin-babel';\n",
+          "skipIfContains": "@rolldown/plugin-babel"
+        },
+        {
+          "type": "text.replace",
+          "label": "Register React Compiler in Vitest config",
+          "path": "vitest.config.mts",
+          "skipIfContains": "babel({ presets: [reactCompilerPreset()] })",
+          "regex": "plugins:\\s*\\[react\\(\\)(.*)\\]",
+          "replace": "plugins: [react(), babel({ presets: [reactCompilerPreset()] })$1]"
+        }
+      ]
+    },
+    {
       "type": "file.write",
       "label": "Write Prettier config with Tailwind plugin",
       "path": "prettier.config.mjs",

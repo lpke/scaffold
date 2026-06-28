@@ -9,6 +9,66 @@
       "template": "seeded/README.md.tmpl"
     },
     {
+      "type": "text.replace",
+      "label": "Import React Compiler preset in TypeScript Vite config",
+      "path": "vite.config.ts",
+      "when": "typescript",
+      "skipIfContains": "reactCompilerPreset",
+      "regex": "import react from ['\"]@vitejs/plugin-react['\"];?",
+      "replace": "import react, { reactCompilerPreset } from '@vitejs/plugin-react'"
+    },
+    {
+      "type": "text.prepend",
+      "label": "Import Babel plugin bridge in TypeScript Vite config",
+      "path": "vite.config.ts",
+      "when": "typescript",
+      "create": false,
+      "content": "import babel from '@rolldown/plugin-babel'\n",
+      "skipIfContains": "@rolldown/plugin-babel"
+    },
+    {
+      "type": "text.replace",
+      "label": "Register React Compiler in TypeScript Vite config",
+      "path": "vite.config.ts",
+      "when": "typescript",
+      "skipIfContains": "babel({ presets: [reactCompilerPreset()] })",
+      "regex": "plugins:\\s*\\[react\\(\\)(.*)\\]",
+      "replace": "plugins: [react(), babel({ presets: [reactCompilerPreset()] })$1]"
+    },
+    {
+      "type": "text.replace",
+      "label": "Import React Compiler preset in JavaScript Vite config",
+      "path": "vite.config.js",
+      "when": {
+        "not": "typescript"
+      },
+      "skipIfContains": "reactCompilerPreset",
+      "regex": "import react from ['\"]@vitejs/plugin-react['\"];?",
+      "replace": "import react, { reactCompilerPreset } from '@vitejs/plugin-react'"
+    },
+    {
+      "type": "text.prepend",
+      "label": "Import Babel plugin bridge in JavaScript Vite config",
+      "path": "vite.config.js",
+      "when": {
+        "not": "typescript"
+      },
+      "create": false,
+      "content": "import babel from '@rolldown/plugin-babel'\n",
+      "skipIfContains": "@rolldown/plugin-babel"
+    },
+    {
+      "type": "text.replace",
+      "label": "Register React Compiler in JavaScript Vite config",
+      "path": "vite.config.js",
+      "when": {
+        "not": "typescript"
+      },
+      "skipIfContains": "babel({ presets: [reactCompilerPreset()] })",
+      "regex": "plugins:\\s*\\[react\\(\\)(.*)\\]",
+      "replace": "plugins: [react(), babel({ presets: [reactCompilerPreset()] })$1]"
+    },
+    {
       "type": "text.prepend",
       "label": "Import Tailwind Vite plugin in TypeScript Vite config",
       "path": "vite.config.ts",
@@ -35,7 +95,7 @@
         "all": ["tailwind", "typescript"]
       },
       "skipIfContains": "tailwindcss()",
-      "regex": "plugins:\\s*\\[([^\\]]*)\\]",
+      "regex": "plugins:\\s*\\[(.*)\\]",
       "replace": "plugins: [$1, tailwindcss()]"
     },
     {
@@ -66,7 +126,7 @@
         ]
       },
       "skipIfContains": "tailwindcss()",
-      "regex": "plugins:\\s*\\[([^\\]]*)\\]",
+      "regex": "plugins:\\s*\\[(.*)\\]",
       "replace": "plugins: [$1, tailwindcss()]"
     },
     {
@@ -340,7 +400,7 @@
       "when": {
         "all": ["vitest", "typescript"]
       },
-      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  resolve: { tsconfigPaths: true },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n    setupFiles: ['src/setupTests.ts'],\n  },\n});\n"
+      "content": "import babel from '@rolldown/plugin-babel';\nimport react, { reactCompilerPreset } from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],\n  resolve: { tsconfigPaths: true },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n    setupFiles: ['src/setupTests.ts'],\n  },\n});\n"
     },
     {
       "type": "file.write",
@@ -354,7 +414,7 @@
           }
         ]
       },
-      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{js,jsx}'],\n    setupFiles: ['src/setupTests.js'],\n  },\n});\n"
+      "content": "import babel from '@rolldown/plugin-babel';\nimport react, { reactCompilerPreset } from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{js,jsx}'],\n    setupFiles: ['src/setupTests.js'],\n  },\n});\n"
     },
     {
       "type": "file.write",

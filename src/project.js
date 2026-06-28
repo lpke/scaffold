@@ -123,6 +123,14 @@ const dependencySet = (answers, config) => {
   const addDev = (name) => {
     devDeps[name] = config.versions[name];
   };
+  const addViteReactCompilerDeps = () => {
+    addDev('@babel/core');
+    addDev('@rolldown/plugin-babel');
+    addDev('babel-plugin-react-compiler');
+    if (answers.typescript) {
+      addDev('@types/babel__core');
+    }
+  };
 
   if (answers.prettier) {
     addDev('prettier');
@@ -137,6 +145,9 @@ const dependencySet = (answers, config) => {
   }
 
   if (isAppSeed(answers.foundation)) {
+    if (isNextFoundation(answers.foundation)) {
+      addDev('babel-plugin-react-compiler');
+    }
     if (isNuxtFoundation(answers.foundation) && answers.tailwind) {
       addDev('@tailwindcss/vite');
       addDev('tailwindcss');
@@ -145,6 +156,7 @@ const dependencySet = (answers, config) => {
       addDev('vitest');
       if (isNextFoundation(answers.foundation)) {
         addDev('@vitejs/plugin-react');
+        addViteReactCompilerDeps();
       }
       if (isNuxtFoundation(answers.foundation)) {
         addDev('@vitejs/plugin-vue');
@@ -175,6 +187,7 @@ const dependencySet = (answers, config) => {
         addDep('react-router');
       }
       addDev('@vitejs/plugin-react');
+      addViteReactCompilerDeps();
       addDev('@types/react');
       addDev('@types/react-dom');
     }
@@ -290,6 +303,13 @@ const viteProjectTitle = (answers) => {
 
 const vitestPluginConfig = (answers) => {
   if (answers.react) {
+    if (answers.vite) {
+      return {
+        import:
+          "import babel from '@rolldown/plugin-babel';\nimport react, { reactCompilerPreset } from '@vitejs/plugin-react';\n",
+        block: '  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],\n',
+      };
+    }
     return {
       import: "import react from '@vitejs/plugin-react';\n",
       block: '  plugins: [react()],\n',

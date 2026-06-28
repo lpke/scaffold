@@ -205,6 +205,22 @@
       "replace": "const nextConfig = {\n  reactStrictMode: true,\n"
     },
     {
+      "type": "text.replace",
+      "label": "Enable Next React Compiler",
+      "path": "next.config.ts",
+      "skipIfContains": "reactCompiler: true",
+      "regex": "const nextConfig: NextConfig = \\{\\n",
+      "replace": "const nextConfig: NextConfig = {\n  reactCompiler: true,\n"
+    },
+    {
+      "type": "text.replace",
+      "label": "Enable Next React Compiler",
+      "path": "next.config.mjs",
+      "skipIfContains": "reactCompiler: true",
+      "regex": "const nextConfig = \\{\\n",
+      "replace": "const nextConfig = {\n  reactCompiler: true,\n"
+    },
+    {
       "type": "text.removeLines",
       "label": "Remove placeholder Next config comment",
       "path": "next.config.ts",
@@ -223,7 +239,7 @@
       "when": {
         "all": ["vitest", "typescript"]
       },
-      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  resolve: { tsconfigPaths: true },\n  test: {\n    environment: 'node',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n  },\n});\n"
+      "content": "import babel from '@rolldown/plugin-babel';\nimport react, { reactCompilerPreset } from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],\n  resolve: { tsconfigPaths: true },\n  test: {\n    environment: 'node',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n  },\n});\n"
     },
     {
       "type": "file.write",
@@ -237,7 +253,7 @@
           }
         ]
       },
-      "content": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react()],\n  test: {\n    environment: 'node',\n    globals: true,\n    include: ['src/**/*.test.{js,jsx}'],\n  },\n});\n"
+      "content": "import babel from '@rolldown/plugin-babel';\nimport react, { reactCompilerPreset } from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],\n  test: {\n    environment: 'node',\n    globals: true,\n    include: ['src/**/*.test.{js,jsx}'],\n  },\n});\n"
     },
     {
       "type": "file.write",

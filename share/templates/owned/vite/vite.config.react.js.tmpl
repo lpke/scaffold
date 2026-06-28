@@ -1,8 +1,9 @@
-{{TAILWIND_IMPORT}}import react from '@vitejs/plugin-react';
+{{TAILWIND_IMPORT}}import babel from '@rolldown/plugin-babel';
+import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  plugins: [react(){{TAILWIND_PLUGIN}}],
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] }){{TAILWIND_PLUGIN}}],
   server: {
     port: {{DEV_PORT}},
   },
