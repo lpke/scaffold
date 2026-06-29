@@ -187,6 +187,96 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
 
   await assertViteSeedPortScripts({ foundation: 'react-vite', react: true, vue: false });
 
+  const assertTypecheckScript = async ({
+    foundation,
+    tsconfig,
+    existingScripts = {},
+    answers: answerOverrides = {},
+    expected,
+  }) => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-typecheck-${foundation}-`));
+    if (tsconfig) {
+      fs.writeFileSync(path.join(tmp, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2));
+    }
+    const workspace = new Workspace({
+      targetDir: tmp,
+      dryRun: false,
+      backup: false,
+      force: false,
+    });
+    await applyPackageJson({
+      workspace,
+      config,
+      existingPackage: {
+        name: `typecheck-${foundation}`,
+        version: '0.0.0',
+        type: 'module',
+        scripts: existingScripts,
+        dependencies: {},
+        devDependencies: {},
+      },
+      answers: {
+        nodeProject: true,
+        foundation,
+        packageManager: 'keep',
+        toolchainManager: 'npm',
+        nodeMajor: '22',
+        vite: false,
+        devServer: false,
+        devPort: 3000,
+        typescript: true,
+        vitest: false,
+        prettier: false,
+        tailwind: false,
+        react: false,
+        vue: false,
+        router: false,
+        license: false,
+        ...answerOverrides,
+      },
+    });
+    const written = JSON.parse(fs.readFileSync(path.join(tmp, 'package.json'), 'utf8'));
+    assert.equal(written.scripts.typecheck, expected);
+  };
+
+  await assertTypecheckScript({
+    foundation: 'react-vite',
+    answers: { vite: true, react: true },
+    tsconfig: { files: [], references: [{ path: './tsconfig.app.json' }, { path: './tsconfig.node.json' }] },
+    expected: 'tsc -b --noEmit',
+  });
+  await assertTypecheckScript({
+    foundation: 'vue-vite',
+    answers: { vite: true, vue: true },
+    existingScripts: { 'type-check': 'vue-tsc --build' },
+    tsconfig: { files: [], references: [{ path: './tsconfig.app.json' }, { path: './tsconfig.node.json' }] },
+    expected: 'vue-tsc --build',
+  });
+  await assertTypecheckScript({
+    foundation: 'nuxt',
+    answers: { vue: true },
+    tsconfig: { files: [], references: [{ path: './.nuxt/tsconfig.app.json' }] },
+    expected: 'tsc -b --noEmit',
+  });
+  await assertTypecheckScript({
+    foundation: 'nuxt',
+    answers: { vue: true, vitest: true },
+    tsconfig: { extends: './.nuxt/tsconfig.json' },
+    expected: 'tsc --noEmit',
+  });
+  await assertTypecheckScript({
+    foundation: 'next',
+    answers: { react: true },
+    tsconfig: { include: ['next-env.d.ts', '**/*.ts', '**/*.tsx'] },
+    expected: 'tsc --noEmit',
+  });
+  await assertTypecheckScript({
+    foundation: 'owned',
+    answers: { vite: true, react: true },
+    tsconfig: { include: ['src/**/*.ts', 'src/**/*.tsx'] },
+    expected: 'tsc --noEmit',
+  });
+
   const assertAppSeedFrameworkVersion = async ({ foundation, frameworkPackage, seedVersion }) => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-${foundation}-version-`));
     const workspace = new Workspace({
@@ -362,7 +452,8 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   for (const arg of ['--ts', '--jsx', '--router', '--pinia', '--vitest', '--eslint', '--prettier']) {
     assert(command.args.includes(arg), `missing ${arg}`);
   }
-  assert.equal(command.args[2], '--');
+  assert.equal(command.args[2], 'vue@latest');
+  assert.equal(command.args[3], '--');
   assert.equal(command.args[command.args.length - 1], '/tmp/scaffold-vue');
 
   await assertViteSeedPortScripts({ foundation: 'vue-vite', react: false, vue: true });

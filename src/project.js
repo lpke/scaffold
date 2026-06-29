@@ -37,6 +37,9 @@ const STRICT_TS = {
   skipLibCheck: true,
 };
 
+const TSC_TYPECHECK = 'tsc --noEmit';
+const TSC_BUILD_TYPECHECK = 'tsc -b --noEmit';
+
 const SEEDED_REACT_VITE_ALIAS_PATHS = {
   '@/routes/*': ['./src/routes/*'],
   '@/components/*': ['./src/components/*'],
@@ -248,8 +251,41 @@ const applySeedFrameworkVersion = (pkg, answers, config) => {
   }
 };
 
-const scriptSet = (answers) => {
+const rootTsconfigHasProjectReferences = async (workspace) => {
+  const tsconfigPath = workspace.targetPath('tsconfig.json');
+  if (!(await fileExists(tsconfigPath))) {
+    return false;
+  }
+  const tsconfig = parseJson(await readAssetFromTarget(tsconfigPath), tsconfigPath);
+  return Array.isArray(tsconfig.references) && tsconfig.references.length > 0;
+};
+
+const fallbackSeedTypecheckScript = (answers) => {
+  if (answers.foundation === 'vue-vite') {
+    return 'vue-tsc --build';
+  }
+  if (isViteSeed(answers.foundation) || (isNuxtFoundation(answers.foundation) && !answers.vitest)) {
+    return TSC_BUILD_TYPECHECK;
+  }
+  return null;
+};
+
+const typecheckScript = async ({ workspace, answers, existingPackage }) => {
+  if (!answers.typescript) {
+    return null;
+  }
+  if (answers.foundation === 'vue-vite' && existingPackage?.scripts?.['type-check']) {
+    return existingPackage.scripts['type-check'];
+  }
+  if (await rootTsconfigHasProjectReferences(workspace)) {
+    return TSC_BUILD_TYPECHECK;
+  }
+  return fallbackSeedTypecheckScript(answers) ?? TSC_TYPECHECK;
+};
+
+const scriptSet = async ({ workspace, answers, existingPackage }) => {
   const scripts = {};
+  const typecheck = await typecheckScript({ workspace, answers, existingPackage });
 
   if (answers.prettier) {
     scripts.format = 'prettier --write';
@@ -261,8 +297,8 @@ const scriptSet = (answers) => {
   }
 
   if (isAppSeed(answers.foundation)) {
-    if (answers.typescript) {
-      scripts.typecheck = 'tsc --noEmit';
+    if (typecheck) {
+      scripts.typecheck = typecheck;
     }
     if (answers.vitest) {
       scripts.test = 'vitest run';
@@ -279,11 +315,11 @@ const scriptSet = (answers) => {
       scripts['preview:nohost'] = `vite preview --port ${answers.devPort}`;
     }
     scripts.build = 'vite build';
-    if (answers.typescript) {
-      scripts.typecheck = 'tsc --noEmit';
+    if (typecheck) {
+      scripts.typecheck = typecheck;
     }
-  } else if (answers.typescript) {
-    scripts.typecheck = 'tsc --noEmit';
+  } else if (typecheck) {
+    scripts.typecheck = typecheck;
     scripts.build = 'tsc';
   }
 
@@ -358,7 +394,7 @@ const applyPackageJson = async ({ workspace, answers, existingPackage, config })
   }
 
   pkg.scripts ??= {};
-  const scripts = scriptSet(answers);
+  const scripts = await scriptSet({ workspace, answers, existingPackage });
   mergeObjectDefaults(pkg.scripts, scripts);
   if (
     (isOwnedFoundation(answers.foundation) || isViteSeed(answers.foundation)) &&
