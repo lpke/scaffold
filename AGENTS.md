@@ -80,6 +80,52 @@ For path, alias, config, styles, or directory changes:
 
 Always visualize the final generated tree before finishing. The result should evolve scaffold's conventions without making unrelated seed output feel heavily rewritten.
 
+## Adding Answer-Backed Features
+
+Trace every selectable feature through each applicable layer. Do not stop after adding a prompt or template.
+
+- CLI help, positive/negative flags, parsing, inference, and contradictory-flag validation
+- interactive prompt ordering, remembered answers, back navigation, and non-interactive defaults
+- the `nodeProject: false` fallback answer set
+- owned foundations and all seeded foundations
+- fresh and overlay modes where relevant
+- TypeScript and JavaScript, plus framework/router/style combinations that affect output
+- dependencies, scripts, configs, templates, overrides, Nix, README, and generated AGENTS.md tech lines
+- smoke coverage, a disabled-feature control, generated-tree inspection, and representative runtime checks
+
+Positive flags may imply prerequisites when that is unambiguous. An explicit contradictory negative flag must produce a clear error. If a feature is disabled, preserve existing output and avoid feature-specific files, packages, scripts, and Nix configuration.
+
+## Choosing The Right Pass
+
+- Use owned templates for scaffold-controlled starting files.
+- Use override manifests for deterministic, foundation-specific changes to seed output.
+- Use a focused JavaScript pass when behavior is shared across foundations or needs computed paths, filesystem inspection, or non-trivial generation.
+- Apply a cross-foundation pass after the files it depends on exist and before package/final setup that consumes its answers.
+- Avoid generating a scaffold-owned file in one pass only to overwrite it in a later pass. Gate the earlier writer instead.
+- Keep feature logic together where practical; do not spread equivalent config bodies across manifests and source without a clear ownership boundary.
+
+## Prompts, Flags, And Merges
+
+- Ask dependent questions only after their prerequisite is selected. Every interactive choice needs an equivalent non-interactive flag.
+- Add new answer keys to prompt invalidation/backtracking and explicit false-answer paths.
+- Preserve existing package scripts and dependencies by default. Intentionally replace a value only when selected behavior requires an exact command or configuration.
+- Treat overlay files as user-owned. Follow existing overwrite, force, and backup behavior; do not silently replace unrelated configuration.
+- Keep package versions in `share/config.json`. When two ecosystems must match exactly, encode and validate that invariant rather than relying on compatible-looking ranges.
+
+## Minimum Verification
+
+For cross-project changes, verify at least:
+
+- owned JavaScript and TypeScript paths
+- every affected seeded foundation, including version-dependent layouts
+- one enabled case and one disabled/control case
+- CLI help, positive/negative flags, implication rules, and conflict errors
+- generated package/config/Nix contents and final tree shape
+- one real install and runtime check for the highest-risk path
+- `npm run check`, `npm run smoke`, and `git diff --check`
+
+Prefer fast direct tests for the full option matrix, then use a smaller number of live seed/install tests to catch upstream generator and runtime integration differences.
+
 ## Seeded Project Paths
 
 For seeded foundations, inspect the generated root layout before choosing paths for feature files or overrides. Prefer existing root-level `src/` or `app/` directories instead of assuming a top-level path; in dry-run paths, use the seed foundation's expected default layout.

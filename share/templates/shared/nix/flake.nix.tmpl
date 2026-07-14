@@ -20,7 +20,7 @@
           ];
 
           shellHook = ''
-            export PATH="$PWD/.flake.local/bin:$PATH"
+            export PATH="$PWD/.flake.local/bin:$PATH"{{PLAYWRIGHT_ENV}}
           '';
         };
       });

@@ -5,32 +5,38 @@
     "26": {
       "nixpkgs": "nixos-26.05",
       "nodePackage": "nodejs_26",
-      "engine": ">=26"
+      "engine": ">=26",
+      "playwrightVersion": "1.59.1"
     },
     "24": {
       "nixpkgs": "nixos-26.05",
       "nodePackage": "nodejs_24",
-      "engine": ">=24"
+      "engine": ">=24",
+      "playwrightVersion": "1.59.1"
     },
     "22": {
       "nixpkgs": "nixos-26.05",
       "nodePackage": "nodejs_22",
-      "engine": ">=22"
+      "engine": ">=22",
+      "playwrightVersion": "1.59.1"
     },
     "20": {
       "nixpkgs": "nixos-25.11",
       "nodePackage": "nodejs_20",
-      "engine": ">=20"
+      "engine": ">=20",
+      "playwrightVersion": "1.56.1"
     },
     "18": {
       "nixpkgs": "nixos-24.05",
       "nodePackage": "nodejs_18",
-      "engine": ">=18"
+      "engine": ">=18",
+      "playwrightVersion": "1.40.0"
     },
     "16": {
       "nixpkgs": "nixos-23.05",
       "nodePackage": "nodejs_16",
       "engine": ">=16",
+      "playwrightVersion": "1.31.1",
       "permittedInsecurePackages": ["nodejs-16.20.2"]
     }
   },
@@ -76,6 +82,7 @@
     "@tailwindcss/vite": "^4.3.1",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitejs/plugin-vue": "^6.0.2",
+    "@vitest/browser-playwright": "^4.1.6",
     "babel-plugin-react-compiler": "^1.0.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.8.4",

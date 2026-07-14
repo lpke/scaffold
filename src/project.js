@@ -147,6 +147,11 @@ const dependencySet = (answers, config) => {
     addDev('tailwindcss');
   }
 
+  if (answers.vitestBrowser) {
+    addDev('@vitest/browser-playwright');
+    devDeps.playwright = config.nodeTargets[answers.nodeMajor].playwrightVersion;
+  }
+
   if (isAppSeed(answers.foundation)) {
     if (isNextFoundation(answers.foundation)) {
       addDev('babel-plugin-react-compiler');
@@ -303,6 +308,11 @@ const scriptSet = async ({ workspace, answers, existingPackage }) => {
     if (answers.vitest) {
       scripts.test = 'vitest run';
       scripts['test:watch'] = 'vitest';
+      if (answers.vitestBrowser) {
+        scripts['test:unit'] = 'vitest run --project unit';
+        scripts['test:browser'] = 'vitest run --project browser';
+        scripts['playwright:install'] = 'playwright install chromium';
+      }
     }
     return scripts;
   }
@@ -326,6 +336,11 @@ const scriptSet = async ({ workspace, answers, existingPackage }) => {
   if (answers.vitest) {
     scripts.test = 'vitest run';
     scripts['test:watch'] = 'vitest';
+    if (answers.vitestBrowser) {
+      scripts['test:unit'] = 'vitest run --project unit';
+      scripts['test:browser'] = 'vitest run --project browser';
+      scripts['playwright:install'] = 'playwright install chromium';
+    }
   }
 
   return scripts;
@@ -396,6 +411,11 @@ const applyPackageJson = async ({ workspace, answers, existingPackage, config })
   pkg.scripts ??= {};
   const scripts = await scriptSet({ workspace, answers, existingPackage });
   mergeObjectDefaults(pkg.scripts, scripts);
+  if (answers.vitestBrowser) {
+    pkg.scripts['test:unit'] = scripts['test:unit'];
+    pkg.scripts['test:browser'] = scripts['test:browser'];
+    pkg.scripts['playwright:install'] = scripts['playwright:install'];
+  }
   if (
     (isOwnedFoundation(answers.foundation) || isViteSeed(answers.foundation)) &&
     answers.vite &&
@@ -430,6 +450,9 @@ const renderPackageList = (answers, config) => {
       packages.push(manager.nixPackage.replace('${nodePackage}', nodeConfig.nodePackage));
     }
   }
+  if (answers.vitestBrowser) {
+    packages.push('pkgs.playwright-driver.browsers');
+  }
   return packages.map((pkg) => `            ${pkg}`).join('\n');
 };
 
@@ -457,6 +480,9 @@ const applyNix = async ({ workspace, answers, config }) => {
     NIXPKGS: nodeConfig.nixpkgs,
     NIXPKGS_CONFIG: renderNixpkgsConfig(nodeConfig),
     PACKAGES: renderPackageList(answers, config),
+    PLAYWRIGHT_ENV: answers.vitestBrowser
+      ? '\n            export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright-driver.browsers}\n            export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true'
+      : '',
   });
   await workspace.write('flake.nix', flake);
   await workspace.write(
@@ -578,7 +604,11 @@ const applyTypescriptConfig = async (workspace, answers) => {
   if (!answers.typescript || !isOwnedFoundation(answers.foundation)) {
     return;
   }
-  const template = answers.vite ? 'shared/typescript/tsconfig.vite.json' : 'shared/typescript/tsconfig.node.json';
+  const template = answers.vite
+    ? 'shared/typescript/tsconfig.vite.json'
+    : answers.vitestBrowser
+      ? 'shared/typescript/tsconfig.node-browser.json'
+      : 'shared/typescript/tsconfig.node.json';
   await workspace.copyTemplate(template, 'tsconfig.json', { overwrite: false });
 };
 
@@ -718,22 +748,24 @@ const applyOwnedFoundationTemplates = async (workspace, answers) => {
         ? `    setupFiles: ['src/setupTests.${setupExt}'],\n`
         : '';
       const pluginConfig = vitestPluginConfig(answers);
-      await workspace.write(
-        'vitest.config.mts',
-        await renderAsset('templates/owned/vite/vitest.config.mts.tmpl', {
-          VITEST_ENVIRONMENT: 'jsdom',
-          TEST_EXTENSIONS: answers.typescript
-            ? answers.react
-              ? '{ts,tsx}'
-              : 'ts'
-            : answers.react
-              ? '{js,jsx}'
-              : 'js',
-          SETUP_FILES: setupFiles,
-          VITEST_PLUGIN_IMPORT: pluginConfig.import,
-          VITEST_PLUGIN_BLOCK: pluginConfig.block,
-        }),
-      );
+      if (!answers.vitestBrowser) {
+        await workspace.write(
+          'vitest.config.mts',
+          await renderAsset('templates/owned/vite/vitest.config.mts.tmpl', {
+            VITEST_ENVIRONMENT: 'jsdom',
+            TEST_EXTENSIONS: answers.typescript
+              ? answers.react
+                ? '{ts,tsx}'
+                : 'ts'
+              : answers.react
+                ? '{js,jsx}'
+                : 'js',
+            SETUP_FILES: setupFiles,
+            VITEST_PLUGIN_IMPORT: pluginConfig.import,
+            VITEST_PLUGIN_BLOCK: pluginConfig.block,
+          }),
+        );
+      }
       if (answers.react) {
         await workspace.copyTemplate(`owned/vite/setupTests.${setupExt}`, `src/setupTests.${setupExt}`);
         await workspace.copyTemplate(
@@ -755,7 +787,7 @@ const applyOwnedFoundationTemplates = async (workspace, answers) => {
     return;
   }
 
-  if (answers.vitest) {
+  if (answers.vitest && !answers.vitestBrowser) {
     const setupExt = answers.typescript ? 'ts' : 'js';
     const setupFiles = answers.react
       ? `    setupFiles: ['src/setupTests.${setupExt}'],\n`

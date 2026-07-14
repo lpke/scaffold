@@ -184,6 +184,15 @@ Set Vite dev/preview port. Implies --vite and --dev-server for the owned foundat
 Add Vitest scripts, dependency, config, and a sample test where supported.`,
   },
   {
+    topic: '--vitest-browser',
+    names: ['--vitest-browser', '--no-vitest-browser'],
+    summary: 'Use or skip Vitest browser testing',
+    help: `Usage: scaffold [target] --vitest-browser
+       scaffold [target] --no-vitest-browser
+
+Add Vitest browser testing through Playwright and Chromium. --vitest-browser implies --vitest. Non-Nix installs also install Chromium.`,
+  },
+  {
     topic: '--jsonplaceholder-types',
     names: ['--jsonplaceholder-types', '--no-jsonplaceholder-types'],
     summary: 'Create or skip JSONPlaceholder TypeScript types',
@@ -547,6 +556,12 @@ const parseArgs = (argv) => {
         break;
       case '--no-vitest':
         setBool('vitest', false);
+        break;
+      case '--vitest-browser':
+        setBool('vitestBrowser', true);
+        break;
+      case '--no-vitest-browser':
+        setBool('vitestBrowser', false);
         break;
       case '--jsonplaceholder-types':
         setBool('jsonplaceholderTypes', true);

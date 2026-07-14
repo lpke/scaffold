@@ -154,6 +154,7 @@ const inferDependentOptions = (opts, { interactive }) => {
     [opts.devServer === true, '--dev-server'],
     [opts.devPort != null, '--dev-port'],
     [opts.vitest === true, '--vitest'],
+    [opts.vitestBrowser === true, '--vitest-browser'],
     [opts.react === true, '--react'],
     [opts.vue === true, '--vue'],
     [opts.jsx === true, '--jsx'],
@@ -213,6 +214,12 @@ const inferDependentOptions = (opts, { interactive }) => {
       throw new Error('--strict/--non-strict/--preserve-ts requires --typescript');
     }
     inferred.typescript = true;
+  }
+  if (opts.vitestBrowser === true) {
+    if (opts.vitest === false) {
+      throw new Error('--vitest-browser requires --vitest');
+    }
+    inferred.vitest = true;
   }
   if (opts.jsonplaceholderTypes === true) {
     if (opts.typescript === false) {
@@ -339,6 +346,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
         opts.jsonplaceholderTypes ||
         opts.vite ||
         opts.vitest ||
+        opts.vitestBrowser ||
         opts.vue ||
         opts.jsx ||
         opts.router ||
@@ -378,6 +386,22 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
       ];
 
       if (answers.nodeProject) {
+        const vitestBrowserStep = {
+          keys: ['vitestBrowser'],
+          backStop: Boolean(rl && answers.vitest && opts.vitestBrowser == null),
+          run: async () => ({
+            vitestBrowser: answers.vitest
+              ? await boolChoice(
+                  rl,
+                  opts,
+                  'vitestBrowser',
+                  'Browser tests with Playwright?',
+                  false,
+                )
+              : false,
+          }),
+        };
+
         steps.push(
           {
             keys: ['nodeMajor'],
@@ -564,6 +588,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
                 };
               },
             },
+            vitestBrowserStep,
             {
               keys: ['devServer', 'devPort'],
               backStop: Boolean(rl && (opts.devServer ?? answers.vite) && opts.devPort == null),
@@ -648,6 +673,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
               };
             },
           });
+          steps.push(vitestBrowserStep);
         }
       } else if (answers.nodeProject === false) {
         steps.push({
@@ -671,6 +697,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
             'typescript',
             'vite',
             'vitest',
+            'vitestBrowser',
             'vue',
           ],
           backStop: false,
@@ -694,6 +721,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
             typescript: false,
             vite: false,
             vitest: false,
+            vitestBrowser: false,
             vue: false,
           }),
         });

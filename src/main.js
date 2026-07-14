@@ -48,6 +48,7 @@ const {
 } = require('./pnpm-builds');
 const { isInteractive, resolveAnswers } = require('./prompts');
 const { color, createPrompter, intro, promptYesNo } = require('./ui');
+const { applyVitestBrowser } = require('./vitest-browser');
 const { Workspace } = require('./workspace');
 
 const ensureTargetDir = async (targetDir, opts) => {
@@ -165,7 +166,12 @@ const runPostChecks = async ({ answers, config, targetDir, workspace, interactiv
     }
   }
 
-  if (answers.install && isNextFoundation(answers.foundation) && !shouldDeferAppSeedInstall(answers)) {
+  if (
+    answers.install &&
+    isNextFoundation(answers.foundation) &&
+    !shouldDeferAppSeedInstall(answers) &&
+    !answers.vitestBrowser
+  ) {
     workspace.skipped.push('package install handled by seed command');
   } else if (answers.install) {
     const installCommand = config.packageManagers[answers.toolchainManager].installCommand;
@@ -198,6 +204,15 @@ const runPostChecks = async ({ answers, config, targetDir, workspace, interactiv
         logPnpmBuildsNotNeeded(workspace);
       }
     }
+  }
+
+  if (answers.install && answers.vitestBrowser && !answers.nix) {
+    await runCommand(
+      answers.toolchainManager,
+      ['run', 'playwright:install'],
+      targetDir,
+      answers.dryRun,
+    );
   }
 };
 
@@ -351,6 +366,7 @@ const main = async () => {
   await applyTypescriptConfig(workspace, answers);
   await applyOwnedFoundationTemplates(workspace, answers);
   await applySeededFoundationOverrides({ workspace, answers, config, seedRun });
+  await applyVitestBrowser(workspace, answers);
   await applyJsonplaceholderTypes(workspace, answers);
   await applySeededTsconfigPathAliases(workspace, answers);
   await applyPnpmWorkspace({ workspace, answers });

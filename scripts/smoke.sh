@@ -25,7 +25,7 @@ for flag in \
   --prettier --no-prettier --tailwind --no-tailwind --typescript --no-typescript --strict \
   --nuxt-offline --nuxt-prefer-offline \
   --non-strict --preserve-ts --vite --no-vite --no-feature-prompts --dev-server \
-  --no-dev-server --dev-port --vitest --no-vitest \
+  --no-dev-server --dev-port --vitest --no-vitest --vitest-browser --no-vitest-browser \
   --jsonplaceholder-types --no-jsonplaceholder-types --react \
   --no-react --vue --no-vue --jsx --no-jsx --router --no-router \
   --pinia --no-pinia --eslint --no-eslint --linter --no-linter \
@@ -50,6 +50,7 @@ const { buildSeedCommand } = require('./src/foundations');
 const { applySeededFoundationOverrides } = require('./src/override-pass');
 const { resolveTypescriptAnswers } = require('./src/prompt-features');
 const { applyJsonplaceholderTypes, applyPackageJson } = require('./src/project');
+const { applyVitestBrowser } = require('./src/vitest-browser');
 const { Workspace } = require('./src/workspace');
 const { applyActionManifest, applyActions } = require('./src/helpers/actions');
 
@@ -102,6 +103,8 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   });
   assert.deepEqual(command.args.slice(-4), ['--', '--template', 'react-ts', '--no-interactive']);
   assert.equal(parseArgs(['--foundation', 'react-vite', '--router']).router, true);
+  assert.equal(parseArgs(['--vitest-browser']).vitestBrowser, true);
+  assert.equal(parseArgs(['--no-vitest-browser']).vitestBrowser, false);
   assert.equal(parseArgs(['--jsonplaceholder-types']).jsonplaceholderTypes, true);
   assert.equal(parseArgs(['--no-jsonplaceholder-types']).jsonplaceholderTypes, false);
 
@@ -498,6 +501,103 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
     tsMode: 'strict',
   });
 
+  const browserCases = [
+    {
+      name: 'owned-react-ts',
+      answers: { foundation: 'owned', typescript: true, react: true, vue: false, vite: true },
+      configPath: 'vitest.config.mts',
+      root: 'src',
+      unitPattern: 'src/**/*.test.{ts,tsx}',
+    },
+    {
+      name: 'owned-node-js',
+      answers: { foundation: 'owned', typescript: false, react: false, vue: false, vite: false },
+      configPath: 'vitest.config.mts',
+      root: 'src',
+      unitPattern: 'src/**/*.test.js',
+    },
+    {
+      name: 'next-ts',
+      answers: { foundation: 'next', typescript: true, react: true, vue: false, vite: false },
+      configPath: 'vitest.config.mts',
+      root: 'src',
+      unitPattern: 'src/**/*.test.{ts,tsx}',
+    },
+    {
+      name: 'next-js',
+      answers: { foundation: 'next', typescript: false, react: true, vue: false, vite: false },
+      configPath: 'vitest.config.mts',
+      root: 'src',
+      unitPattern: 'src/**/*.test.{js,jsx}',
+    },
+    {
+      name: 'nuxt-3-ts',
+      answers: { foundation: 'nuxt', seedVersion: '3.21.8', typescript: true, react: false, vue: true, vite: false },
+      configPath: 'vitest.config.mts',
+      root: 'pages',
+      unitPattern: 'pages/**/*.test.ts',
+    },
+    {
+      name: 'nuxt-4-js',
+      answers: { foundation: 'nuxt', seedVersion: '4.4.8', typescript: false, react: false, vue: true, vite: false },
+      configPath: 'vitest.config.mts',
+      root: 'app/pages',
+      unitPattern: 'app/pages/**/*.test.js',
+    },
+    {
+      name: 'react-vite-ts',
+      answers: { foundation: 'react-vite', typescript: true, react: true, vue: false, vite: true, router: true },
+      configPath: 'vitest.config.mts',
+      root: 'src',
+      unitPattern: 'src/**/*.test.{ts,tsx}',
+    },
+    {
+      name: 'react-vite-js',
+      answers: { foundation: 'react-vite', typescript: false, react: true, vue: false, vite: true, router: false },
+      configPath: 'vitest.config.mts',
+      root: 'src',
+      unitPattern: 'src/**/*.test.{js,jsx}',
+    },
+    {
+      name: 'vue-vite-ts',
+      answers: { foundation: 'vue-vite', typescript: true, react: false, vue: true, vite: true, router: true },
+      configPath: 'vitest.config.ts',
+      root: 'src',
+      unitPattern: 'src/**/*.{test,spec}.ts',
+    },
+    {
+      name: 'vue-vite-js',
+      answers: { foundation: 'vue-vite', typescript: false, react: false, vue: true, vite: true, router: false },
+      configPath: 'vitest.config.js',
+      root: 'src',
+      unitPattern: 'src/**/*.{test,spec}.js',
+    },
+  ];
+
+  for (const browserCase of browserCases) {
+    const target = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-browser-${browserCase.name}-`));
+    const workspace = new Workspace({ targetDir: target, dryRun: false, backup: false, force: false });
+    const answers = { ...browserCase.answers, vitest: true, vitestBrowser: true };
+    await applyVitestBrowser(workspace, answers);
+    const configText = fs.readFileSync(path.join(target, browserCase.configPath), 'utf8');
+    assert(configText.includes("name: 'unit'"), browserCase.name);
+    assert(configText.includes("name: 'browser'"), browserCase.name);
+    assert(configText.includes('provider: playwright()'), browserCase.name);
+    assert(configText.includes(`include: ['${browserCase.unitPattern}']`), browserCase.name);
+    const extension = answers.typescript ? 'ts' : 'js';
+    assert(fs.existsSync(path.join(target, browserCase.root, `browser.browser.test.${extension}`)));
+  }
+
+  const noBrowserTarget = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-no-browser-'));
+  const noBrowserWorkspace = new Workspace({
+    targetDir: noBrowserTarget,
+    dryRun: false,
+    backup: false,
+    force: false,
+  });
+  await applyVitestBrowser(noBrowserWorkspace, { vitestBrowser: false });
+  assert.deepEqual(fs.readdirSync(noBrowserTarget), []);
+
   const actionTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-actions-'));
   const workspace = new Workspace({
     targetDir: actionTmp,
@@ -644,6 +744,7 @@ bin/scaffold "$tmp/app" \
   --typescript \
   --react \
   --vitest \
+  --vitest-browser \
   --license \
   --agents >/dev/null
 
@@ -653,8 +754,55 @@ grep -Fx '## License' "$tmp/app/README.md" >/dev/null
 test -f "$tmp/app/AGENTS.md"
 test -f "$tmp/app/LICENSE"
 test -f "$tmp/app/src/App.tsx"
+test -f "$tmp/app/src/browser.browser.test.ts"
+grep -F "provider: playwright()" "$tmp/app/vitest.config.mts" >/dev/null
+grep -F 'pkgs.playwright-driver.browsers' "$tmp/app/flake.nix" >/dev/null
+grep -F 'PLAYWRIGHT_BROWSERS_PATH' "$tmp/app/flake.nix" >/dev/null
+node -e '
+  const pkg = require(process.argv[1]);
+  if (!pkg.devDependencies["@vitest/browser-playwright"] || pkg.devDependencies.playwright !== "1.59.1") {
+    process.exit(1);
+  }
+  if (pkg.scripts["test:unit"] !== "vitest run --project unit" || pkg.scripts["test:browser"] !== "vitest run --project browser") {
+    process.exit(1);
+  }
+  if (pkg.scripts["playwright:install"] !== "playwright install chromium") process.exit(1);
+' "$tmp/app/package.json"
 test -x "$tmp/app/.flake.local/bin/example"
 "$tmp/app/.flake.local/bin/example" | grep -Fx "app example!" >/dev/null
+
+bin/scaffold "$tmp/unit-only" \
+  --yes \
+  --no-direnv \
+  --no-flake-lock \
+  --no-install \
+  --git skip \
+  --vitest \
+  --no-vitest-browser >/dev/null
+
+test ! -e "$tmp/unit-only/src/browser.browser.test.js"
+test ! -e "$tmp/unit-only/src/browser.browser.test.ts"
+! grep -F "provider: playwright()" "$tmp/unit-only/vitest.config.mts" >/dev/null
+! grep -F 'playwright-driver' "$tmp/unit-only/flake.nix" >/dev/null
+! grep -F 'PLAYWRIGHT_BROWSERS_PATH' "$tmp/unit-only/flake.nix" >/dev/null
+node -e '
+  const pkg = require(process.argv[1]);
+  if (pkg.devDependencies.playwright || pkg.devDependencies["@vitest/browser-playwright"]) {
+    process.exit(1);
+  }
+' "$tmp/unit-only/package.json"
+
+if bin/scaffold "$tmp/invalid-browser" \
+  --yes \
+  --no-nix \
+  --no-install \
+  --git skip \
+  --no-vitest \
+  --vitest-browser >/dev/null 2>&1
+then
+  echo '--vitest-browser unexpectedly accepted with --no-vitest' >&2
+  exit 1
+fi
 
 if command -v git >/dev/null 2>&1; then
   mkdir -p "$tmp/replace"

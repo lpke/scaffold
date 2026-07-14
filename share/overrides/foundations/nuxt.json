@@ -224,6 +224,7 @@
       "type": "file.write",
       "label": "Add Nuxt TypeScript Vitest config",
       "path": "vitest.config.mts",
+      "unless": "vitestBrowser",
       "when": {
         "all": [
           "vitest",
@@ -241,6 +242,7 @@
       "type": "file.write",
       "label": "Add Nuxt TypeScript Vitest config",
       "path": "vitest.config.mts",
+      "unless": "vitestBrowser",
       "when": {
         "all": [
           "vitest",
@@ -256,6 +258,7 @@
       "type": "file.write",
       "label": "Add Nuxt JavaScript Vitest config",
       "path": "vitest.config.mts",
+      "unless": "vitestBrowser",
       "when": {
         "all": [
           "vitest",
@@ -275,6 +278,7 @@
       "type": "file.write",
       "label": "Add Nuxt JavaScript Vitest config",
       "path": "vitest.config.mts",
+      "unless": "vitestBrowser",
       "when": {
         "all": [
           "vitest",

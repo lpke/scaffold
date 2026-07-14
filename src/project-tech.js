@@ -11,6 +11,7 @@ const projectTechLines = (answers, config) => {
   if (answers.vite) tech.push(`- Vite${answers.react ? ' + React' : answers.vue ? ' + Vue' : ''}`);
   if (answers.typescript) tech.push('- TypeScript');
   if (answers.vitest) tech.push('- Vitest');
+  if (answers.vitestBrowser) tech.push('- Playwright browser testing with Chromium');
   if (answers.prettier) tech.push('- Prettier');
   if (answers.tailwind) tech.push('- Tailwind');
   return tech.length ? tech.join('\n') : '- No runtime stack selected';

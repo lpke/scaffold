@@ -31,6 +31,7 @@ const loadConfig = async () => {
     requireString(target.nixpkgs, `nodeTargets.${major}.nixpkgs`);
     requireString(target.nodePackage, `nodeTargets.${major}.nodePackage`);
     requireString(target.engine, `nodeTargets.${major}.engine`);
+    requireString(target.playwrightVersion, `nodeTargets.${major}.playwrightVersion`);
     if (
       target.permittedInsecurePackages !== undefined &&
       (!Array.isArray(target.permittedInsecurePackages) ||

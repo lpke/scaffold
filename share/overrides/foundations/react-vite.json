@@ -397,6 +397,7 @@
       "type": "file.write",
       "label": "Add React TypeScript Vitest config",
       "path": "vitest.config.mts",
+      "unless": "vitestBrowser",
       "when": {
         "all": ["vitest", "typescript"]
       },
@@ -406,6 +407,7 @@
       "type": "file.write",
       "label": "Add React JavaScript Vitest config",
       "path": "vitest.config.mts",
+      "unless": "vitestBrowser",
       "when": {
         "all": [
           "vitest",
