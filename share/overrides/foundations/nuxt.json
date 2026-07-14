@@ -222,83 +222,12 @@
     },
     {
       "type": "file.write",
-      "label": "Add Nuxt TypeScript Vitest config",
-      "path": "vitest.config.mts",
-      "unless": "vitestBrowser",
-      "when": {
-        "all": [
-          "vitest",
-          "typescript",
-          {
-            "not": {
-              "value": "NUXT_FLAT"
-            }
-          }
-        ]
-      },
-      "content": "import { fileURLToPath } from 'node:url';\nimport vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nconst alias = {\n  components: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}components', import.meta.url)),\n  composables: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}composables', import.meta.url)),\n  data: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}data', import.meta.url)),\n  pages: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}pages', import.meta.url)),\n  types: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}types', import.meta.url)),\n  utils: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}utils', import.meta.url)),\n};\n\nexport default defineConfig({\n  plugins: [vue()],\n  resolve: { alias },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['app/**/*.test.ts'],\n  },\n});\n"
-    },
-    {
-      "type": "file.write",
-      "label": "Add Nuxt TypeScript Vitest config",
-      "path": "vitest.config.mts",
-      "unless": "vitestBrowser",
-      "when": {
-        "all": [
-          "vitest",
-          "typescript",
-          {
-            "value": "NUXT_FLAT"
-          }
-        ]
-      },
-      "content": "import { fileURLToPath } from 'node:url';\nimport vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nconst alias = {\n  components: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}components', import.meta.url)),\n  composables: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}composables', import.meta.url)),\n  data: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}data', import.meta.url)),\n  pages: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}pages', import.meta.url)),\n  types: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}types', import.meta.url)),\n  utils: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}utils', import.meta.url)),\n};\n\nexport default defineConfig({\n  plugins: [vue()],\n  resolve: { alias },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['pages/**/*.test.ts'],\n  },\n});\n"
-    },
-    {
-      "type": "file.write",
-      "label": "Add Nuxt JavaScript Vitest config",
-      "path": "vitest.config.mts",
-      "unless": "vitestBrowser",
-      "when": {
-        "all": [
-          "vitest",
-          {
-            "not": "typescript"
-          },
-          {
-            "not": {
-              "value": "NUXT_FLAT"
-            }
-          }
-        ]
-      },
-      "content": "import { fileURLToPath } from 'node:url';\nimport vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nconst alias = {\n  components: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}components', import.meta.url)),\n  composables: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}composables', import.meta.url)),\n  data: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}data', import.meta.url)),\n  pages: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}pages', import.meta.url)),\n  types: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}types', import.meta.url)),\n  utils: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}utils', import.meta.url)),\n};\n\nexport default defineConfig({\n  plugins: [vue()],\n  resolve: { alias },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['app/**/*.test.js'],\n  },\n});\n"
-    },
-    {
-      "type": "file.write",
-      "label": "Add Nuxt JavaScript Vitest config",
-      "path": "vitest.config.mts",
-      "unless": "vitestBrowser",
-      "when": {
-        "all": [
-          "vitest",
-          {
-            "not": "typescript"
-          },
-          {
-            "value": "NUXT_FLAT"
-          }
-        ]
-      },
-      "content": "import { fileURLToPath } from 'node:url';\nimport vue from '@vitejs/plugin-vue';\nimport { defineConfig } from 'vitest/config';\n\nconst alias = {\n  components: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}components', import.meta.url)),\n  composables: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}composables', import.meta.url)),\n  data: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}data', import.meta.url)),\n  pages: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}pages', import.meta.url)),\n  types: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}types', import.meta.url)),\n  utils: fileURLToPath(new URL('./{{NUXT_ALIAS_ROOT}}utils', import.meta.url)),\n};\n\nexport default defineConfig({\n  plugins: [vue()],\n  resolve: { alias },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['pages/**/*.test.js'],\n  },\n});\n"
-    },
-    {
-      "type": "file.write",
       "label": "Add Nuxt TypeScript sample test",
-      "path": "app/pages/index.test.ts",
+      "path": "app/pages/index.dom.test.ts",
       "when": {
         "all": [
           "vitest",
+          "vitestJsdom",
           "typescript",
           {
             "not": {
@@ -312,10 +241,11 @@
     {
       "type": "file.write",
       "label": "Add Nuxt TypeScript sample test",
-      "path": "pages/index.test.ts",
+      "path": "pages/index.dom.test.ts",
       "when": {
         "all": [
           "vitest",
+          "vitestJsdom",
           "typescript",
           {
             "value": "NUXT_FLAT"
@@ -327,10 +257,11 @@
     {
       "type": "file.write",
       "label": "Add Nuxt JavaScript sample test",
-      "path": "app/pages/index.test.js",
+      "path": "app/pages/index.dom.test.js",
       "when": {
         "all": [
           "vitest",
+          "vitestJsdom",
           {
             "not": "typescript"
           },
@@ -346,10 +277,11 @@
     {
       "type": "file.write",
       "label": "Add Nuxt JavaScript sample test",
-      "path": "pages/index.test.js",
+      "path": "pages/index.dom.test.js",
       "when": {
         "all": [
           "vitest",
+          "vitestJsdom",
           {
             "not": "typescript"
           },

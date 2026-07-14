@@ -78,7 +78,7 @@ Use `--dry-run` first when you want to inspect planned file changes and commands
 - Node version and package manager
 - TypeScript mode: none, non-strict, strict, or preserve existing tsconfig
 - Foundation and seed version
-- Features such as Prettier, Tailwind, Vitest, optional Playwright browser testing, JSONPlaceholder types, React, Vue, router, Pinia, and ESLint
+- Features such as Prettier, Tailwind, Vitest, optional jsdom and Playwright testing, JSONPlaceholder types, React, Vue, router, Pinia, and ESLint
 - License and AGENTS.md generation
 - Install, format, flake lock, and git handling
 
@@ -89,7 +89,7 @@ scaffold --foundation --help
 scaffold help --seed-version
 ```
 
-`--vitest-browser` adds Playwright browser tests and implies `--vitest`.
+Vitest uses Node by default. `--vitest-jsdom` adds `*.dom.test.*` tests, while `--vitest-browser` adds Playwright `*.browser.test.*` tests. Both imply `--vitest` and can be combined.
 
 ## Project Files
 

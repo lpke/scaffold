@@ -395,35 +395,10 @@
     },
     {
       "type": "file.write",
-      "label": "Add React TypeScript Vitest config",
-      "path": "vitest.config.mts",
-      "unless": "vitestBrowser",
-      "when": {
-        "all": ["vitest", "typescript"]
-      },
-      "content": "import babel from '@rolldown/plugin-babel';\nimport react, { reactCompilerPreset } from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],\n  resolve: { tsconfigPaths: true },\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n    setupFiles: ['src/setupTests.ts'],\n  },\n});\n"
-    },
-    {
-      "type": "file.write",
-      "label": "Add React JavaScript Vitest config",
-      "path": "vitest.config.mts",
-      "unless": "vitestBrowser",
-      "when": {
-        "all": [
-          "vitest",
-          {
-            "not": "typescript"
-          }
-        ]
-      },
-      "content": "import babel from '@rolldown/plugin-babel';\nimport react, { reactCompilerPreset } from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],\n  test: {\n    environment: 'jsdom',\n    globals: true,\n    include: ['src/**/*.test.{js,jsx}'],\n    setupFiles: ['src/setupTests.js'],\n  },\n});\n"
-    },
-    {
-      "type": "file.write",
       "label": "Add React TypeScript test setup",
       "path": "src/setupTests.ts",
       "when": {
-        "all": ["vitest", "typescript"]
+        "all": ["vitest", "vitestJsdom", "typescript"]
       },
       "template": "seeded/react-vite/tests/setupTests.ts"
     },
@@ -434,6 +409,7 @@
       "when": {
         "all": [
           "vitest",
+          "vitestJsdom",
           {
             "not": "typescript"
           }
@@ -444,19 +420,20 @@
     {
       "type": "file.write",
       "label": "Add React Router TypeScript sample test",
-      "path": "src/App.test.tsx",
+      "path": "src/App.dom.test.tsx",
       "when": {
-        "all": ["vitest", "router", "typescript"]
+        "all": ["vitest", "vitestJsdom", "router", "typescript"]
       },
       "template": "seeded/react-vite/tests/App.router.test.tsx"
     },
     {
       "type": "file.write",
       "label": "Add React Router JavaScript sample test",
-      "path": "src/App.test.jsx",
+      "path": "src/App.dom.test.jsx",
       "when": {
         "all": [
           "vitest",
+          "vitestJsdom",
           "router",
           {
             "not": "typescript"
@@ -468,10 +445,11 @@
     {
       "type": "file.write",
       "label": "Add React TypeScript sample test",
-      "path": "src/App.test.tsx",
+      "path": "src/App.dom.test.tsx",
       "when": {
         "all": [
           "vitest",
+          "vitestJsdom",
           "typescript",
           {
             "not": "router"
@@ -483,10 +461,11 @@
     {
       "type": "file.write",
       "label": "Add React JavaScript sample test",
-      "path": "src/App.test.jsx",
+      "path": "src/App.dom.test.jsx",
       "when": {
         "all": [
           "vitest",
+          "vitestJsdom",
           {
             "not": "typescript"
           },

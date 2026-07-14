@@ -25,7 +25,8 @@ for flag in \
   --prettier --no-prettier --tailwind --no-tailwind --typescript --no-typescript --strict \
   --nuxt-offline --nuxt-prefer-offline \
   --non-strict --preserve-ts --vite --no-vite --no-feature-prompts --dev-server \
-  --no-dev-server --dev-port --vitest --no-vitest --vitest-browser --no-vitest-browser \
+  --no-dev-server --dev-port --vitest --no-vitest --vitest-jsdom --no-vitest-jsdom \
+  --vitest-browser --no-vitest-browser \
   --jsonplaceholder-types --no-jsonplaceholder-types --react \
   --no-react --vue --no-vue --jsx --no-jsx --router --no-router \
   --pinia --no-pinia --eslint --no-eslint --linter --no-linter \
@@ -50,7 +51,7 @@ const { buildSeedCommand } = require('./src/foundations');
 const { applySeededFoundationOverrides } = require('./src/override-pass');
 const { resolveTypescriptAnswers } = require('./src/prompt-features');
 const { applyJsonplaceholderTypes, applyPackageJson } = require('./src/project');
-const { applyVitestBrowser } = require('./src/vitest-browser');
+const { applyVitest } = require('./src/vitest');
 const { Workspace } = require('./src/workspace');
 const { applyActionManifest, applyActions } = require('./src/helpers/actions');
 
@@ -103,6 +104,8 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   });
   assert.deepEqual(command.args.slice(-4), ['--', '--template', 'react-ts', '--no-interactive']);
   assert.equal(parseArgs(['--foundation', 'react-vite', '--router']).router, true);
+  assert.equal(parseArgs(['--vitest-jsdom']).vitestJsdom, true);
+  assert.equal(parseArgs(['--no-vitest-jsdom']).vitestJsdom, false);
   assert.equal(parseArgs(['--vitest-browser']).vitestBrowser, true);
   assert.equal(parseArgs(['--no-vitest-browser']).vitestBrowser, false);
   assert.equal(parseArgs(['--jsonplaceholder-types']).jsonplaceholderTypes, true);
@@ -355,24 +358,31 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
       backup: false,
       force: false,
     });
+    const answers = {
+      foundation: 'nuxt',
+      seedVersion,
+      typescript: true,
+      tailwind: false,
+      vitest: true,
+      vitestJsdom: false,
+      vitestBrowser: false,
+      react: false,
+      vue: true,
+      vite: false,
+    };
     await applySeededFoundationOverrides({
       workspace,
       seedRun: { foundation: 'nuxt' },
-      answers: {
-        foundation: 'nuxt',
-        seedVersion,
-        typescript: true,
-        tailwind: false,
-        vitest: true,
-      },
+      answers,
     });
+    await applyVitest({ workspace, answers, seedRun: { foundation: 'nuxt' } });
     assert.equal(fs.existsSync(path.join(tmp, 'app.vue')), flat);
     assert.equal(fs.existsSync(path.join(tmp, 'pages', 'index.vue')), flat);
     assert.equal(fs.existsSync(path.join(tmp, 'assets', 'css', 'main.css')), flat);
     assert.equal(fs.existsSync(path.join(tmp, 'app', 'app.vue')), !flat);
     assert.equal(fs.existsSync(path.join(tmp, 'app', 'pages', 'index.vue')), !flat);
     const vitestConfig = fs.readFileSync(path.join(tmp, 'vitest.config.mts'), 'utf8');
-    assert(vitestConfig.includes(flat ? "include: ['pages/**/*.test.ts']" : "include: ['app/**/*.test.ts']"));
+    assert(vitestConfig.includes(flat ? "include: ['pages/**/*.test.ts']" : "include: ['app/pages/**/*.test.ts']"));
     const tsconfig = JSON.parse(fs.readFileSync(path.join(tmp, 'tsconfig.json'), 'utf8'));
     assert.equal(tsconfig.extends, './.nuxt/tsconfig.json');
     assert.deepEqual(tsconfig.compilerOptions.types, ['node', 'vitest/globals']);
@@ -446,6 +456,7 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
       router: true,
       pinia: true,
       vitest: true,
+      vitestJsdom: true,
       eslint: true,
       prettier: true,
     },
@@ -458,6 +469,19 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
   assert.equal(command.args[2], 'vue@latest');
   assert.equal(command.args[3], '--');
   assert.equal(command.args[command.args.length - 1], '/tmp/scaffold-vue');
+
+  command = buildSeedCommand({
+    answers: {
+      foundation: 'vue-vite',
+      seedVersion: 'latest',
+      typescript: true,
+      vitest: true,
+      vitestJsdom: false,
+    },
+    config,
+    targetDir: '/tmp/scaffold-vue-node',
+  });
+  assert(!command.args.includes('--vitest'));
 
   await assertViteSeedPortScripts({ foundation: 'vue-vite', react: false, vue: true });
 
@@ -517,6 +541,34 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
       unitPattern: 'src/**/*.test.js',
     },
     {
+      name: 'owned-react-js-no-vite',
+      answers: { foundation: 'owned', typescript: false, react: true, vue: false, vite: false },
+      configPath: 'vitest.config.mts',
+      root: 'src',
+      unitPattern: 'src/**/*.test.{js,jsx}',
+    },
+    {
+      name: 'owned-vue-ts',
+      answers: { foundation: 'owned', typescript: true, react: false, vue: true, vite: true },
+      configPath: 'vitest.config.mts',
+      root: 'src',
+      unitPattern: 'src/**/*.test.ts',
+    },
+    {
+      name: 'owned-vue-js-no-vite',
+      answers: { foundation: 'owned', typescript: false, react: false, vue: true, vite: false },
+      configPath: 'vitest.config.mts',
+      root: 'src',
+      unitPattern: 'src/**/*.test.js',
+    },
+    {
+      name: 'owned-vanilla-vite-ts',
+      answers: { foundation: 'owned', typescript: true, react: false, vue: false, vite: true },
+      configPath: 'vitest.config.mts',
+      root: 'src',
+      unitPattern: 'src/**/*.test.ts',
+    },
+    {
       name: 'next-ts',
       answers: { foundation: 'next', typescript: true, react: true, vue: false, vite: false },
       configPath: 'vitest.config.mts',
@@ -574,29 +626,81 @@ const { applyActionManifest, applyActions } = require('./src/helpers/actions');
     },
   ];
 
+  const environmentChoices = [
+    { name: 'none', vitestJsdom: false, vitestBrowser: false },
+    { name: 'jsdom', vitestJsdom: true, vitestBrowser: false },
+    { name: 'playwright', vitestJsdom: false, vitestBrowser: true },
+    { name: 'both', vitestJsdom: true, vitestBrowser: true },
+  ];
+
   for (const browserCase of browserCases) {
-    const target = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-browser-${browserCase.name}-`));
-    const workspace = new Workspace({ targetDir: target, dryRun: false, backup: false, force: false });
-    const answers = { ...browserCase.answers, vitest: true, vitestBrowser: true };
-    await applyVitestBrowser(workspace, answers);
-    const configText = fs.readFileSync(path.join(target, browserCase.configPath), 'utf8');
-    assert(configText.includes("name: 'unit'"), browserCase.name);
-    assert(configText.includes("name: 'browser'"), browserCase.name);
-    assert(configText.includes('provider: playwright()'), browserCase.name);
-    assert(configText.includes(`include: ['${browserCase.unitPattern}']`), browserCase.name);
-    const extension = answers.typescript ? 'ts' : 'js';
-    assert(fs.existsSync(path.join(target, browserCase.root, `browser.browser.test.${extension}`)));
+    for (const choice of environmentChoices) {
+      const caseName = `${browserCase.name}-${choice.name}`;
+      const target = fs.mkdtempSync(path.join(os.tmpdir(), `scaffold-vitest-${caseName}-`));
+      const workspace = new Workspace({ targetDir: target, dryRun: false, backup: false, force: false });
+      const answers = { ...browserCase.answers, ...choice, vitest: true };
+      await applyVitest({ workspace, answers });
+      const configText = fs.readFileSync(path.join(target, browserCase.configPath), 'utf8');
+      assert(configText.includes("name: 'node'"), caseName);
+      assert(configText.includes(`include: ['${browserCase.unitPattern}']`), caseName);
+      assert.equal(configText.includes("name: 'dom'"), choice.vitestJsdom, caseName);
+      assert.equal(configText.includes("environment: 'jsdom'"), choice.vitestJsdom, caseName);
+      assert.equal(configText.includes("name: 'browser'"), choice.vitestBrowser, caseName);
+      assert.equal(configText.includes('provider: playwright()'), choice.vitestBrowser, caseName);
+      const extension = answers.typescript ? 'ts' : 'js';
+      assert.equal(
+        fs.existsSync(path.join(target, browserCase.root, `vitest.dom.test.${extension}`)),
+        choice.vitestJsdom,
+        caseName,
+      );
+      assert.equal(
+        fs.existsSync(path.join(target, browserCase.root, `vitest.browser.test.${extension}`)),
+        choice.vitestBrowser,
+        caseName,
+      );
+    }
   }
 
-  const noBrowserTarget = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-no-browser-'));
-  const noBrowserWorkspace = new Workspace({
-    targetDir: noBrowserTarget,
+  const noVitestTarget = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-no-vitest-'));
+  const noVitestWorkspace = new Workspace({
+    targetDir: noVitestTarget,
     dryRun: false,
     backup: false,
     force: false,
   });
-  await applyVitestBrowser(noBrowserWorkspace, { vitestBrowser: false });
-  assert.deepEqual(fs.readdirSync(noBrowserTarget), []);
+  await applyVitest({ workspace: noVitestWorkspace, answers: { vitest: false } });
+  assert.deepEqual(fs.readdirSync(noVitestTarget), []);
+
+  const vueSeedTestTarget = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-vue-seed-tests-'));
+  fs.mkdirSync(path.join(vueSeedTestTarget, 'src/components/__tests__'), { recursive: true });
+  fs.mkdirSync(path.join(vueSeedTestTarget, 'src/features'), { recursive: true });
+  fs.writeFileSync(path.join(vueSeedTestTarget, 'src/components/__tests__/HelloWorld.spec.ts'), 'first\n');
+  fs.writeFileSync(path.join(vueSeedTestTarget, 'src/features/example.test.ts'), 'second\n');
+  const vueSeedTestWorkspace = new Workspace({
+    targetDir: vueSeedTestTarget,
+    dryRun: false,
+    backup: true,
+    force: false,
+  });
+  await applyVitest({
+    workspace: vueSeedTestWorkspace,
+    seedRun: { foundation: 'vue-vite' },
+    answers: {
+      foundation: 'vue-vite',
+      typescript: true,
+      react: false,
+      vue: true,
+      vite: true,
+      vitest: true,
+      vitestJsdom: true,
+      vitestBrowser: false,
+    },
+  });
+  assert(fs.existsSync(path.join(vueSeedTestTarget, 'src/components/__tests__/HelloWorld.dom.test.ts')));
+  assert(fs.existsSync(path.join(vueSeedTestTarget, 'src/features/example.dom.test.ts')));
+  assert(!fs.existsSync(path.join(vueSeedTestTarget, 'src/components/__tests__/HelloWorld.spec.ts')));
+  assert(!fs.existsSync(path.join(vueSeedTestTarget, 'src/features/example.test.ts')));
+  assert(!fs.readdirSync(vueSeedTestTarget, { recursive: true }).some((entry) => entry.includes('.scaffold-backup')));
 
   const actionTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffold-actions-'));
   const workspace = new Workspace({
@@ -744,6 +848,7 @@ bin/scaffold "$tmp/app" \
   --typescript \
   --react \
   --vitest \
+  --vitest-jsdom \
   --vitest-browser \
   --license \
   --agents >/dev/null
@@ -753,17 +858,23 @@ grep -Fx '# app' "$tmp/app/README.md" >/dev/null
 grep -Fx '## License' "$tmp/app/README.md" >/dev/null
 test -f "$tmp/app/AGENTS.md"
 test -f "$tmp/app/LICENSE"
+grep -F -- '- jsdom tests' "$tmp/app/AGENTS.md" >/dev/null
+grep -F -- '- Playwright browser testing with Chromium' "$tmp/app/AGENTS.md" >/dev/null
 test -f "$tmp/app/src/App.tsx"
-test -f "$tmp/app/src/browser.browser.test.ts"
+test -f "$tmp/app/src/App.dom.test.tsx"
+test -f "$tmp/app/src/vitest.test.ts"
+test -f "$tmp/app/src/vitest.browser.test.ts"
+grep -F "name: 'node'" "$tmp/app/vitest.config.mts" >/dev/null
+grep -F "name: 'dom'" "$tmp/app/vitest.config.mts" >/dev/null
 grep -F "provider: playwright()" "$tmp/app/vitest.config.mts" >/dev/null
 grep -F 'pkgs.playwright-driver.browsers' "$tmp/app/flake.nix" >/dev/null
 grep -F 'PLAYWRIGHT_BROWSERS_PATH' "$tmp/app/flake.nix" >/dev/null
 node -e '
   const pkg = require(process.argv[1]);
-  if (!pkg.devDependencies["@vitest/browser-playwright"] || pkg.devDependencies.playwright !== "1.59.1") {
+  if (!pkg.devDependencies.jsdom || !pkg.devDependencies["@vitest/browser-playwright"] || pkg.devDependencies.playwright !== "1.59.1") {
     process.exit(1);
   }
-  if (pkg.scripts["test:unit"] !== "vitest run --project unit" || pkg.scripts["test:browser"] !== "vitest run --project browser") {
+  if (pkg.scripts["test:node"] !== "vitest run --project node" || pkg.scripts["test:dom"] !== "vitest run --project dom" || pkg.scripts["test:browser"] !== "vitest run --project browser") {
     process.exit(1);
   }
   if (pkg.scripts["playwright:install"] !== "playwright install chromium") process.exit(1);
@@ -771,26 +882,89 @@ node -e '
 test -x "$tmp/app/.flake.local/bin/example"
 "$tmp/app/.flake.local/bin/example" | grep -Fx "app example!" >/dev/null
 
-bin/scaffold "$tmp/unit-only" \
+bin/scaffold "$tmp/node-only" \
   --yes \
   --no-direnv \
   --no-flake-lock \
   --no-install \
   --git skip \
-  --vitest \
-  --no-vitest-browser >/dev/null
+  --no-typescript \
+  --vitest >/dev/null
 
-test ! -e "$tmp/unit-only/src/browser.browser.test.js"
-test ! -e "$tmp/unit-only/src/browser.browser.test.ts"
-! grep -F "provider: playwright()" "$tmp/unit-only/vitest.config.mts" >/dev/null
-! grep -F 'playwright-driver' "$tmp/unit-only/flake.nix" >/dev/null
-! grep -F 'PLAYWRIGHT_BROWSERS_PATH' "$tmp/unit-only/flake.nix" >/dev/null
+test -f "$tmp/node-only/src/index.test.js"
+test ! -e "$tmp/node-only/src/vitest.dom.test.js"
+test ! -e "$tmp/node-only/src/vitest.browser.test.js"
+grep -F "name: 'node'" "$tmp/node-only/vitest.config.mts" >/dev/null
+! grep -F "name: 'dom'" "$tmp/node-only/vitest.config.mts" >/dev/null
+! grep -F "provider: playwright()" "$tmp/node-only/vitest.config.mts" >/dev/null
+! grep -F 'playwright-driver' "$tmp/node-only/flake.nix" >/dev/null
+! grep -F 'PLAYWRIGHT_BROWSERS_PATH' "$tmp/node-only/flake.nix" >/dev/null
 node -e '
   const pkg = require(process.argv[1]);
-  if (pkg.devDependencies.playwright || pkg.devDependencies["@vitest/browser-playwright"]) {
+  if (pkg.devDependencies.jsdom || pkg.devDependencies.playwright || pkg.devDependencies["@vitest/browser-playwright"]) {
     process.exit(1);
   }
-' "$tmp/unit-only/package.json"
+' "$tmp/node-only/package.json"
+
+bin/scaffold "$tmp/jsdom-only" \
+  --yes \
+  --no-nix \
+  --no-install \
+  --git skip \
+  --no-typescript \
+  --vitest-jsdom \
+  --no-vitest-browser >/dev/null
+
+test -f "$tmp/jsdom-only/src/vitest.dom.test.js"
+test ! -e "$tmp/jsdom-only/src/vitest.browser.test.js"
+grep -F "name: 'dom'" "$tmp/jsdom-only/vitest.config.mts" >/dev/null
+! grep -F "provider: playwright()" "$tmp/jsdom-only/vitest.config.mts" >/dev/null
+node -e '
+  const pkg = require(process.argv[1]);
+  if (!pkg.devDependencies.jsdom) process.exit(1);
+  if (pkg.devDependencies.playwright || pkg.devDependencies["@vitest/browser-playwright"]) process.exit(1);
+  if (pkg.scripts["test:dom"] !== "vitest run --project dom") process.exit(1);
+' "$tmp/jsdom-only/package.json"
+
+bin/scaffold "$tmp/playwright-only" \
+  --yes \
+  --no-nix \
+  --no-install \
+  --git skip \
+  --no-typescript \
+  --no-vitest-jsdom \
+  --vitest-browser >/dev/null
+
+test ! -e "$tmp/playwright-only/src/vitest.dom.test.js"
+test -f "$tmp/playwright-only/src/vitest.browser.test.js"
+grep -F "name: 'browser'" "$tmp/playwright-only/vitest.config.mts" >/dev/null
+node -e '
+  const pkg = require(process.argv[1]);
+  if (!pkg.devDependencies.vitest || !pkg.devDependencies["@vitest/browser-playwright"]) process.exit(1);
+  if (pkg.devDependencies.jsdom) process.exit(1);
+' "$tmp/playwright-only/package.json"
+
+mkdir -p "$tmp/overlay/src"
+printf '%s\n' '{"name":"overlay","type":"module","packageManager":"npm@11.6.2","scripts":{"custom":"keep"}}' >"$tmp/overlay/package.json"
+printf 'keep\n' >"$tmp/overlay/src/existing.js"
+bin/scaffold "$tmp/overlay" \
+  --yes \
+  --no-nix \
+  --no-install \
+  --git skip \
+  --no-backup \
+  --no-typescript \
+  --no-prettier \
+  --vitest-jsdom \
+  --no-vitest-browser >/dev/null
+
+grep -Fx 'keep' "$tmp/overlay/src/existing.js" >/dev/null
+test -f "$tmp/overlay/src/index.test.js"
+test -f "$tmp/overlay/src/vitest.dom.test.js"
+node -e '
+  const pkg = require(process.argv[1]);
+  if (pkg.scripts.custom !== "keep" || !pkg.devDependencies.jsdom) process.exit(1);
+' "$tmp/overlay/package.json"
 
 if bin/scaffold "$tmp/invalid-browser" \
   --yes \
@@ -801,6 +975,18 @@ if bin/scaffold "$tmp/invalid-browser" \
   --vitest-browser >/dev/null 2>&1
 then
   echo '--vitest-browser unexpectedly accepted with --no-vitest' >&2
+  exit 1
+fi
+
+if bin/scaffold "$tmp/invalid-jsdom" \
+  --yes \
+  --no-nix \
+  --no-install \
+  --git skip \
+  --no-vitest \
+  --vitest-jsdom >/dev/null 2>&1
+then
+  echo '--vitest-jsdom unexpectedly accepted with --no-vitest' >&2
   exit 1
 fi
 
@@ -820,6 +1006,7 @@ if command -v git >/dev/null 2>&1; then
     --no-agents \
     --no-license \
     --no-install \
+    --no-commit-overrides \
     --git replace >/dev/null
 
   grep -Fx '# replace' "$tmp/replace/README.md" >/dev/null

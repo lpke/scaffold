@@ -147,6 +147,10 @@ const dependencySet = (answers, config) => {
     addDev('tailwindcss');
   }
 
+  if (answers.vitestJsdom) {
+    addDev('jsdom');
+  }
+
   if (answers.vitestBrowser) {
     addDev('@vitest/browser-playwright');
     devDeps.playwright = config.nodeTargets[answers.nodeMajor].playwrightVersion;
@@ -168,7 +172,6 @@ const dependencySet = (answers, config) => {
       }
       if (isNuxtFoundation(answers.foundation)) {
         addDev('@vitejs/plugin-vue');
-        addDev('jsdom');
       }
     }
     if (answers.typescript) {
@@ -221,12 +224,13 @@ const dependencySet = (answers, config) => {
   if (answers.vitest) {
     addDev('vitest');
     if (answers.vite || answers.react || answers.vue) {
-      addDev('jsdom');
       if (answers.react) {
         addDev('@vitejs/plugin-react');
-        addDev('@testing-library/jest-dom');
-        addDev('@testing-library/react');
-        addDev('@testing-library/user-event');
+        if (answers.vitestJsdom) {
+          addDev('@testing-library/jest-dom');
+          addDev('@testing-library/react');
+          addDev('@testing-library/user-event');
+        }
       }
       if (answers.vue) {
         addDev('@vitejs/plugin-vue');
@@ -288,6 +292,21 @@ const typecheckScript = async ({ workspace, answers, existingPackage }) => {
   return fallbackSeedTypecheckScript(answers) ?? TSC_TYPECHECK;
 };
 
+const addVitestScripts = (scripts, answers) => {
+  scripts.test = 'vitest run';
+  scripts['test:watch'] = 'vitest';
+  if (answers.vitestJsdom || answers.vitestBrowser) {
+    scripts['test:node'] = 'vitest run --project node';
+  }
+  if (answers.vitestJsdom) {
+    scripts['test:dom'] = 'vitest run --project dom';
+  }
+  if (answers.vitestBrowser) {
+    scripts['test:browser'] = 'vitest run --project browser';
+    scripts['playwright:install'] = 'playwright install chromium';
+  }
+};
+
 const scriptSet = async ({ workspace, answers, existingPackage }) => {
   const scripts = {};
   const typecheck = await typecheckScript({ workspace, answers, existingPackage });
@@ -306,13 +325,7 @@ const scriptSet = async ({ workspace, answers, existingPackage }) => {
       scripts.typecheck = typecheck;
     }
     if (answers.vitest) {
-      scripts.test = 'vitest run';
-      scripts['test:watch'] = 'vitest';
-      if (answers.vitestBrowser) {
-        scripts['test:unit'] = 'vitest run --project unit';
-        scripts['test:browser'] = 'vitest run --project browser';
-        scripts['playwright:install'] = 'playwright install chromium';
-      }
+      addVitestScripts(scripts, answers);
     }
     return scripts;
   }
@@ -334,13 +347,7 @@ const scriptSet = async ({ workspace, answers, existingPackage }) => {
   }
 
   if (answers.vitest) {
-    scripts.test = 'vitest run';
-    scripts['test:watch'] = 'vitest';
-    if (answers.vitestBrowser) {
-      scripts['test:unit'] = 'vitest run --project unit';
-      scripts['test:browser'] = 'vitest run --project browser';
-      scripts['playwright:install'] = 'playwright install chromium';
-    }
+    addVitestScripts(scripts, answers);
   }
 
   return scripts;
@@ -350,29 +357,6 @@ const viteProjectTitle = (answers) => {
   if (answers.react) return 'React + Vite';
   if (answers.vue) return 'Vue + Vite';
   return 'Vite';
-};
-
-const vitestPluginConfig = (answers) => {
-  if (answers.react) {
-    if (answers.vite) {
-      return {
-        import:
-          "import babel from '@rolldown/plugin-babel';\nimport react, { reactCompilerPreset } from '@vitejs/plugin-react';\n",
-        block: '  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],\n',
-      };
-    }
-    return {
-      import: "import react from '@vitejs/plugin-react';\n",
-      block: '  plugins: [react()],\n',
-    };
-  }
-  if (answers.vue) {
-    return {
-      import: "import vue from '@vitejs/plugin-vue';\n",
-      block: '  plugins: [vue()],\n',
-    };
-  }
-  return { import: '', block: '' };
 };
 
 const applyPackageJson = async ({ workspace, answers, existingPackage, config }) => {
@@ -411,10 +395,15 @@ const applyPackageJson = async ({ workspace, answers, existingPackage, config })
   pkg.scripts ??= {};
   const scripts = await scriptSet({ workspace, answers, existingPackage });
   mergeObjectDefaults(pkg.scripts, scripts);
-  if (answers.vitestBrowser) {
-    pkg.scripts['test:unit'] = scripts['test:unit'];
-    pkg.scripts['test:browser'] = scripts['test:browser'];
-    pkg.scripts['playwright:install'] = scripts['playwright:install'];
+  if (answers.vitestJsdom || answers.vitestBrowser) {
+    pkg.scripts['test:node'] = scripts['test:node'];
+    if (answers.vitestJsdom) {
+      pkg.scripts['test:dom'] = scripts['test:dom'];
+    }
+    if (answers.vitestBrowser) {
+      pkg.scripts['test:browser'] = scripts['test:browser'];
+      pkg.scripts['playwright:install'] = scripts['playwright:install'];
+    }
   }
   if (
     (isOwnedFoundation(answers.foundation) || isViteSeed(answers.foundation)) &&
@@ -606,8 +595,8 @@ const applyTypescriptConfig = async (workspace, answers) => {
   }
   const template = answers.vite
     ? 'shared/typescript/tsconfig.vite.json'
-    : answers.vitestBrowser
-      ? 'shared/typescript/tsconfig.node-browser.json'
+    : answers.vitestJsdom || answers.vitestBrowser
+      ? 'shared/typescript/tsconfig.node-web.json'
       : 'shared/typescript/tsconfig.node.json';
   await workspace.copyTemplate(template, 'tsconfig.json', { overwrite: false });
 };
@@ -742,93 +731,47 @@ const applyOwnedFoundationTemplates = async (workspace, answers) => {
       'src/style.css',
     );
 
-    if (answers.vitest) {
+    if (answers.vitestJsdom) {
       const setupExt = answers.typescript ? 'ts' : 'js';
-      const setupFiles = answers.react
-        ? `    setupFiles: ['src/setupTests.${setupExt}'],\n`
-        : '';
-      const pluginConfig = vitestPluginConfig(answers);
-      if (!answers.vitestBrowser) {
-        await workspace.write(
-          'vitest.config.mts',
-          await renderAsset('templates/owned/vite/vitest.config.mts.tmpl', {
-            VITEST_ENVIRONMENT: 'jsdom',
-            TEST_EXTENSIONS: answers.typescript
-              ? answers.react
-                ? '{ts,tsx}'
-                : 'ts'
-              : answers.react
-                ? '{js,jsx}'
-                : 'js',
-            SETUP_FILES: setupFiles,
-            VITEST_PLUGIN_IMPORT: pluginConfig.import,
-            VITEST_PLUGIN_BLOCK: pluginConfig.block,
-          }),
-        );
-      }
       if (answers.react) {
         await workspace.copyTemplate(`owned/vite/setupTests.${setupExt}`, `src/setupTests.${setupExt}`);
         await workspace.copyTemplate(
           `owned/tests/react/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
-          `src/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
+          `src/App.dom.test.${answers.typescript ? 'tsx' : 'jsx'}`,
         );
       } else if (answers.vue) {
         await workspace.copyTemplate(
           `owned/tests/vue/App.test.${answers.typescript ? 'ts' : 'js'}`,
-          `src/App.test.${answers.typescript ? 'ts' : 'js'}`,
+          `src/App.dom.test.${answers.typescript ? 'ts' : 'js'}`,
         );
       } else {
         await workspace.copyTemplate(
           `owned/tests/vanilla/main.test.${answers.typescript ? 'ts' : 'js'}`,
-          `src/main.test.${answers.typescript ? 'ts' : 'js'}`,
+          `src/main.dom.test.${answers.typescript ? 'ts' : 'js'}`,
         );
       }
     }
     return;
   }
 
-  if (answers.vitest && !answers.vitestBrowser) {
-    const setupExt = answers.typescript ? 'ts' : 'js';
-    const setupFiles = answers.react
-      ? `    setupFiles: ['src/setupTests.${setupExt}'],\n`
-      : '';
-    const pluginConfig = vitestPluginConfig(answers);
-    await workspace.write(
-      'vitest.config.mts',
-      await renderAsset('templates/owned/vite/vitest.config.mts.tmpl', {
-        VITEST_ENVIRONMENT: answers.react || answers.vue ? 'jsdom' : 'node',
-        TEST_EXTENSIONS: answers.typescript
-          ? answers.react
-            ? '{ts,tsx}'
-            : 'ts'
-          : answers.react
-            ? '{js,jsx}'
-            : 'js',
-        SETUP_FILES: setupFiles,
-        VITEST_PLUGIN_IMPORT: pluginConfig.import,
-        VITEST_PLUGIN_BLOCK: pluginConfig.block,
-      }),
-    );
-  }
-
   if (answers.react) {
     await workspace.copyTemplateDir(`owned/react-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
-    if (answers.vitest) {
+    if (answers.vitestJsdom) {
       const setupExt = answers.typescript ? 'ts' : 'js';
       await workspace.copyTemplate(`owned/vite/setupTests.${setupExt}`, `src/setupTests.${setupExt}`);
       await workspace.copyTemplate(
         `owned/tests/react/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
-        `src/App.test.${answers.typescript ? 'tsx' : 'jsx'}`,
+        `src/App.dom.test.${answers.typescript ? 'tsx' : 'jsx'}`,
       );
     }
     return;
   }
   if (answers.vue) {
     await workspace.copyTemplateDir(`owned/vue-${answers.typescript ? 'ts' : 'js'}/src`, 'src');
-    if (answers.vitest) {
+    if (answers.vitestJsdom) {
       await workspace.copyTemplate(
         `owned/tests/vue/App.test.${answers.typescript ? 'ts' : 'js'}`,
-        `src/App.test.${answers.typescript ? 'ts' : 'js'}`,
+        `src/App.dom.test.${answers.typescript ? 'ts' : 'js'}`,
       );
     }
     return;

@@ -154,6 +154,7 @@ const inferDependentOptions = (opts, { interactive }) => {
     [opts.devServer === true, '--dev-server'],
     [opts.devPort != null, '--dev-port'],
     [opts.vitest === true, '--vitest'],
+    [opts.vitestJsdom === true, '--vitest-jsdom'],
     [opts.vitestBrowser === true, '--vitest-browser'],
     [opts.react === true, '--react'],
     [opts.vue === true, '--vue'],
@@ -215,9 +216,13 @@ const inferDependentOptions = (opts, { interactive }) => {
     }
     inferred.typescript = true;
   }
-  if (opts.vitestBrowser === true) {
+  const vitestEnvironmentFlag = [
+    [opts.vitestJsdom === true, '--vitest-jsdom'],
+    [opts.vitestBrowser === true, '--vitest-browser'],
+  ].find(([enabled]) => enabled);
+  if (vitestEnvironmentFlag) {
     if (opts.vitest === false) {
-      throw new Error('--vitest-browser requires --vitest');
+      throw new Error(`${vitestEnvironmentFlag[1]} requires --vitest`);
     }
     inferred.vitest = true;
   }
@@ -346,6 +351,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
         opts.jsonplaceholderTypes ||
         opts.vite ||
         opts.vitest ||
+        opts.vitestJsdom ||
         opts.vitestBrowser ||
         opts.vue ||
         opts.jsx ||
@@ -386,20 +392,35 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
       ];
 
       if (answers.nodeProject) {
-        const vitestBrowserStep = {
-          keys: ['vitestBrowser'],
-          backStop: Boolean(rl && answers.vitest && opts.vitestBrowser == null),
-          run: async () => ({
-            vitestBrowser: answers.vitest
-              ? await boolChoice(
-                  rl,
-                  opts,
-                  'vitestBrowser',
-                  'Browser tests with Playwright?',
-                  false,
-                )
-              : false,
-          }),
+        const vitestEnvironmentStep = {
+          keys: ['vitestJsdom', 'vitestBrowser'],
+          backStop: Boolean(
+            rl &&
+              answers.vitest &&
+              (opts.vitestJsdom == null || opts.vitestBrowser == null),
+          ),
+          run: async () => {
+            if (!answers.vitest) {
+              return { vitestJsdom: false, vitestBrowser: false };
+            }
+            const selected = await featureSet(
+              rl,
+              opts,
+              'Select additional Vitest environments:',
+              [
+                { key: 'vitestJsdom', label: 'jsdom', hint: '*.dom.test.*' },
+                {
+                  key: 'vitestBrowser',
+                  label: 'Playwright',
+                  hint: '*.browser.test.* with Chromium',
+                },
+              ],
+            );
+            return {
+              vitestJsdom: Boolean(selected.vitestJsdom),
+              vitestBrowser: Boolean(selected.vitestBrowser),
+            };
+          },
         };
 
         steps.push(
@@ -588,7 +609,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
                 };
               },
             },
-            vitestBrowserStep,
+            vitestEnvironmentStep,
             {
               keys: ['devServer', 'devPort'],
               backStop: Boolean(rl && (opts.devServer ?? answers.vite) && opts.devPort == null),
@@ -673,7 +694,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
               };
             },
           });
-          steps.push(vitestBrowserStep);
+          steps.push(vitestEnvironmentStep);
         }
       } else if (answers.nodeProject === false) {
         steps.push({
@@ -697,6 +718,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
             'typescript',
             'vite',
             'vitest',
+            'vitestJsdom',
             'vitestBrowser',
             'vue',
           ],
@@ -721,6 +743,7 @@ const resolveAnswers = async ({ opts: rawOpts, targetDir, mode, existingPackage,
             typescript: false,
             vite: false,
             vitest: false,
+            vitestJsdom: false,
             vitestBrowser: false,
             vue: false,
           }),

@@ -181,7 +181,16 @@ Set Vite dev/preview port. Implies --vite and --dev-server for the owned foundat
     help: `Usage: scaffold [target] --vitest
        scaffold [target] --no-vitest
 
-Add Vitest scripts, dependency, config, and a sample test where supported.`,
+Add Vitest with a Node test environment, scripts, config, and a sample test.`,
+  },
+  {
+    topic: '--vitest-jsdom',
+    names: ['--vitest-jsdom', '--no-vitest-jsdom'],
+    summary: 'Use or skip Vitest jsdom testing',
+    help: `Usage: scaffold [target] --vitest-jsdom
+       scaffold [target] --no-vitest-jsdom
+
+Add a jsdom project for *.dom.test.* files. --vitest-jsdom implies --vitest.`,
   },
   {
     topic: '--vitest-browser',
@@ -190,7 +199,7 @@ Add Vitest scripts, dependency, config, and a sample test where supported.`,
     help: `Usage: scaffold [target] --vitest-browser
        scaffold [target] --no-vitest-browser
 
-Add Vitest browser testing through Playwright and Chromium. --vitest-browser implies --vitest. Non-Nix installs also install Chromium.`,
+Add a Playwright browser project for *.browser.test.* files. --vitest-browser implies --vitest. Non-Nix installs also install Chromium.`,
   },
   {
     topic: '--jsonplaceholder-types',
@@ -556,6 +565,12 @@ const parseArgs = (argv) => {
         break;
       case '--no-vitest':
         setBool('vitest', false);
+        break;
+      case '--vitest-jsdom':
+        setBool('vitestJsdom', true);
+        break;
+      case '--no-vitest-jsdom':
+        setBool('vitestJsdom', false);
         break;
       case '--vitest-browser':
         setBool('vitestBrowser', true);

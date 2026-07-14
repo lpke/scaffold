@@ -187,7 +187,7 @@
       "label": "Use aliases in Vue component test imports",
       "path": "src/components/__tests__/HelloWorld.spec.ts",
       "when": {
-        "all": ["vitest", "typescript"]
+        "all": ["vitest", "vitestJsdom", "typescript"]
       },
       "replacements": [
         {

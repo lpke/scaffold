@@ -100,7 +100,7 @@ const buildVueViteSeedCommand = ({ answers, targetDir }) => {
   if (answers.jsx) featureFlags.push('--jsx');
   if (answers.router) featureFlags.push('--router');
   if (answers.pinia) featureFlags.push('--pinia');
-  if (answers.vitest) featureFlags.push('--vitest');
+  if (answers.vitestJsdom) featureFlags.push('--vitest');
   if (answers.eslint) featureFlags.push('--eslint');
   if (answers.prettier) featureFlags.push('--prettier');
   if (featureFlags.length === 0) featureFlags.push('--default');

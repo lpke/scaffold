@@ -234,31 +234,6 @@
     },
     {
       "type": "file.write",
-      "label": "Add Next TypeScript Vitest config",
-      "path": "vitest.config.mts",
-      "unless": "vitestBrowser",
-      "when": {
-        "all": ["vitest", "typescript"]
-      },
-      "content": "import babel from '@rolldown/plugin-babel';\nimport react, { reactCompilerPreset } from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],\n  resolve: { tsconfigPaths: true },\n  test: {\n    environment: 'node',\n    globals: true,\n    include: ['src/**/*.test.{ts,tsx}'],\n  },\n});\n"
-    },
-    {
-      "type": "file.write",
-      "label": "Add Next JavaScript Vitest config",
-      "path": "vitest.config.mts",
-      "unless": "vitestBrowser",
-      "when": {
-        "all": [
-          "vitest",
-          {
-            "not": "typescript"
-          }
-        ]
-      },
-      "content": "import babel from '@rolldown/plugin-babel';\nimport react, { reactCompilerPreset } from '@vitejs/plugin-react';\nimport { defineConfig } from 'vitest/config';\n\nexport default defineConfig({\n  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],\n  test: {\n    environment: 'node',\n    globals: true,\n    include: ['src/**/*.test.{js,jsx}'],\n  },\n});\n"
-    },
-    {
-      "type": "file.write",
       "label": "Add Next TypeScript sample test",
       "path": "src/app/page.test.tsx",
       "when": {
